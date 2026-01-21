@@ -4,13 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
-import DeleteAccountDialog from '@/components/DeleteAccountDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Grid3X3, Bookmark, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
 
 interface Post {
   id: string;
@@ -199,16 +197,6 @@ const Profile = () => {
               </div>
             </TabsContent>
           </Tabs>
-
-          {/* Danger Zone */}
-          <Separator className="my-8" />
-          <div className="border border-destructive/30 rounded-lg p-4 bg-destructive/5">
-            <h3 className="font-semibold text-destructive mb-2">Danger Zone</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Once you delete your account, there is no going back. Please be certain.
-            </p>
-            <DeleteAccountDialog />
-          </div>
         </div>
       </main>
 
