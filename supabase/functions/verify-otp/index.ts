@@ -74,10 +74,23 @@ serve(async (req) => {
       .maybeSingle();
 
     const email = `${phone}@agharia.app`;
-    const password = `agharia_${phone}_secure_2024`;
+    // Generate a unique password each time for this session
+    const password = `agharia_${phone}_${Date.now()}`;
 
     if (existingProfile) {
-      // User exists - return credentials for sign in
+      // User exists - update password and return credentials
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingProfile.user_id,
+        { password: password }
+      );
+
+      if (updateError) {
+        console.error('Error updating user password:', updateError);
+        throw new Error('Failed to authenticate');
+      }
+
+      console.log(`Password updated for existing user: ${phone}`);
+
       return new Response(
         JSON.stringify({ 
           success: true,
@@ -90,12 +103,24 @@ serve(async (req) => {
       );
     }
 
-    // New user - create auth user
+    // Check if auth user exists (but no profile)
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existingAuthUser = existingUsers?.users?.find(u => u.email === email);
 
     if (existingAuthUser) {
-      // Auth user exists but no profile - return for profile creation
+      // Auth user exists but no profile - update password and return for profile creation
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingAuthUser.id,
+        { password: password }
+      );
+
+      if (updateError) {
+        console.error('Error updating user password:', updateError);
+        throw new Error('Failed to authenticate');
+      }
+
+      console.log(`Password updated for auth user without profile: ${phone}`);
+
       return new Response(
         JSON.stringify({ 
           success: true,
