@@ -30,21 +30,41 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch posts first
+      const { data: postsData, error } = await supabase
         .from('posts')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      setPosts(data || []);
+      
+      if (!postsData || postsData.length === 0) {
+        setPosts([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(postsData.map(p => p.user_id))];
+      
+      // Fetch profiles for these users
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, username, avatar_url')
+        .in('user_id', userIds);
+
+      // Create a map for quick lookup
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.user_id, p])
+      );
+
+      // Combine posts with profiles
+      const postsWithProfiles: Post[] = postsData.map(post => ({
+        ...post,
+        profiles: profilesMap.get(post.user_id) || undefined
+      }));
+
+      setPosts(postsWithProfiles);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
