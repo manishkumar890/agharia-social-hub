@@ -30,7 +30,7 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+  const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [verifyData, setVerifyData] = useState<{
     userId?: string;
     phone?: string;
@@ -60,6 +60,7 @@ const Auth = () => {
     }
 
     setIsLoading(true);
+    setDemoOtp(null);
 
     try {
       // Call the send-otp edge function
@@ -73,12 +74,12 @@ const Auth = () => {
         throw new Error(data.error);
       }
 
-      // Store the OTP for demo display
+      // If OTP returned (demo/fallback mode), show it
       if (data?.otp) {
-        setGeneratedOtp(data.otp);
+        setDemoOtp(data.otp);
       }
 
-      toast.success('OTP sent successfully!');
+      toast.success(data?.message || 'OTP sent successfully!');
       setStep('otp');
       setResendTimer(60);
     } catch (error: unknown) {
@@ -297,11 +298,11 @@ const Auth = () => {
 
             {step === 'otp' && (
               <>
-                {/* Demo OTP Display */}
-                {generatedOtp && (
+                {/* Demo OTP Display (only shown when SMS service unavailable) */}
+                {demoOtp && (
                   <div className="p-3 bg-secondary/50 rounded-lg border border-secondary text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Your OTP (Demo Mode)</p>
-                    <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{generatedOtp}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Demo OTP (SMS service not configured)</p>
+                    <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                   </div>
                 )}
 
@@ -338,7 +339,7 @@ const Auth = () => {
                     className="text-sm text-muted-foreground"
                     onClick={() => {
                       setStep('phone');
-                      setGeneratedOtp(null);
+                      setDemoOtp(null);
                       setOtp('');
                     }}
                   >
