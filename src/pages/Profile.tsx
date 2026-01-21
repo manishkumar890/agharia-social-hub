@@ -97,12 +97,19 @@ const Profile = () => {
                 <h1 className="text-xl font-semibold">
                   {profile.username || profile.full_name}
                 </h1>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/settings">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Link>
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/settings">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Link>
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="default" size="sm" asChild className="gradient-maroon text-primary-foreground">
+                      <Link to="/admin">Admin Panel</Link>
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Stats */}
