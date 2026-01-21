@@ -73,49 +73,42 @@ serve(async (req) => {
       .eq('phone', phone)
       .maybeSingle();
 
+    const email = `${phone}@agharia.app`;
+    const password = `agharia_${phone}_secure_2024`;
+
     if (existingProfile) {
-      // User exists - generate a sign in link
-      const email = `${phone}@agharia.app`;
-      
-      // Check if auth user exists
-      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = authUsers?.users?.find(u => u.email === email);
-
-      if (existingUser) {
-        // Generate magic link for existing user
-        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'magiclink',
+      // User exists - return credentials for sign in
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          isNewUser: false,
+          userId: existingProfile.user_id,
           email: email,
-        });
-
-        if (linkError) {
-          console.error('Error generating link:', linkError);
-          throw new Error('Failed to authenticate');
-        }
-
-        // Extract token from the link
-        const url = new URL(linkData.properties.action_link);
-        const token = url.searchParams.get('token');
-        const type = url.searchParams.get('type');
-
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            isNewUser: false,
-            userId: existingUser.id,
-            token: token,
-            tokenType: type,
-            email: email
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+          password: password
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // New user - create auth user
-    const email = `${phone}@agharia.app`;
-    const password = `${phone}_${Date.now()}_secure`;
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingAuthUser = existingUsers?.users?.find(u => u.email === email);
 
+    if (existingAuthUser) {
+      // Auth user exists but no profile - return for profile creation
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          isNewUser: true,
+          userId: existingAuthUser.id,
+          email: email,
+          password: password
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create new auth user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
@@ -127,29 +120,15 @@ serve(async (req) => {
       throw new Error('Failed to create account');
     }
 
-    // Generate magic link for the new user
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: email,
-    });
-
-    if (linkError) {
-      console.error('Error generating link:', linkError);
-      throw new Error('Failed to authenticate');
-    }
-
-    const url = new URL(linkData.properties.action_link);
-    const token = url.searchParams.get('token');
-    const type = url.searchParams.get('type');
+    console.log(`New user created for phone: ${phone}`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         isNewUser: true,
         userId: newUser.user.id,
-        token: token,
-        tokenType: type,
         email: email,
+        password: password,
         phone: phone
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
