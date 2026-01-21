@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, User, Settings, LogOut, Trash2 } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, User, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
+import AdminPanelDialog from '@/components/AdminPanelDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,14 +97,7 @@ const Header = () => {
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin" className="flex items-center gap-2 cursor-pointer text-primary font-medium">
-                      <Settings className="w-4 h-4" />
-                      Admin Panel
-                    </Link>
-                  </DropdownMenuItem>
-                )}
+                <AdminPanelDialog />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 cursor-pointer text-destructive">
                   <LogOut className="w-4 h-4" />
