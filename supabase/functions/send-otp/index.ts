@@ -56,14 +56,55 @@ serve(async (req) => {
       throw new Error('Failed to generate OTP');
     }
 
-    console.log(`OTP generated for +91${phone}: ${otp}`);
+    // Send OTP via 2Factor SMS API
+    const smsApiKey = Deno.env.get('SMS_API_KEY');
+    
+    if (!smsApiKey) {
+      console.error('SMS_API_KEY not configured');
+      // Return OTP for demo if SMS not configured
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'OTP generated (SMS not configured)',
+          otp: otp, // Demo mode - remove in production
+          expiresIn: 600
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Return OTP for demo purposes (in production, integrate with SMS provider)
+    // 2Factor API - Send OTP
+    // API Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp}/AUTOGEN
+    const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/${otp}/AUTOGEN`;
+    
+    const smsResponse = await fetch(smsUrl, {
+      method: 'GET',
+    });
+
+    const smsResult = await smsResponse.json();
+    console.log('2Factor SMS Response:', smsResult);
+
+    if (smsResult.Status !== 'Success') {
+      console.error('SMS sending failed:', smsResult);
+      
+      // If SMS fails, still return success but with OTP for demo
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'SMS service error. Use demo OTP.',
+          otp: otp, // Fallback demo mode
+          expiresIn: 600
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`OTP sent successfully to +91${phone}`);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'OTP generated successfully',
-        otp: otp, // Return OTP for demo - remove this in production
+        message: 'OTP sent to your mobile number',
         expiresIn: 600 // 10 minutes in seconds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
