@@ -1,0 +1,149 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
+import PostCard from '@/components/PostCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface Post {
+  id: string;
+  user_id: string;
+  image_url: string;
+  caption: string | null;
+  location: string | null;
+  created_at: string;
+  profiles?: {
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  };
+}
+
+const Home = () => {
+  const { user } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            username,
+            avatar_url
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel('posts-feed')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        () => fetchPosts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchPosts();
+  };
+
+  const handleDeletePost = (postId: string) => {
+    setPosts(posts.filter(p => p.id !== postId));
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+        <div className="max-w-lg mx-auto px-4">
+          {/* Pull to Refresh Button */}
+          <div className="flex justify-center py-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+
+          {/* Posts Feed */}
+          <div className="space-y-6">
+            {loading ? (
+              // Loading skeletons
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-card border border-border rounded-lg overflow-hidden">
+                  <div className="p-3 flex items-center gap-3">
+                    <Skeleton className="w-9 h-9 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="aspect-square w-full" />
+                  <div className="p-3 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                </div>
+              ))
+            ) : posts.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                  <RefreshCw className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="font-display text-lg font-semibold mb-2">No posts yet</h3>
+                <p className="text-muted-foreground text-sm">
+                  Be the first to share something with the community!
+                </p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  onDelete={() => handleDeletePost(post.id)} 
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+
+      <MobileNav />
+    </div>
+  );
+};
+
+export default Home;
