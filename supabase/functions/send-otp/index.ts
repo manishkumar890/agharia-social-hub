@@ -56,53 +56,14 @@ serve(async (req) => {
       throw new Error('Failed to generate OTP');
     }
 
-    // Send OTP via Twilio
-    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+    console.log(`OTP generated for +91${phone}: ${otp}`);
 
-    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      console.error('Twilio credentials not configured');
-      return new Response(
-        JSON.stringify({ error: 'SMS service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-    
-    const messageBody = `Your Agharia Samaj verification code is: ${otp}. Valid for 10 minutes.`;
-    
-    const formData = new URLSearchParams();
-    formData.append('To', `+91${phone}`);
-    formData.append('From', twilioPhoneNumber);
-    formData.append('Body', messageBody);
-
-    const twilioResponse = await fetch(twilioUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
-    });
-
-    const twilioResult = await twilioResponse.json();
-
-    if (!twilioResponse.ok) {
-      console.error('Twilio error:', twilioResult);
-      return new Response(
-        JSON.stringify({ error: 'Failed to send SMS. Please try again.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('OTP sent successfully to +91' + phone);
-
+    // Return OTP for demo purposes (in production, integrate with SMS provider)
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'OTP sent successfully',
+        message: 'OTP generated successfully',
+        otp: otp, // Return OTP for demo - remove this in production
         expiresIn: 600 // 10 minutes in seconds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

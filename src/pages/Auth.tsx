@@ -30,11 +30,9 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
   const [verifyData, setVerifyData] = useState<{
     userId?: string;
-    token?: string;
-    tokenType?: string;
-    email?: string;
     phone?: string;
   } | null>(null);
 
@@ -75,9 +73,14 @@ const Auth = () => {
         throw new Error(data.error);
       }
 
-      toast.success('OTP sent to your phone!');
+      // Store the OTP for demo display
+      if (data?.otp) {
+        setGeneratedOtp(data.otp);
+      }
+
+      toast.success('OTP sent successfully!');
       setStep('otp');
-      setResendTimer(data?.expiresIn ? Math.floor(data.expiresIn / 10) : 60);
+      setResendTimer(60);
     } catch (error: unknown) {
       console.error('OTP Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
@@ -112,60 +115,43 @@ const Auth = () => {
       }
 
       if (data?.success) {
-        setVerifyData(data);
+        setVerifyData({ userId: data.userId, phone });
         setIsNewUser(data.isNewUser);
 
-        // Use the magic link token to sign in
-        if (data.token && data.email) {
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: data.token,
-            type: data.tokenType || 'magiclink',
+        // Sign in with the provided credentials
+        if (data.email && data.password) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
           });
 
-          if (verifyError) {
-            // Try alternative sign in method
-            const { error: signInError } = await supabase.auth.signInWithOtp({
-              email: data.email,
-              options: {
-                shouldCreateUser: false,
-              }
-            });
-            
-            if (signInError) {
-              console.error('Sign in error:', signInError);
-            }
+          if (signInError) {
+            console.error('Sign in error:', signInError);
+            throw new Error('Authentication failed');
           }
+        }
 
-          // Wait a moment for auth to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Check if user is now logged in
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          
-          if (currentUser) {
-            if (data.isNewUser) {
-              setStep('profile');
-            } else {
-              // Check if profile exists
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('user_id', currentUser.id)
-                .maybeSingle();
+        // Wait for auth to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check current user
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-              if (!profile) {
-                setStep('profile');
-              } else {
-                navigate('/');
-              }
-            }
+        if (data.isNewUser || !currentUser) {
+          setStep('profile');
+        } else {
+          // Check if profile exists
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+
+          if (!profile) {
+            setStep('profile');
           } else {
-            // If still not logged in, try one more approach
-            if (data.isNewUser) {
-              setStep('profile');
-            } else {
-              toast.error('Authentication failed. Please try again.');
-            }
+            toast.success('Welcome back!');
+            navigate('/');
           }
         }
       }
@@ -220,9 +206,7 @@ const Auth = () => {
       }
 
       toast.success('Profile created successfully!');
-      
-      // Refresh to trigger auth state update
-      window.location.href = '/';
+      navigate('/');
     } catch (error: unknown) {
       console.error('Profile Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create profile';
@@ -313,6 +297,14 @@ const Auth = () => {
 
             {step === 'otp' && (
               <>
+                {/* Demo OTP Display */}
+                {generatedOtp && (
+                  <div className="p-3 bg-secondary/50 rounded-lg border border-secondary text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Your OTP (Demo Mode)</p>
+                    <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{generatedOtp}</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="otp">Enter OTP</Label>
                   <div className="relative">
@@ -344,7 +336,11 @@ const Auth = () => {
                   <Button 
                     variant="link" 
                     className="text-sm text-muted-foreground"
-                    onClick={() => setStep('phone')}
+                    onClick={() => {
+                      setStep('phone');
+                      setGeneratedOtp(null);
+                      setOtp('');
+                    }}
                   >
                     Change number
                   </Button>
