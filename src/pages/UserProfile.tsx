@@ -1,0 +1,263 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Grid3X3, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+
+interface Profile {
+  id: string;
+  user_id: string;
+  phone: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+}
+
+interface Post {
+  id: string;
+  image_url: string;
+}
+
+const UserProfile = () => {
+  const { userId } = useParams<{ userId: string }>();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const isOwnProfile = user?.id === userId;
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserData();
+    }
+  }, [userId, user]);
+
+  const fetchUserData = async () => {
+    try {
+      // Fetch profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (profileData) {
+        setProfile(profileData);
+      }
+
+      // Fetch posts
+      const { data: postsData, count: postsCount } = await supabase
+        .from('posts')
+        .select('id, image_url', { count: 'exact' })
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      setPosts(postsData || []);
+
+      // Fetch followers count
+      const { count: followersCount } = await supabase
+        .from('followers')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userId);
+
+      // Fetch following count
+      const { count: followingCount } = await supabase
+        .from('followers')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userId);
+
+      setStats({
+        posts: postsCount || 0,
+        followers: followersCount || 0,
+        following: followingCount || 0,
+      });
+
+      // Check if current user follows this user
+      if (user && userId !== user.id) {
+        const { data: followData } = await supabase
+          .from('followers')
+          .select('id')
+          .eq('follower_id', user.id)
+          .eq('following_id', userId)
+          .single();
+
+        setIsFollowing(!!followData);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!user || !userId) return;
+
+    setFollowLoading(true);
+
+    try {
+      if (isFollowing) {
+        await supabase
+          .from('followers')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', userId);
+
+        setIsFollowing(false);
+        setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
+        toast.success('Unfollowed');
+      } else {
+        await supabase
+          .from('followers')
+          .insert({
+            follower_id: user.id,
+            following_id: userId,
+          });
+
+        setIsFollowing(true);
+        setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+        toast.success('Following!');
+      }
+    } catch (error) {
+      console.error('Follow error:', error);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="pt-[calc(4rem+3.5rem)] pb-20 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+        <MobileNav />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="pt-[calc(4rem+3.5rem)] pb-20 text-center py-12">
+          <p className="text-muted-foreground">User not found</p>
+        </div>
+        <MobileNav />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {/* Profile Header */}
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
+            <Avatar className="w-24 h-24 md:w-36 md:h-36 border-4 border-primary/30">
+              <AvatarImage src={profile.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
+                {profile.full_name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                <h1 className="text-xl font-semibold">
+                  {profile.username || profile.full_name}
+                </h1>
+                {!isOwnProfile && (
+                  <Button
+                    onClick={handleFollow}
+                    disabled={followLoading}
+                    variant={isFollowing ? 'outline' : 'default'}
+                    className={!isFollowing ? 'gradient-maroon text-primary-foreground' : ''}
+                  >
+                    {followLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isFollowing ? (
+                      'Following'
+                    ) : (
+                      'Follow'
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {/* Stats */}
+              <div className="flex justify-center md:justify-start gap-8 mb-4">
+                <div className="text-center">
+                  <span className="font-bold">{stats.posts}</span>
+                  <p className="text-sm text-muted-foreground">posts</p>
+                </div>
+                <div className="text-center">
+                  <span className="font-bold">{stats.followers}</span>
+                  <p className="text-sm text-muted-foreground">followers</p>
+                </div>
+                <div className="text-center">
+                  <span className="font-bold">{stats.following}</span>
+                  <p className="text-sm text-muted-foreground">following</p>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div>
+                <p className="font-semibold">{profile.full_name}</p>
+                {profile.bio && <p className="text-sm text-muted-foreground">{profile.bio}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Posts Grid */}
+          <div className="border-t border-border pt-4">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Grid3X3 className="w-4 h-4" />
+              <span className="text-sm font-medium">Posts</span>
+            </div>
+
+            {posts.length === 0 ? (
+              <div className="text-center py-12">
+                <Grid3X3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No posts yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {posts.map((post) => (
+                  <Link
+                    key={post.id}
+                    to={`/post/${post.id}`}
+                    className="aspect-square bg-muted overflow-hidden"
+                  >
+                    <img
+                      src={post.image_url}
+                      alt=""
+                      className="w-full h-full object-cover hover:opacity-80 transition-opacity"
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <MobileNav />
+    </div>
+  );
+};
+
+export default UserProfile;
