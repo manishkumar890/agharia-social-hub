@@ -125,6 +125,11 @@ const Auth = () => {
       return;
     }
 
+    if (!regAvatar) {
+      toast.error('Please upload a profile picture (required)');
+      return;
+    }
+
     if (regPassword !== regConfirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -866,7 +871,7 @@ const Auth = () => {
                       {/* Avatar Upload */}
                       <div className="flex justify-center">
                         <div className="relative">
-                          <Avatar className="w-24 h-24 border-4 border-primary/20">
+                          <Avatar className={`w-24 h-24 border-4 ${regAvatarPreview ? 'border-primary/20' : 'border-destructive/50'}`}>
                             {regAvatarPreview ? (
                               <AvatarImage src={regAvatarPreview} alt="Avatar preview" />
                             ) : (
@@ -891,7 +896,7 @@ const Auth = () => {
                         </div>
                       </div>
                       <p className="text-center text-xs text-muted-foreground">
-                        Upload avatar (max 2MB)
+                        Profile picture required * (max 2MB)
                       </p>
 
                       <div className="space-y-2">
