@@ -290,6 +290,9 @@ const Auth = () => {
     }
   };
 
+  // Store email for login OTP verification
+  const [loginEmail, setLoginEmail] = useState('');
+
   // Login Step 1: Verify credentials
   const handleLoginSubmit = async () => {
     if (!loginIdentifier.trim()) {
@@ -361,7 +364,9 @@ const Auth = () => {
       // Password is correct, sign out and send OTP for verification
       await supabase.auth.signOut();
 
+      // Store phone and email for OTP verification step
       setLoginPhone(phone);
+      setLoginEmail(email);
 
       // Send OTP
       const { data, error } = await supabase.functions.invoke('send-otp', {
@@ -371,13 +376,14 @@ const Auth = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      if (data?.otp) {
-        setDemoOtp(data.otp);
-      }
-
-      toast.success('OTP sent for verification');
-      setLoginStep('otp');
+      // Set all state updates together to ensure they persist
+      const otpCode = data?.otp;
+      
+      setDemoOtp(otpCode || null);
       setResendTimer(60);
+      setLoginStep('otp');
+      
+      toast.success('OTP sent for verification');
     } catch (error: unknown) {
       console.error('Login Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -409,24 +415,9 @@ const Auth = () => {
       if (verifyError) throw verifyError;
       if (verifyData?.error) throw new Error(verifyData.error);
 
-      // OTP verified, now sign in
-      const isEmail = loginIdentifier.includes('@');
-      let email = loginIdentifier.toLowerCase();
-
-      if (!isEmail) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('username', loginIdentifier.toLowerCase())
-          .maybeSingle();
-        
-        if (profile?.email) {
-          email = profile.email;
-        }
-      }
-
+      // OTP verified, use stored email to sign in
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password: loginPassword
       });
 
@@ -491,6 +482,7 @@ const Auth = () => {
     setLoginIdentifier('');
     setLoginPassword('');
     setLoginPhone('');
+    setLoginEmail('');
     setLoginOtp('');
     setDemoOtp(null);
   };
