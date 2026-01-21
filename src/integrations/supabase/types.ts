@@ -96,6 +96,33 @@ export type Database = {
           },
         ]
       }
+      phone_otps: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          otp_code: string
+          phone: string
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          otp_code: string
+          phone: string
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          phone?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           caption: string | null
@@ -185,6 +212,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       get_user_phone: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
