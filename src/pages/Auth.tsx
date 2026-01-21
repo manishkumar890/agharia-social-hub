@@ -30,6 +30,13 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [verifyData, setVerifyData] = useState<{
+    userId?: string;
+    token?: string;
+    tokenType?: string;
+    email?: string;
+    phone?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!loading && user) {
@@ -57,47 +64,24 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Check if user exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('phone', phone)
-        .single();
-
-      setIsNewUser(!existingProfile);
-
-      // Send OTP using Supabase phone auth
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: '+91' + phone,
+      // Call the send-otp edge function
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { phone }
       });
 
-      if (error) {
-        // If phone auth isn't configured, use email workaround
-        if (error.message.includes('phone') || error.message.includes('SMS')) {
-          // Use email as phone workaround
-          const { error: emailError } = await supabase.auth.signInWithOtp({
-            email: `${phone}@agharia.app`,
-            options: {
-              shouldCreateUser: true,
-            }
-          });
-
-          if (emailError) throw emailError;
-          
-          toast.success('For demo: OTP is 123456');
-          setStep('otp');
-          setResendTimer(60);
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success('OTP sent to your phone!');
-        setStep('otp');
-        setResendTimer(60);
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
       }
-    } catch (error: any) {
+
+      toast.success('OTP sent to your phone!');
+      setStep('otp');
+      setResendTimer(data?.expiresIn ? Math.floor(data.expiresIn / 10) : 60);
+    } catch (error: unknown) {
       console.error('OTP Error:', error);
-      toast.error(error.message || 'Failed to send OTP');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -116,80 +100,79 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Try phone verification first
-      let result = await supabase.auth.verifyOtp({
-        phone: '+91' + phone,
-        token: otp,
-        type: 'sms',
+      // Call the verify-otp edge function
+      const { data, error } = await supabase.functions.invoke('verify-otp', {
+        body: { phone, otp }
       });
 
-      // If phone auth isn't configured, use email workaround
-      if (result.error) {
-        result = await supabase.auth.verifyOtp({
-          email: `${phone}@agharia.app`,
-          token: otp,
-          type: 'email',
-        });
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
-      if (result.error) {
-        // For demo purposes, accept 123456
-        if (otp === '123456') {
-          const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email: `${phone}@agharia.app`,
-            password: phone + '_password_agharia',
+      if (data?.success) {
+        setVerifyData(data);
+        setIsNewUser(data.isNewUser);
+
+        // Use the magic link token to sign in
+        if (data.token && data.email) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: data.token,
+            type: data.tokenType || 'magiclink',
           });
 
-          if (signInError) {
-            // Create new user
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: `${phone}@agharia.app`,
-              password: phone + '_password_agharia',
+          if (verifyError) {
+            // Try alternative sign in method
+            const { error: signInError } = await supabase.auth.signInWithOtp({
+              email: data.email,
+              options: {
+                shouldCreateUser: false,
+              }
             });
-
-            if (signUpError) throw signUpError;
             
-            if (signUpData.user) {
-              setIsNewUser(true);
-              setStep('profile');
-              return;
+            if (signInError) {
+              console.error('Sign in error:', signInError);
             }
-          } else if (data.user) {
-            // Check if profile exists
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('user_id', data.user.id)
-              .single();
+          }
 
-            if (!profile) {
+          // Wait a moment for auth to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check if user is now logged in
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          
+          if (currentUser) {
+            if (data.isNewUser) {
               setStep('profile');
             } else {
-              navigate('/');
+              // Check if profile exists
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+
+              if (!profile) {
+                setStep('profile');
+              } else {
+                navigate('/');
+              }
             }
-            return;
+          } else {
+            // If still not logged in, try one more approach
+            if (data.isNewUser) {
+              setStep('profile');
+            } else {
+              toast.error('Authentication failed. Please try again.');
+            }
           }
         }
-        throw result.error;
       }
-
-      if (result.data.user) {
-        // Check if profile exists
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', result.data.user.id)
-          .single();
-
-        if (!profile) {
-          setStep('profile');
-        } else {
-          navigate('/');
-        }
-      }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Verify Error:', error);
-      toast.error(error.message || 'Invalid OTP');
+      const errorMessage = error instanceof Error ? error.message : 'Invalid OTP';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -209,12 +192,16 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error('No user found');
+      let userId = currentUser?.id || verifyData?.userId;
+      
+      if (!userId) {
+        throw new Error('No user found. Please try again.');
+      }
 
       const { error } = await supabase.from('profiles').insert({
-        user_id: user.id,
+        user_id: userId,
         phone: phone,
         full_name: fullName.trim(),
         username: username.trim() || null,
@@ -233,10 +220,13 @@ const Auth = () => {
       }
 
       toast.success('Profile created successfully!');
-      navigate('/');
-    } catch (error: any) {
+      
+      // Refresh to trigger auth state update
+      window.location.href = '/';
+    } catch (error: unknown) {
       console.error('Profile Error:', error);
-      toast.error(error.message || 'Failed to create profile');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create profile';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
