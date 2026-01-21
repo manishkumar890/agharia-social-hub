@@ -96,6 +96,14 @@ const Header = () => {
                     Settings
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center gap-2 cursor-pointer text-primary font-medium">
+                      <Settings className="w-4 h-4" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 cursor-pointer text-destructive">
                   <LogOut className="w-4 h-4" />
