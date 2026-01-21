@@ -81,7 +81,7 @@ serve(async (req) => {
       // User exists - update password and return credentials
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingProfile.user_id,
-        { password: password }
+        { password: password, email_confirm: true }
       );
 
       if (updateError) {
@@ -111,7 +111,7 @@ serve(async (req) => {
       // Auth user exists but no profile - update password and return for profile creation
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingAuthUser.id,
-        { password: password }
+        { password: password, email_confirm: true }
       );
 
       if (updateError) {
