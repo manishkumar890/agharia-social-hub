@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, User, Settings, LogOut } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, User, Settings, LogOut, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
+import DeleteAccountDialog from '@/components/DeleteAccountDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +112,8 @@ const Header = () => {
                   <LogOut className="w-4 h-4" />
                   Sign Out
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DeleteAccountDialog />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
