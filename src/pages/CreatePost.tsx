@@ -15,39 +15,45 @@ import { toast } from 'sonner';
 const CreatePost = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      
-      // For now, use a placeholder URL (in production, would upload to storage)
-      setImageUrl(`https://picsum.photos/800/800?random=${Date.now()}`);
+      setImageFile(file);
     }
   };
 
-  const handleUrlChange = (url: string) => {
-    setImageUrl(url);
-    setImagePreview(url);
-  };
-
   const clearImage = () => {
-    setImageUrl('');
+    setImageFile(null);
     setImagePreview('');
   };
 
   const handleSubmit = async () => {
-    if (!imageUrl) {
+    if (!imageFile) {
       toast.error('Please add an image');
       return;
     }
@@ -58,8 +64,27 @@ const CreatePost = () => {
     }
 
     setIsLoading(true);
+    setIsUploading(true);
 
     try {
+      // Upload image to storage
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('posts')
+        .upload(fileName, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('posts')
+        .getPublicUrl(fileName);
+
+      const imageUrl = urlData.publicUrl;
+
+      // Create post with real image URL
       const { error } = await supabase.from('posts').insert({
         user_id: user.id,
         image_url: imageUrl,
@@ -76,6 +101,7 @@ const CreatePost = () => {
       toast.error(error.message || 'Failed to create post');
     } finally {
       setIsLoading(false);
+      setIsUploading(false);
     }
   };
 
@@ -123,17 +149,6 @@ const CreatePost = () => {
                 )}
               </div>
 
-              {/* Image URL Input */}
-              <div className="space-y-2">
-                <Label htmlFor="imageUrl">Or paste image URL</Label>
-                <Input
-                  id="imageUrl"
-                  type="url"
-                  placeholder="https://example.com/image.jpg"
-                  value={imageUrl}
-                  onChange={(e) => handleUrlChange(e.target.value)}
-                />
-              </div>
 
               {/* Caption */}
               <div className="space-y-2">
@@ -167,7 +182,7 @@ const CreatePost = () => {
               <Button
                 className="w-full gradient-maroon text-primary-foreground"
                 onClick={handleSubmit}
-                disabled={isLoading || !imageUrl}
+                disabled={isLoading || !imageFile}
               >
                 {isLoading ? (
                   <>
