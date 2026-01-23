@@ -30,7 +30,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { payment_id, order_id, signature } = await req.json();
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = await req.json();
 
     const keySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!keySecret) {
@@ -39,7 +39,7 @@ serve(async (req) => {
 
     // Verify signature using Web Crypto API
     const encoder = new TextEncoder();
-    const data = encoder.encode(`${order_id}|${payment_id}`);
+    const data = encoder.encode(`${razorpay_order_id}|${razorpay_payment_id}`);
     const key = await crypto.subtle.importKey(
       "raw",
       encoder.encode(keySecret),
@@ -52,12 +52,12 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    if (generatedSignature !== signature) {
+    if (generatedSignature !== razorpay_signature) {
       console.error("Signature verification failed");
       throw new Error("Invalid payment signature");
     }
 
-    console.log("Payment verified successfully:", payment_id);
+    console.log("Payment verified successfully:", razorpay_payment_id);
 
     // Use service role to update subscription
     const supabaseAdmin = createClient(
@@ -71,7 +71,7 @@ serve(async (req) => {
       .upsert({
         user_id: user.id,
         plan_type: "premium",
-        payment_id: payment_id,
+        payment_id: razorpay_payment_id,
         amount: 299,
         purchased_at: new Date().toISOString(),
         expires_at: null // Lifetime access
