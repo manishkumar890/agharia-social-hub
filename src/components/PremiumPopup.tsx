@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Crown, Check, Loader2, X } from 'lucide-react';
+import { Crown, Check, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -80,7 +80,7 @@ const PremiumPopup = () => {
         setIsOpen(true);
         hasShownRef.current = true;
         playNotificationSound();
-      }, 1500); // Delay to let app load first
+      }, 10000); // 10 seconds delay
 
       return () => clearTimeout(timer);
     }
@@ -175,15 +175,6 @@ const PremiumPopup = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md">
-        {/* Close button */}
-        <button
-          onClick={() => setIsOpen(false)}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-        >
-          <X className="h-5 w-5" />
-          <span className="sr-only">Close</span>
-        </button>
-
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-primary" />
