@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
-import PremiumBadge from '@/components/PremiumBadge';
+import VerificationBadge from '@/components/VerificationBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -242,10 +242,12 @@ const UserProfile = () => {
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <h1 className="text-xl font-semibold flex items-center gap-1">
-                  {profile.username || profile.full_name}
-                  {isPremiumUser && <PremiumBadge size="lg" />}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold">
+                    {profile.username || profile.full_name}
+                  </h1>
+                  <VerificationBadge isPremium={isPremiumUser} isOwnProfile={false} size="lg" />
+                </div>
                 {!isOwnProfile && (
                   <Button
                     onClick={handleFollow}
