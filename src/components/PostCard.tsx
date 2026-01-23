@@ -48,7 +48,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const postUrl = `${window.location.origin}/post/${post.id}`;
+  
 
   useEffect(() => {
     fetchLikesAndComments();
@@ -189,11 +189,6 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
     setSendDialogOpen(true);
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(postUrl);
-    toast.success('Link copied to clipboard');
-  };
-
   const canDelete = user?.id === post.user_id || isAdmin;
 
   return (
@@ -226,7 +221,6 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleSend}>Send</DropdownMenuItem>
-            <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
             {canDelete && (
               <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                 Delete
@@ -326,7 +320,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         open={sendDialogOpen}
         onOpenChange={setSendDialogOpen}
         postId={post.id}
-        postUrl={postUrl}
+        postUrl={`${window.location.origin}/post/${post.id}`}
         mediaUrl={post.image_url}
         mediaType={post.media_type || 'image'}
         postAuthorId={post.user_id}
