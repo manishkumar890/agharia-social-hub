@@ -203,23 +203,36 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       return;
     }
 
+    // Optimistic update
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikeCount(prev => wasLiked ? prev - 1 : prev + 1);
+
     try {
-      if (isLiked) {
-        await supabase
+      if (wasLiked) {
+        const { error } = await supabase
           .from('story_likes')
           .delete()
           .eq('story_id', currentStory.id)
           .eq('user_id', user.id);
+        
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from('story_likes')
           .insert({
             story_id: currentStory.id,
             user_id: user.id
           });
+        
+        if (error) throw error;
       }
     } catch (error) {
+      // Revert on error
+      setIsLiked(wasLiked);
+      setLikeCount(prev => wasLiked ? prev + 1 : prev - 1);
       console.error('Error toggling like:', error);
+      toast.error('Failed to update like');
     }
   };
 
