@@ -8,9 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, Loader2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, MessageCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Profile {
   user_id: string;
@@ -38,6 +39,10 @@ interface Message {
   created_at: string;
   media_url?: string | null;
   media_type?: string | null;
+  shared_post_id?: string | null;
+  shared_from_user_id?: string | null;
+  shared_from_username?: string | null;
+  shared_from_avatar_url?: string | null;
 }
 
 const Messages = () => {
@@ -272,6 +277,23 @@ const Messages = () => {
 
   const isUserOnline = (userId: string) => onlineUsers.has(userId);
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+      
+      if (error) throw error;
+      
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -341,35 +363,66 @@ const Messages = () => {
                 >
                   <div
                     className={cn(
-                      "max-w-[75%] rounded-2xl overflow-hidden",
+                      "max-w-[75%] rounded-2xl overflow-hidden relative group",
                       msg.sender_id === user?.id
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-muted rounded-bl-md"
                     )}
                   >
+                    {/* Delete button for sender */}
+                    {msg.sender_id === user?.id && (
+                      <button
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/80 hover:bg-destructive text-destructive-foreground rounded-full p-1.5 z-10"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    
+                    {/* Shared post author info */}
+                    {msg.shared_from_user_id && (
+                      <Link
+                        to={`/user/${msg.shared_from_user_id}`}
+                        className="flex items-center gap-2 px-3 py-2 border-b border-border/20 hover:opacity-80 transition-opacity"
+                      >
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={msg.shared_from_avatar_url || undefined} />
+                          <AvatarFallback className="bg-background/20 text-xs">
+                            {msg.shared_from_username?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium">
+                          {msg.shared_from_username || 'User'}
+                        </span>
+                      </Link>
+                    )}
+                    
                     {msg.media_url && (
-                      <div className="w-full max-w-[280px]">
+                      <Link 
+                        to={msg.shared_post_id ? `/post/${msg.shared_post_id}` : '#'}
+                        className="block w-full max-w-[280px]"
+                      >
                         {msg.media_type === 'video' ? (
                           <video
                             src={msg.media_url}
                             controls
-                            className="w-full rounded-t-2xl"
+                            className="w-full"
                             controlsList="nodownload noplaybackrate"
                           />
                         ) : (
                           <img
                             src={msg.media_url}
                             alt="Shared media"
-                            className="w-full rounded-t-2xl"
+                            className="w-full"
                           />
                         )}
-                      </div>
+                      </Link>
                     )}
                     {msg.content && (
                       <p className="text-sm px-4 py-2">{msg.content}</p>
                     )}
                     {!msg.content && msg.media_url && (
-                      <div className="px-4 py-2" />
+                      <div className="px-1 py-1" />
                     )}
                     <p className={cn(
                       "text-xs px-4 pb-2",

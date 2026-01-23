@@ -130,6 +130,10 @@ export type Database = {
           media_url: string | null
           read_at: string | null
           sender_id: string
+          shared_from_avatar_url: string | null
+          shared_from_user_id: string | null
+          shared_from_username: string | null
+          shared_post_id: string | null
         }
         Insert: {
           content: string
@@ -140,6 +144,10 @@ export type Database = {
           media_url?: string | null
           read_at?: string | null
           sender_id: string
+          shared_from_avatar_url?: string | null
+          shared_from_user_id?: string | null
+          shared_from_username?: string | null
+          shared_post_id?: string | null
         }
         Update: {
           content?: string
@@ -150,6 +158,10 @@ export type Database = {
           media_url?: string | null
           read_at?: string | null
           sender_id?: string
+          shared_from_avatar_url?: string | null
+          shared_from_user_id?: string | null
+          shared_from_username?: string | null
+          shared_post_id?: string | null
         }
         Relationships: [
           {
