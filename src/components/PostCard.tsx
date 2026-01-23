@@ -185,7 +185,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
 
       {/* Post Media */}
       <div 
-        className="relative aspect-square bg-muted cursor-pointer"
+        className="relative bg-muted cursor-pointer"
         onDoubleClick={handleLike}
       >
         {post.media_type === 'video' ? (
