@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, User, Bookmark, Settings, LogOut, Trash2 } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User, Bookmark, Settings, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
@@ -16,26 +16,35 @@ import { Button } from '@/components/ui/button';
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAuthPage = location.pathname === '/auth';
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
-      {/* Sambalpuri Pattern Banner */}
-      <div 
-        className="h-16 w-full bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${sambalpuriPattern})` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/60" />
-        <div className="relative z-10 h-full flex items-center justify-center">
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-gold drop-shadow-lg tracking-wide">
-            Agharia Samaj
-          </h1>
+      {/* Sambalpuri Pattern Banner - Only on Auth page */}
+      {isAuthPage && (
+        <div 
+          className="h-16 w-full bg-cover bg-center relative"
+          style={{ backgroundImage: `url(${sambalpuriPattern})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/60" />
+          <div className="relative z-10 h-full flex items-center justify-center">
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-gold drop-shadow-lg tracking-wide">
+              Agharia Samaj
+            </h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation Bar */}
       <nav className="bg-card border-b border-border px-4 py-2">
@@ -47,28 +56,14 @@ const Header = () => {
 
           {/* Navigation Icons */}
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary hover:bg-muted">
-              <Link to="/">
-                <Home className="w-5 h-5" />
-              </Link>
-            </Button>
-
-            <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary hover:bg-muted">
-              <Link to="/search">
-                <Search className="w-5 h-5" />
-              </Link>
-            </Button>
-
-            <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary hover:bg-muted">
-              <Link to="/create">
-                <PlusSquare className="w-5 h-5" />
-              </Link>
-            </Button>
-
-            <Button variant="ghost" size="icon" asChild className="text-foreground hover:text-primary hover:bg-muted">
-              <Link to="/notifications">
-                <Heart className="w-5 h-5" />
-              </Link>
+            {/* Refresh Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRefresh}
+              className="text-foreground hover:text-primary hover:bg-muted"
+            >
+              <RefreshCw className="w-5 h-5" />
             </Button>
 
             {/* Profile Dropdown */}
