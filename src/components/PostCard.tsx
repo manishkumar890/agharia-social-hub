@@ -278,6 +278,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         postUrl={postUrl}
         mediaUrl={post.image_url}
         mediaType={post.media_type || 'image'}
+        postAuthorId={post.user_id}
+        postAuthorUsername={post.profiles?.username || post.profiles?.full_name || null}
+        postAuthorAvatar={post.profiles?.avatar_url || null}
       />
     </article>
   );

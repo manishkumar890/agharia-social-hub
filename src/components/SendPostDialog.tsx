@@ -29,9 +29,22 @@ interface SendPostDialogProps {
   postUrl: string;
   mediaUrl: string;
   mediaType: string;
+  postAuthorId: string;
+  postAuthorUsername: string | null;
+  postAuthorAvatar: string | null;
 }
 
-const SendPostDialog = ({ open, onOpenChange, postId, postUrl, mediaUrl, mediaType }: SendPostDialogProps) => {
+const SendPostDialog = ({ 
+  open, 
+  onOpenChange, 
+  postId, 
+  postUrl, 
+  mediaUrl, 
+  mediaType,
+  postAuthorId,
+  postAuthorUsername,
+  postAuthorAvatar
+}: SendPostDialogProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,7 +146,7 @@ const SendPostDialog = ({ open, onOpenChange, postId, postUrl, mediaUrl, mediaTy
         conversationId = newConv.id;
       }
 
-      // Send message with actual media content
+      // Send message with actual media content and original poster info
       const { error: msgError } = await supabase
         .from('messages')
         .insert({
@@ -141,7 +154,11 @@ const SendPostDialog = ({ open, onOpenChange, postId, postUrl, mediaUrl, mediaTy
           sender_id: user.id,
           content: '',
           media_url: mediaUrl,
-          media_type: mediaType
+          media_type: mediaType,
+          shared_post_id: postId,
+          shared_from_user_id: postAuthorId,
+          shared_from_username: postAuthorUsername,
+          shared_from_avatar_url: postAuthorAvatar
         });
 
       if (msgError) throw msgError;
