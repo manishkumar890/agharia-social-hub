@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -9,7 +9,7 @@ import VerificationBadge from '@/components/VerificationBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid3X3, Image, Video, Loader2 } from 'lucide-react';
+import { Grid3X3, Image, Video, Loader2, MessageCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -31,6 +31,7 @@ interface Post {
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -146,6 +147,39 @@ const UserProfile = () => {
     }
   };
 
+  const handleMessage = async () => {
+    if (!user || !userId) return;
+
+    // Check if conversation already exists
+    const { data: existingConv } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`and(participant_1.eq.${user.id},participant_2.eq.${userId}),and(participant_1.eq.${userId},participant_2.eq.${user.id})`)
+      .single();
+
+    if (existingConv) {
+      navigate(`/messages/${existingConv.id}`);
+      return;
+    }
+
+    // Create new conversation
+    const { data: newConv, error } = await supabase
+      .from('conversations')
+      .insert({
+        participant_1: user.id,
+        participant_2: userId
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      toast.error('Failed to start conversation');
+      return;
+    }
+
+    navigate(`/messages/${newConv.id}`);
+  };
+
   const imagePosts = posts.filter(p => p.media_type === 'image' || !p.media_type);
   const videoPosts = posts.filter(p => p.media_type === 'video');
 
@@ -249,20 +283,30 @@ const UserProfile = () => {
                   <VerificationBadge isPremium={isPremiumUser} isOwnProfile={false} size="lg" />
                 </div>
                 {!isOwnProfile && (
-                  <Button
-                    onClick={handleFollow}
-                    disabled={followLoading}
-                    variant={isFollowing ? 'outline' : 'default'}
-                    className={!isFollowing ? 'gradient-maroon text-primary-foreground' : ''}
-                  >
-                    {followLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : isFollowing ? (
-                      'Following'
-                    ) : (
-                      'Follow'
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      variant={isFollowing ? 'outline' : 'default'}
+                      className={!isFollowing ? 'gradient-maroon text-primary-foreground' : ''}
+                    >
+                      {followLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isFollowing ? (
+                        'Following'
+                      ) : (
+                        'Follow'
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleMessage}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Message
+                    </Button>
+                  </div>
                 )}
               </div>
 

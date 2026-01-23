@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User, Bookmark, Settings, LogOut, RefreshCw, Crown } from 'lucide-react';
+import { User, Bookmark, Settings, LogOut, RefreshCw, Crown, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
@@ -72,6 +72,14 @@ const Header = () => {
             >
               <RefreshCw className="w-5 h-5" />
             </button>
+
+            {/* Messages Button */}
+            <Link
+              to="/messages"
+              className="p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </Link>
 
             {/* Profile Dropdown */}
             <DropdownMenu>
