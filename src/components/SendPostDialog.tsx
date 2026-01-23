@@ -27,9 +27,11 @@ interface SendPostDialogProps {
   onOpenChange: (open: boolean) => void;
   postId: string;
   postUrl: string;
+  mediaUrl: string;
+  mediaType: string;
 }
 
-const SendPostDialog = ({ open, onOpenChange, postId, postUrl }: SendPostDialogProps) => {
+const SendPostDialog = ({ open, onOpenChange, postId, postUrl, mediaUrl, mediaType }: SendPostDialogProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,13 +133,15 @@ const SendPostDialog = ({ open, onOpenChange, postId, postUrl }: SendPostDialogP
         conversationId = newConv.id;
       }
 
-      // Send message with post link
+      // Send message with actual media content
       const { error: msgError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: user.id,
-          content: `📷 Shared a post: ${postUrl}`
+          content: '',
+          media_url: mediaUrl,
+          media_type: mediaType
         });
 
       if (msgError) throw msgError;
