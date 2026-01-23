@@ -21,11 +21,12 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const [selectedExpiry, setSelectedExpiry] = useState<24 | 48>(24);
+
   // Limits based on subscription
   const maxImageSize = 5 * 1024 * 1024; // 5MB for images
   const maxVideoSize = isPremium ? 50 * 1024 * 1024 : 25 * 1024 * 1024; // 50MB premium, 25MB free
   const maxDuration = isPremium ? 60 : 30; // 60s premium, 30s free
-  const expiryHours = isPremium ? 48 : 24;
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,7 +121,8 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
         .from('stories')
         .getPublicUrl(fileName);
 
-      // Calculate expiry time
+      // Calculate expiry time based on selection
+      const expiryHours = selectedExpiry;
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + expiryHours);
 
@@ -232,25 +234,54 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
           )}
 
           {/* Story info */}
-          <div className="mt-4 p-3 bg-muted rounded-lg">
+          <div className="mt-4 p-3 bg-muted rounded-lg space-y-3">
             <div className="flex items-center gap-2 text-sm">
               {isPremium && <Crown className="w-4 h-4 text-primary" />}
               <span className="text-muted-foreground">
                 Duration: <span className="text-foreground font-medium">{maxDuration}s</span>
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm mt-1">
-              <span className="text-muted-foreground">
-                Expires in: <span className="text-foreground font-medium">{expiryHours} hours</span>
-              </span>
+            
+            {/* Expiry Selection */}
+            <div>
+              <span className="text-sm text-muted-foreground block mb-2">Delete after:</span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={selectedExpiry === 24 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedExpiry(24)}
+                  className="flex-1"
+                >
+                  24 hours
+                </Button>
+                <Button
+                  type="button"
+                  variant={selectedExpiry === 48 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (isPremium) {
+                      setSelectedExpiry(48);
+                    } else {
+                      toast.error('48 hour stories are for Premium users only');
+                    }
+                  }}
+                  disabled={!isPremium}
+                  className="flex-1 relative"
+                >
+                  48 hours
+                  {!isPremium && <Crown className="w-3 h-3 ml-1 text-primary" />}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm mt-1">
+
+            <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">
                 Video limit: <span className="text-foreground font-medium">{isPremium ? '50' : '25'}MB</span>
               </span>
             </div>
             {!isPremium && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground">
                 Upgrade to Premium for 60s stories, 48h visibility & 50MB videos!
               </p>
             )}
