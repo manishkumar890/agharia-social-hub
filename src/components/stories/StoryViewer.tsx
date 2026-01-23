@@ -444,8 +444,8 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
         className="w-full h-full flex items-center justify-center"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onMouseDown={handleTouchStart}
-        onMouseUp={handleTouchEnd}
+        onMouseEnter={handleTouchStart}
+        onMouseLeave={handleTouchEnd}
       >
         {isVideo ? (
           <video
