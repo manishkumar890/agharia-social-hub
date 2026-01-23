@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import PremiumBadge from '@/components/PremiumBadge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -40,10 +41,22 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [animateLike, setAnimateLike] = useState(false);
+  const [isAuthorPremium, setIsAuthorPremium] = useState(false);
 
   useEffect(() => {
     fetchLikesAndComments();
+    fetchAuthorPremiumStatus();
   }, [post.id]);
+
+  const fetchAuthorPremiumStatus = async () => {
+    const { data } = await supabase
+      .from('user_subscriptions')
+      .select('plan_type')
+      .eq('user_id', post.user_id)
+      .single();
+
+    setIsAuthorPremium(data?.plan_type === 'premium');
+  };
 
   const fetchLikesAndComments = async () => {
     // Fetch likes count
@@ -142,8 +155,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium text-sm text-foreground">
+            <p className="font-medium text-sm text-foreground flex items-center gap-1">
               {post.profiles?.full_name || post.profiles?.username || 'User'}
+              {isAuthorPremium && <PremiumBadge size="sm" />}
             </p>
             {post.location && (
               <p className="text-xs text-muted-foreground">{post.location}</p>

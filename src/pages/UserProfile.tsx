@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
+import PremiumBadge from '@/components/PremiumBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Grid3X3, Loader2 } from 'lucide-react';
@@ -37,6 +38,7 @@ const UserProfile = () => {
   const [followLoading, setFollowLoading] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
@@ -97,6 +99,15 @@ const UserProfile = () => {
 
         setIsFollowing(!!followData);
       }
+
+      // Check if this user is premium
+      const { data: subscriptionData } = await supabase
+        .from('user_subscriptions')
+        .select('plan_type')
+        .eq('user_id', userId)
+        .single();
+
+      setIsPremiumUser(subscriptionData?.plan_type === 'premium');
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -180,8 +191,9 @@ const UserProfile = () => {
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <h1 className="text-xl font-semibold">
+                <h1 className="text-xl font-semibold flex items-center gap-1">
                   {profile.username || profile.full_name}
+                  {isPremiumUser && <PremiumBadge size="lg" />}
                 </h1>
                 {!isOwnProfile && (
                   <Button
