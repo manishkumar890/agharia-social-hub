@@ -127,7 +127,7 @@ const Messages = () => {
     const conv = conversations.find(c => c.id === conversationId);
     setActiveConversation(conv || null);
 
-    // Subscribe to new messages
+    // Subscribe to message changes (INSERT and DELETE)
     const channel = supabase
       .channel(`messages-${conversationId}`)
       .on(
@@ -142,6 +142,32 @@ const Messages = () => {
           const newMsg = payload.new as Message;
           setMessages(prev => [...prev, newMsg]);
           scrollToBottom();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'DELETE', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          const deletedMsg = payload.old as { id: string };
+          setMessages(prev => prev.filter(m => m.id !== deletedMsg.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          const updatedMsg = payload.new as Message;
+          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
         }
       )
       .subscribe();
