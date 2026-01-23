@@ -138,14 +138,13 @@ const StoryBar = () => {
                     </AvatarFallback>
                   </Avatar>
                 </button>
-                {myStories.length === 0 && (
-                  <button
-                    onClick={() => setShowUpload(true)}
-                    className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-card"
-                  >
-                    <Plus className="w-4 h-4 text-primary-foreground" />
-                  </button>
-                )}
+                {/* Always show add button */}
+                <button
+                  onClick={() => setShowUpload(true)}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-card"
+                >
+                  <Plus className="w-4 h-4 text-primary-foreground" />
+                </button>
               </div>
               <span className="text-xs text-muted-foreground truncate w-16 text-center">
                 Your Story
