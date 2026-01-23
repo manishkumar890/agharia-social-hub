@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Eye, Heart, Trash2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye, Heart, Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -346,16 +346,24 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
 
   const handleDelete = async () => {
     if (!currentStory) return;
+    if (!user || !isOwnStory) {
+      toast.error('You can only delete your own story');
+      return;
+    }
     
     setIsDeleting(true);
     try {
       // Delete story from database
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from('stories')
-        .delete()
-        .eq('id', currentStory.id);
+        .delete({ count: 'exact' })
+        .eq('id', currentStory.id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
+      if (!count) {
+        throw new Error('Delete blocked (not owner or not signed in)');
+      }
 
       toast.success('Story deleted');
       
@@ -637,7 +645,14 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          // Don't allow the dialog to close while a delete is in progress
+          if (!open && isDeleting) return;
+          setShowDeleteDialog(open);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Story</AlertDialogTitle>
@@ -647,6 +662,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel 
+              disabled={isDeleting}
               onClick={() => {
                 setShowDeleteDialog(false);
                 setIsPaused(false);
@@ -656,11 +672,22 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={(e) => {
+                // Prevent Radix from auto-closing the dialog so we can show loading state
+                e.preventDefault();
+                handleDelete();
+              }}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </span>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
