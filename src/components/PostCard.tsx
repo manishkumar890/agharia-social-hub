@@ -276,6 +276,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         onOpenChange={setSendDialogOpen}
         postId={post.id}
         postUrl={postUrl}
+        mediaUrl={post.image_url}
+        mediaType={post.media_type || 'image'}
       />
     </article>
   );

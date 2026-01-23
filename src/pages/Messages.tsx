@@ -36,6 +36,8 @@ interface Message {
   content: string;
   read_at: string | null;
   created_at: string;
+  media_url?: string | null;
+  media_type?: string | null;
 }
 
 const Messages = () => {
@@ -339,15 +341,38 @@ const Messages = () => {
                 >
                   <div
                     className={cn(
-                      "max-w-[75%] rounded-2xl px-4 py-2",
+                      "max-w-[75%] rounded-2xl overflow-hidden",
                       msg.sender_id === user?.id
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-muted rounded-bl-md"
                     )}
                   >
-                    <p className="text-sm">{msg.content}</p>
+                    {msg.media_url && (
+                      <div className="w-full max-w-[280px]">
+                        {msg.media_type === 'video' ? (
+                          <video
+                            src={msg.media_url}
+                            controls
+                            className="w-full rounded-t-2xl"
+                            controlsList="nodownload noplaybackrate"
+                          />
+                        ) : (
+                          <img
+                            src={msg.media_url}
+                            alt="Shared media"
+                            className="w-full rounded-t-2xl"
+                          />
+                        )}
+                      </div>
+                    )}
+                    {msg.content && (
+                      <p className="text-sm px-4 py-2">{msg.content}</p>
+                    )}
+                    {!msg.content && msg.media_url && (
+                      <div className="px-4 py-2" />
+                    )}
                     <p className={cn(
-                      "text-xs mt-1",
+                      "text-xs px-4 pb-2",
                       msg.sender_id === user?.id ? "text-primary-foreground/70" : "text-muted-foreground"
                     )}>
                       {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
