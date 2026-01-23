@@ -25,6 +25,7 @@ interface Post {
   caption: string | null;
   location: string | null;
   created_at: string;
+  media_type?: string;
   profiles?: {
     full_name: string | null;
     username: string | null;
@@ -248,13 +249,22 @@ const PostDetail = () => {
           </div>
 
           <div className="md:flex md:border md:border-border md:rounded-lg md:overflow-hidden md:m-6">
-            {/* Image */}
+            {/* Media */}
             <div className="md:w-1/2 md:flex-shrink-0">
-              <img
-                src={post.image_url}
-                alt={post.caption || 'Post'}
-                className="w-full aspect-square md:h-full object-cover"
-              />
+              {post.media_type === 'video' ? (
+                <video
+                  src={post.image_url}
+                  className="w-full aspect-square md:h-full object-cover"
+                  controls
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={post.image_url}
+                  alt={post.caption || 'Post'}
+                  className="w-full aspect-square md:h-full object-cover"
+                />
+              )}
             </div>
 
             {/* Details */}

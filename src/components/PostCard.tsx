@@ -23,6 +23,7 @@ interface Post {
   caption: string | null;
   location: string | null;
   created_at: string;
+  media_type?: string;
   profiles?: {
     full_name: string | null;
     username: string | null;
@@ -173,7 +174,6 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleShare}>Share</DropdownMenuItem>
-            <DropdownMenuItem>Report</DropdownMenuItem>
             {canDelete && (
               <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                 Delete
@@ -183,16 +183,25 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         </DropdownMenu>
       </div>
 
-      {/* Post Image */}
+      {/* Post Media */}
       <div 
         className="relative aspect-square bg-muted cursor-pointer"
         onDoubleClick={handleLike}
       >
-        <img 
-          src={post.image_url} 
-          alt={post.caption || 'Post image'} 
-          className="w-full h-full object-cover"
-        />
+        {post.media_type === 'video' ? (
+          <video 
+            src={post.image_url} 
+            className="w-full h-full object-cover"
+            controls
+            preload="metadata"
+          />
+        ) : (
+          <img 
+            src={post.image_url} 
+            alt={post.caption || 'Post image'} 
+            className="w-full h-full object-cover"
+          />
+        )}
         {animateLike && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Heart className="w-24 h-24 text-primary fill-primary animate-heart opacity-80" />

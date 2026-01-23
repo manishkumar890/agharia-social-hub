@@ -130,6 +130,7 @@ export type Database = {
           id: string
           image_url: string
           location: string | null
+          media_type: string
           updated_at: string
           user_id: string
         }
@@ -139,6 +140,7 @@ export type Database = {
           id?: string
           image_url: string
           location?: string | null
+          media_type?: string
           updated_at?: string
           user_id: string
         }
@@ -148,6 +150,7 @@ export type Database = {
           id?: string
           image_url?: string
           location?: string | null
+          media_type?: string
           updated_at?: string
           user_id?: string
         }
