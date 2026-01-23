@@ -26,7 +26,8 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   // Limits based on subscription
   const maxImageSize = 5 * 1024 * 1024; // 5MB for images
   const maxVideoSize = isPremium ? 50 * 1024 * 1024 : 25 * 1024 * 1024; // 50MB premium, 25MB free
-  const maxDuration = isPremium ? 60 : 30; // 60s premium, 30s free
+  const maxVideoDuration = isPremium ? 60 : 30; // 60s premium, 30s free
+  const imageDuration = 5; // 5 seconds for image stories
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,8 +73,8 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
     const checkDuration = new Promise<boolean>((resolve) => {
       video.onloadedmetadata = () => {
         URL.revokeObjectURL(video.src);
-        if (video.duration > maxDuration) {
-          toast.error(`Video must be ${maxDuration} seconds or less`);
+        if (video.duration > maxVideoDuration) {
+          toast.error(`Video must be ${maxVideoDuration} seconds or less`);
           resolve(false);
         } else {
           resolve(true);
@@ -126,14 +127,15 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + expiryHours);
 
-      // Create story record
+      // Create story record - use appropriate duration based on media type
+      const storyDuration = mediaType === 'video' ? maxVideoDuration : imageDuration;
       const { error: insertError } = await supabase
         .from('stories')
         .insert({
           user_id: user.id,
           media_url: publicUrl,
           media_type: mediaType,
-          duration: maxDuration,
+          duration: storyDuration,
           expires_at: expiresAt.toISOString()
         });
 
@@ -194,7 +196,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                   <Video className="w-10 h-10 text-muted-foreground mb-2" />
                   <span className="text-sm text-muted-foreground">Click to upload video</span>
                   <span className="text-xs text-muted-foreground mt-1">
-                    Max {isPremium ? '50' : '25'}MB, {maxDuration}s
+                    Max {isPremium ? '50' : '25'}MB, {maxVideoDuration}s
                   </span>
                   <input
                     type="file"
@@ -238,7 +240,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
             <div className="flex items-center gap-2 text-sm">
               {isPremium && <Crown className="w-4 h-4 text-primary" />}
               <span className="text-muted-foreground">
-                Duration: <span className="text-foreground font-medium">{maxDuration}s</span>
+                {mediaType === 'image' ? 'Photo' : 'Video'} Duration: <span className="text-foreground font-medium">{mediaType === 'image' ? imageDuration : maxVideoDuration}s</span>
               </span>
             </div>
             
