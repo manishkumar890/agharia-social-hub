@@ -280,7 +280,7 @@ const UserProfile = () => {
                   <h1 className="text-xl font-semibold">
                     {profile.username || profile.full_name}
                   </h1>
-                  <VerificationBadge isPremium={isPremiumUser} isOwnProfile={false} size="lg" />
+                  {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
                 </div>
                 {!isOwnProfile && (
                   <div className="flex gap-2">
