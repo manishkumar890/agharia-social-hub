@@ -429,30 +429,14 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {isOwnStory && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setShowDeleteDialog(true);
-                setIsPaused(true);
-                if (videoRef.current) videoRef.current.pause();
-              }}
-              className="text-white hover:bg-white/20"
-            >
-              <Trash2 className="w-5 h-5" />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-white hover:bg-white/20"
-          >
-            <X className="w-6 h-6" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="text-white hover:bg-white/20"
+        >
+          <X className="w-6 h-6" />
+        </Button>
       </div>
 
       {/* Story Content */}
@@ -540,18 +524,34 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           <div />
         )}
 
-        {/* Like button (for non-owners) */}
-        {!isOwnStory && (
-          <button
-            onClick={handleLike}
-            className="flex items-center gap-1 text-white ml-auto"
-          >
-            <Heart 
-              className={`w-6 h-6 transition-colors ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
-            />
-            <span className="text-sm">{likeCount}</span>
-          </button>
-        )}
+        {/* Like button (for non-owners) + Delete button for owner */}
+        <div className="flex items-center gap-3">
+          {!isOwnStory && (
+            <button
+              onClick={handleLike}
+              className="flex items-center gap-1 text-white"
+            >
+              <Heart 
+                className={`w-6 h-6 transition-colors ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
+              />
+              <span className="text-sm">{likeCount}</span>
+            </button>
+          )}
+          {isOwnStory && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setShowDeleteDialog(true);
+                setIsPaused(true);
+                if (videoRef.current) videoRef.current.pause();
+              }}
+              className="text-white hover:bg-white/20"
+            >
+              <Trash2 className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Viewers Panel */}
