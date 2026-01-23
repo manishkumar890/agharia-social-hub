@@ -8,6 +8,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Send, Loader2, MessageCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -57,6 +67,7 @@ const Messages = () => {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -277,20 +288,24 @@ const Messages = () => {
 
   const isUserOnline = (userId: string) => onlineUsers.has(userId);
 
-  const handleDeleteMessage = async (messageId: string) => {
+  const handleDeleteMessage = async () => {
+    if (!deleteMessageId) return;
+    
     try {
       const { error } = await supabase
         .from('messages')
         .delete()
-        .eq('id', messageId);
+        .eq('id', deleteMessageId);
       
       if (error) throw error;
       
-      setMessages(prev => prev.filter(m => m.id !== messageId));
+      setMessages(prev => prev.filter(m => m.id !== deleteMessageId));
       toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
       toast.error('Failed to delete message');
+    } finally {
+      setDeleteMessageId(null);
     }
   };
 
@@ -369,11 +384,11 @@ const Messages = () => {
                         : "bg-muted rounded-bl-md"
                     )}
                   >
-                    {/* Delete button for sender */}
+                    {/* Delete button for sender - always visible */}
                     {msg.sender_id === user?.id && (
                       <button
-                        onClick={() => handleDeleteMessage(msg.id)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/80 hover:bg-destructive text-destructive-foreground rounded-full p-1.5 z-10"
+                        onClick={() => setDeleteMessageId(msg.id)}
+                        className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded-full p-1.5 z-10"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -462,6 +477,27 @@ const Messages = () => {
         </main>
 
         <MobileNav />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deleteMessageId} onOpenChange={(open) => !open && setDeleteMessageId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Message</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this message? This will remove it for both you and the recipient.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteMessage}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
