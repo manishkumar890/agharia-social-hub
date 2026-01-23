@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
-import PremiumUpgrade from '@/components/PremiumUpgrade';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -59,30 +57,33 @@ const Header = () => {
 
           {/* Navigation Icons */}
           <div className="flex items-center gap-2">
-            {/* Premium Upgrade */}
-            <PremiumUpgrade />
+            {/* Premium Badge for Premium Users */}
+            {isPremium && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-full">
+                <Crown className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium text-primary hidden sm:inline">Premium</span>
+              </div>
+            )}
 
             {/* Refresh Button */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <button 
               onClick={handleRefresh}
-              className="text-foreground hover:text-primary hover:bg-muted"
+              className="p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
             >
               <RefreshCw className="w-5 h-5" />
-            </Button>
+            </button>
 
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-muted">
+                <button className="p-1 hover:bg-muted rounded-lg transition-colors">
                   <Avatar className="w-7 h-7 border-2 border-primary/30">
                     <AvatarImage src={profile?.avatar_url || undefined} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {profile?.full_name?.charAt(0) || profile?.username?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem asChild>
