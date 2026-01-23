@@ -453,7 +453,6 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             src={currentStory.media_url}
             className="max-w-full max-h-full object-contain"
             autoPlay
-            muted
             playsInline
           />
         ) : (
