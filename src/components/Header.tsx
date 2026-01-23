@@ -1,8 +1,10 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User, Bookmark, Settings, LogOut, RefreshCw } from 'lucide-react';
+import { User, Bookmark, Settings, LogOut, RefreshCw, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
+import PremiumUpgrade from '@/components/PremiumUpgrade';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +17,7 @@ import { Button } from '@/components/ui/button';
 
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
+  const { isPremium } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,7 +58,10 @@ const Header = () => {
           </Link>
 
           {/* Navigation Icons */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {/* Premium Upgrade */}
+            <PremiumUpgrade />
+
             {/* Refresh Button */}
             <Button 
               variant="ghost" 
