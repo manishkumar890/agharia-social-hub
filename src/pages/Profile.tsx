@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import FollowersDialog from '@/components/FollowersDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Grid3X3, Settings } from 'lucide-react';
@@ -20,6 +21,8 @@ const Profile = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -110,14 +113,20 @@ const Profile = () => {
                   <span className="font-bold">{stats.posts}</span>
                   <p className="text-sm text-muted-foreground">posts</p>
                 </div>
-                <div className="text-center">
+                <button 
+                  onClick={() => setFollowersOpen(true)}
+                  className="text-center hover:opacity-70 transition-opacity"
+                >
                   <span className="font-bold">{stats.followers}</span>
                   <p className="text-sm text-muted-foreground">followers</p>
-                </div>
-                <div className="text-center">
+                </button>
+                <button 
+                  onClick={() => setFollowingOpen(true)}
+                  className="text-center hover:opacity-70 transition-opacity"
+                >
                   <span className="font-bold">{stats.following}</span>
                   <p className="text-sm text-muted-foreground">following</p>
-                </div>
+                </button>
               </div>
 
               {/* Bio */}
@@ -175,6 +184,24 @@ const Profile = () => {
       </main>
 
       <MobileNav />
+
+      {/* Followers/Following Dialogs */}
+      {user && (
+        <>
+          <FollowersDialog
+            userId={user.id}
+            type="followers"
+            open={followersOpen}
+            onOpenChange={setFollowersOpen}
+          />
+          <FollowersDialog
+            userId={user.id}
+            type="following"
+            open={followingOpen}
+            onOpenChange={setFollowingOpen}
+          />
+        </>
+      )}
     </div>
   );
 };

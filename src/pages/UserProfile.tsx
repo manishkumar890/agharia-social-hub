@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import FollowersDialog from '@/components/FollowersDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Grid3X3, Loader2 } from 'lucide-react';
@@ -34,6 +35,8 @@ const UserProfile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
@@ -204,14 +207,20 @@ const UserProfile = () => {
                   <span className="font-bold">{stats.posts}</span>
                   <p className="text-sm text-muted-foreground">posts</p>
                 </div>
-                <div className="text-center">
+                <button 
+                  onClick={() => setFollowersOpen(true)}
+                  className="text-center hover:opacity-70 transition-opacity"
+                >
                   <span className="font-bold">{stats.followers}</span>
                   <p className="text-sm text-muted-foreground">followers</p>
-                </div>
-                <div className="text-center">
+                </button>
+                <button 
+                  onClick={() => setFollowingOpen(true)}
+                  className="text-center hover:opacity-70 transition-opacity"
+                >
                   <span className="font-bold">{stats.following}</span>
                   <p className="text-sm text-muted-foreground">following</p>
-                </div>
+                </button>
               </div>
 
               {/* Bio */}
@@ -256,6 +265,24 @@ const UserProfile = () => {
       </main>
 
       <MobileNav />
+
+      {/* Followers/Following Dialogs */}
+      {userId && (
+        <>
+          <FollowersDialog
+            userId={userId}
+            type="followers"
+            open={followersOpen}
+            onOpenChange={setFollowersOpen}
+          />
+          <FollowersDialog
+            userId={userId}
+            type="following"
+            open={followingOpen}
+            onOpenChange={setFollowingOpen}
+          />
+        </>
+      )}
     </div>
   );
 };
