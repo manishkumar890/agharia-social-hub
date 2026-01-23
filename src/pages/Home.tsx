@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import PostCard from '@/components/PostCard';
+import StoryBar from '@/components/stories/StoryBar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface Post {
   id: string;
@@ -26,7 +26,6 @@ const Home = () => {
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = async () => {
     try {
@@ -69,7 +68,6 @@ const Home = () => {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -91,11 +89,6 @@ const Home = () => {
     };
   }, []);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchPosts();
-  };
-
   const handleDeletePost = (postId: string) => {
     setPosts(posts.filter(p => p.id !== postId));
   };
@@ -104,22 +97,13 @@ const Home = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+      {/* Story Bar - below navbar */}
+      <div className="fixed top-14 left-0 right-0 z-40">
+        <StoryBar />
+      </div>
+      
+      <main className="pt-[calc(3.5rem+5.5rem)] pb-20 md:pb-8">
         <div className="max-w-lg mx-auto px-4">
-          {/* Pull to Refresh Button */}
-          <div className="flex justify-center py-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-          </div>
-
           {/* Posts Feed */}
           <div className="space-y-6">
             {loading ? (
