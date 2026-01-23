@@ -20,6 +20,7 @@ const Settings = () => {
   const [username, setUsername] = useState(profile?.username || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
+  const [dob, setDob] = useState((profile as any)?.dob || '');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
@@ -45,6 +46,7 @@ const Settings = () => {
           username: username.trim() || null,
           bio: bio.trim() || null,
           avatar_url: avatarUrl.trim() || null,
+          dob: dob || null,
         })
         .eq('id', profile.id);
 
@@ -143,6 +145,21 @@ const Settings = () => {
                   rows={3}
                   className="resize-none"
                 />
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This will be shown on your VIP card
+                </p>
               </div>
 
               {/* Phone (read-only) */}
