@@ -223,7 +223,19 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }
   };
 
+  // Navigation by click - does NOT close on last story
   const goToNext = useCallback(() => {
+    if (currentIndex < storyUser.stories.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setProgress(0);
+      setShowViewers(false);
+      setShowLikers(false);
+    }
+    // Do nothing if on last story - user must click close button
+  }, [currentIndex, storyUser.stories.length]);
+
+  // Auto-advance when story finishes - DOES close on last story
+  const autoAdvance = useCallback(() => {
     if (currentIndex < storyUser.stories.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setProgress(0);
@@ -259,7 +271,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       };
 
       const handleEnded = () => {
-        goToNext();
+        autoAdvance();
       };
 
       video.addEventListener('timeupdate', handleTimeUpdate);
@@ -279,7 +291,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     const timer = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
-          goToNext();
+          autoAdvance();
           return 0;
         }
         return prev + increment;
@@ -287,7 +299,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }, interval);
 
     return () => clearInterval(timer);
-  }, [currentStory.duration, isPaused, goToNext, isVideo, showViewers, showLikers]);
+  }, [currentStory.duration, isPaused, autoAdvance, isVideo, showViewers, showLikers]);
 
   // Reset progress when story changes
   useEffect(() => {
