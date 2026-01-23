@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import PremiumBadge from '@/components/PremiumBadge';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ interface FollowUser {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  isPremium?: boolean;
 }
 
 interface FollowersDialogProps {
@@ -70,7 +71,24 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
         .select('user_id, full_name, username, avatar_url')
         .in('user_id', userIds);
 
-      setUsers(profiles || []);
+      // Fetch subscription status for all users
+      const { data: subscriptions } = await supabase
+        .from('user_subscriptions')
+        .select('user_id, plan_type')
+        .in('user_id', userIds);
+
+      const premiumUserIds = new Set(
+        (subscriptions || [])
+          .filter(s => s.plan_type === 'premium')
+          .map(s => s.user_id)
+      );
+
+      const usersWithPremium = (profiles || []).map(profile => ({
+        ...profile,
+        isPremium: premiumUserIds.has(profile.user_id),
+      }));
+
+      setUsers(usersWithPremium);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -118,8 +136,9 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium text-sm">
+                    <p className="font-medium text-sm flex items-center gap-1">
                       {user.username || user.full_name || 'User'}
+                      {user.isPremium && <PremiumBadge size="sm" />}
                     </p>
                     {user.full_name && user.username && (
                       <p className="text-xs text-muted-foreground">{user.full_name}</p>

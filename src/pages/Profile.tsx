@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
+import PremiumBadge from '@/components/PremiumBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Grid3X3, Settings } from 'lucide-react';
@@ -18,6 +20,7 @@ interface Post {
 
 const Profile = () => {
   const { user, profile, isAdmin } = useAuth();
+  const { isPremium } = useSubscription();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
@@ -96,8 +99,9 @@ const Profile = () => {
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <h1 className="text-xl font-semibold">
+                <h1 className="text-xl font-semibold flex items-center gap-1">
                   {profile.username || profile.full_name}
+                  {isPremium && <PremiumBadge size="lg" />}
                 </h1>
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/settings">
