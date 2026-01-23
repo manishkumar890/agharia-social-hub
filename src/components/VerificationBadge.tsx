@@ -38,6 +38,21 @@ const VerificationBadge = ({
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePayment = async () => {
     if (!user) {
       toast.error('Please sign in first');
@@ -47,21 +62,30 @@ const VerificationBadge = ({
     setIsProcessing(true);
 
     try {
+      // Load Razorpay script first
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        toast.error('Failed to load payment gateway');
+        setIsProcessing(false);
+        return;
+      }
+
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
-        body: { amount: 299, currency: 'INR' }
+        body: { amount: 29900 }
       });
 
-      if (orderError || !orderData?.order) {
+      if (orderError || !orderData?.order_id) {
+        console.error('Order creation error:', orderError, orderData);
         throw new Error('Failed to create order');
       }
 
       const options = {
         key: orderData.key_id,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
+        amount: orderData.amount,
+        currency: orderData.currency,
         name: 'Agharia Samaj',
         description: 'Premium Lifetime Subscription',
-        order_id: orderData.order.id,
+        order_id: orderData.order_id,
         handler: async function (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) {
           try {
             const { error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
