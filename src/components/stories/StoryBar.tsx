@@ -116,7 +116,7 @@ const StoryBar = () => {
 
   return (
     <>
-      <div className="bg-card border-b border-border px-4 py-3">
+      <div className="bg-transparent px-4 py-3">
         <div className="max-w-lg mx-auto">
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-1">
             {/* My Story / Add Story */}
