@@ -651,6 +651,12 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           // Don't allow the dialog to close while a delete is in progress
           if (!open && isDeleting) return;
           setShowDeleteDialog(open);
+
+          // If the dialog is closing (cancel/outside click/escape), resume playback
+          if (!open) {
+            setIsPaused(false);
+            if (videoRef.current) videoRef.current.play().catch(() => {});
+          }
         }}
       >
         <AlertDialogContent>
