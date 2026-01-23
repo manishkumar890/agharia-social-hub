@@ -96,13 +96,12 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Story Bar - below navbar */}
-      <div className="fixed top-14 left-0 right-0 z-40">
+
+      {/* Content scrolls under the fixed navbar */}
+      <main className="pt-14 pb-20 md:pb-8">
+        {/* Story Bar (scrolls with posts) */}
         <StoryBar />
-      </div>
-      
-      <main className="pt-[calc(3.5rem+5.5rem)] pb-20 md:pb-8">
+
         <div className="max-w-lg mx-auto px-4">
           {/* Posts Feed */}
           <div className="space-y-6">
