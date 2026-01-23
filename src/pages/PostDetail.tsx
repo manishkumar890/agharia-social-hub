@@ -256,6 +256,7 @@ const PostDetail = () => {
                   src={post.image_url}
                   className="w-full max-h-[70vh] object-contain"
                   controls
+                  controlsList="nodownload noplaybackrate"
                   preload="metadata"
                 />
               ) : (

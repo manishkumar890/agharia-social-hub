@@ -193,6 +193,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             src={post.image_url} 
             className="w-full h-full object-cover"
             controls
+            controlsList="nodownload noplaybackrate"
             preload="metadata"
           />
         ) : (
