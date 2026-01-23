@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Eye, Heart, MessageCircle, Trash2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye, Heart, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,9 +14,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import StoryComments from './StoryComments';
 
 interface Story {
   id: string;
@@ -42,6 +42,13 @@ interface StoryViewerProps {
   onRefresh: () => void;
 }
 
+interface ViewerInfo {
+  user_id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,11 +56,13 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const [isPaused, setIsPaused] = useState(false);
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
-  const [commentCount, setCommentCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
-  const [showComments, setShowComments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showViewers, setShowViewers] = useState(false);
+  const [showLikers, setShowLikers] = useState(false);
+  const [viewers, setViewers] = useState<ViewerInfo[]>([]);
+  const [likers, setLikers] = useState<ViewerInfo[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const currentStory = storyUser.stories[currentIndex];
@@ -84,7 +93,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
 
   // Fetch counts and like status
   const fetchCounts = useCallback(async () => {
-    const [viewsResult, likesResult, commentsResult] = await Promise.all([
+    const [viewsResult, likesResult] = await Promise.all([
       supabase
         .from('story_views')
         .select('*', { count: 'exact', head: true })
@@ -92,16 +101,11 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       supabase
         .from('story_likes')
         .select('*', { count: 'exact', head: true })
-        .eq('story_id', currentStory.id),
-      supabase
-        .from('story_comments')
-        .select('*', { count: 'exact', head: true })
         .eq('story_id', currentStory.id)
     ]);
 
     setViewCount(viewsResult.count || 0);
     setLikeCount(likesResult.count || 0);
-    setCommentCount(commentsResult.count || 0);
 
     // Check if current user liked
     if (user) {
@@ -116,33 +120,82 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }
   }, [currentStory.id, user]);
 
+  // Fetch viewers list for story owner
+  const fetchViewers = useCallback(async () => {
+    if (!isOwnStory) return;
+    
+    const { data: viewsData } = await supabase
+      .from('story_views')
+      .select('viewer_id')
+      .eq('story_id', currentStory.id);
+
+    if (viewsData && viewsData.length > 0) {
+      const userIds = viewsData.map(v => v.viewer_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, username, full_name, avatar_url')
+        .in('user_id', userIds);
+
+      setViewers(profiles || []);
+    } else {
+      setViewers([]);
+    }
+  }, [currentStory.id, isOwnStory]);
+
+  // Fetch likers list for story owner
+  const fetchLikers = useCallback(async () => {
+    if (!isOwnStory) return;
+    
+    const { data: likesData } = await supabase
+      .from('story_likes')
+      .select('user_id')
+      .eq('story_id', currentStory.id);
+
+    if (likesData && likesData.length > 0) {
+      const userIds = likesData.map(l => l.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, username, full_name, avatar_url')
+        .in('user_id', userIds);
+
+      setLikers(profiles || []);
+    } else {
+      setLikers([]);
+    }
+  }, [currentStory.id, isOwnStory]);
+
   useEffect(() => {
     fetchCounts();
+    if (isOwnStory) {
+      fetchViewers();
+      fetchLikers();
+    }
 
-    // Subscribe to realtime updates for views, likes, comments
+    // Subscribe to realtime updates for views, likes
     const channel = supabase
       .channel(`story-stats-${currentStory.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'story_views', filter: `story_id=eq.${currentStory.id}` },
-        () => fetchCounts()
+        () => {
+          fetchCounts();
+          if (isOwnStory) fetchViewers();
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'story_likes', filter: `story_id=eq.${currentStory.id}` },
-        () => fetchCounts()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'story_comments', filter: `story_id=eq.${currentStory.id}` },
-        () => fetchCounts()
+        () => {
+          fetchCounts();
+          if (isOwnStory) fetchLikers();
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentStory.id, fetchCounts]);
+  }, [currentStory.id, fetchCounts, fetchViewers, fetchLikers, isOwnStory]);
 
   const handleLike = async () => {
     if (!user) {
@@ -174,7 +227,8 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     if (currentIndex < storyUser.stories.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setProgress(0);
-      setShowComments(false);
+      setShowViewers(false);
+      setShowLikers(false);
     } else {
       onClose();
     }
@@ -184,13 +238,14 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
       setProgress(0);
-      setShowComments(false);
+      setShowViewers(false);
+      setShowLikers(false);
     }
   }, [currentIndex]);
 
   // Progress timer
   useEffect(() => {
-    if (isPaused || showComments) return;
+    if (isPaused || showViewers || showLikers) return;
 
     // For videos, use video duration instead
     if (isVideo && videoRef.current) {
@@ -232,7 +287,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }, interval);
 
     return () => clearInterval(timer);
-  }, [currentStory.duration, isPaused, goToNext, isVideo, showComments]);
+  }, [currentStory.duration, isPaused, goToNext, isVideo, showViewers, showLikers]);
 
   // Reset progress when story changes
   useEffect(() => {
@@ -253,9 +308,22 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     if (videoRef.current) videoRef.current.play().catch(() => {});
   };
 
-  const toggleComments = () => {
-    setShowComments(!showComments);
-    if (!showComments) {
+  const toggleViewers = () => {
+    setShowViewers(!showViewers);
+    setShowLikers(false);
+    if (!showViewers) {
+      setIsPaused(true);
+      if (videoRef.current) videoRef.current.pause();
+    } else {
+      setIsPaused(false);
+      if (videoRef.current) videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const toggleLikers = () => {
+    setShowLikers(!showLikers);
+    setShowViewers(false);
+    if (!showLikers) {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
     } else {
@@ -429,47 +497,132 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
 
       {/* Bottom stats and actions */}
       <div className="absolute bottom-8 left-0 right-0 px-4 flex items-center justify-between z-10">
-        {/* View count (for owner) */}
+        {/* View and Like counts (for owner - clickable) */}
         {isOwnStory ? (
-          <div className="flex items-center gap-2 text-white">
-            <Eye className="w-5 h-5" />
-            <span className="text-sm">{viewCount}</span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleViewers}
+              className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity"
+            >
+              <Eye className="w-5 h-5" />
+              <span className="text-sm">{viewCount}</span>
+            </button>
+            <button
+              onClick={toggleLikers}
+              className="flex items-center gap-1 text-white hover:opacity-80 transition-opacity"
+            >
+              <Heart 
+                className={`w-6 h-6 ${likeCount > 0 ? 'fill-red-500 text-red-500' : ''}`} 
+              />
+              <span className="text-sm">{likeCount}</span>
+            </button>
           </div>
         ) : (
           <div />
         )}
 
-        {/* Like and Comment buttons */}
-        <div className="flex items-center gap-4">
+        {/* Like button (for non-owners) */}
+        {!isOwnStory && (
           <button
             onClick={handleLike}
-            className="flex items-center gap-1 text-white"
+            className="flex items-center gap-1 text-white ml-auto"
           >
             <Heart 
               className={`w-6 h-6 transition-colors ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
             />
             <span className="text-sm">{likeCount}</span>
           </button>
-          <button
-            onClick={toggleComments}
-            className="flex items-center gap-1 text-white"
-          >
-            <MessageCircle className="w-6 h-6" />
-            <span className="text-sm">{commentCount}</span>
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* Comments Panel */}
-      {showComments && (
-        <StoryComments 
-          storyId={currentStory.id} 
-          onClose={() => {
-            setShowComments(false);
-            setIsPaused(false);
-            if (videoRef.current) videoRef.current.play().catch(() => {});
-          }} 
-        />
+      {/* Viewers Panel */}
+      {showViewers && isOwnStory && (
+        <div 
+          className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm rounded-t-2xl max-h-[60vh] flex flex-col z-20"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Eye className="w-5 h-5" /> Viewers ({viewers.length})
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleViewers}
+              className="text-white hover:bg-white/20"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 p-4">
+            {viewers.length === 0 ? (
+              <p className="text-white/60 text-center py-4">No views yet</p>
+            ) : (
+              <div className="space-y-3">
+                {viewers.map((viewer) => (
+                  <div key={viewer.user_id} className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={viewer.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {viewer.full_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-white text-sm font-medium">
+                        {viewer.username || viewer.full_name || 'User'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Likers Panel */}
+      {showLikers && isOwnStory && (
+        <div 
+          className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm rounded-t-2xl max-h-[60vh] flex flex-col z-20"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Heart className="w-5 h-5 fill-red-500 text-red-500" /> Likes ({likers.length})
+            </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleLikers}
+              className="text-white hover:bg-white/20"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 p-4">
+            {likers.length === 0 ? (
+              <p className="text-white/60 text-center py-4">No likes yet</p>
+            ) : (
+              <div className="space-y-3">
+                {likers.map((liker) => (
+                  <div key={liker.user_id} className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={liker.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {liker.full_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-white text-sm font-medium">
+                        {liker.username || liker.full_name || 'User'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       )}
 
       {/* Delete Confirmation Dialog */}
