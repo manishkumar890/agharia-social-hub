@@ -7,11 +7,13 @@ import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
 import VerificationBadge from '@/components/VerificationBadge';
+import VIPCard from '@/components/VIPCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid3X3, Image, Video, Settings } from 'lucide-react';
+import { Grid3X3, Image, Video, Settings, Crown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 interface Post {
   id: string;
@@ -174,12 +176,34 @@ const Profile = () => {
                   </h1>
                   <VerificationBadge isPremium={isPremium} isOwnProfile={true} size="lg" />
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/settings">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                  {isPremium && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+                          <Crown className="w-4 h-4" />
+                          VIP Card
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none">
+                        <VIPCard
+                          fullName={profile.full_name || ''}
+                          username={profile.username || ''}
+                          avatarUrl={profile.avatar_url}
+                          dob={(profile as any).dob}
+                          registerNo={(profile as any).register_no}
+                          isOwner={true}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/settings">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               {/* Stats */}

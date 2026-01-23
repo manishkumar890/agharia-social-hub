@@ -6,10 +6,12 @@ import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
 import VerificationBadge from '@/components/VerificationBadge';
+import VIPCard from '@/components/VIPCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid3X3, Image, Video, Loader2, MessageCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -21,6 +23,8 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  dob?: string | null;
+  register_no?: string | null;
 }
 
 interface Post {
@@ -291,6 +295,26 @@ const UserProfile = () => {
                   </h1>
                   {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
                 </div>
+                {isPremiumUser && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+                        <Crown className="w-4 h-4" />
+                        VIP Card
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none">
+                      <VIPCard
+                        fullName={profile.full_name || ''}
+                        username={profile.username || ''}
+                        avatarUrl={profile.avatar_url}
+                        dob={profile.dob}
+                        registerNo={profile.register_no}
+                        isOwner={isOwnProfile}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                )}
                 {!isOwnProfile && (
                   <div className="flex gap-2">
                     <Button

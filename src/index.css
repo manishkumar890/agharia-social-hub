@@ -214,6 +214,33 @@
   animation: heartBeat 0.3s ease-in-out;
 }
 
+/* VIP Card Animations */
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes shimmer-border {
+  0%, 100% { box-shadow: 0 0 20px rgba(217, 119, 6, 0.5), 0 0 40px rgba(217, 119, 6, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(217, 119, 6, 0.8), 0 0 60px rgba(217, 119, 6, 0.5); }
+}
+
+.animate-shine {
+  animation: shine 3s infinite;
+}
+
+.animate-shimmer-border {
+  animation: shimmer-border 2s ease-in-out infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;

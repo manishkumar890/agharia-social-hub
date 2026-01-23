@@ -241,10 +241,12 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          dob: string | null
           email: string | null
           full_name: string | null
           id: string
           phone: string
+          register_no: string | null
           updated_at: string
           user_id: string
           username: string | null
@@ -253,10 +255,12 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          dob?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           phone: string
+          register_no?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -265,10 +269,12 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          dob?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           phone?: string
+          register_no?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
