@@ -310,6 +310,7 @@ export type Database = {
           duration: number
           expires_at: string
           id: string
+          media_type: string
           media_url: string
           user_id: string
         }
@@ -318,6 +319,7 @@ export type Database = {
           duration?: number
           expires_at: string
           id?: string
+          media_type?: string
           media_url: string
           user_id: string
         }
@@ -326,10 +328,72 @@ export type Database = {
           duration?: number
           expires_at?: string
           id?: string
+          media_type?: string
           media_url?: string
           user_id?: string
         }
         Relationships: []
+      }
+      story_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_comments_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_likes: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_likes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_views: {
         Row: {

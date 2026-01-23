@@ -1,15 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { X, ChevronLeft, ChevronRight, Eye, Heart, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import StoryComments from './StoryComments';
 
 interface Story {
   id: string;
   user_id: string;
   media_url: string;
+  media_type?: string;
   duration: number;
   created_at: string;
   expires_at: string;
@@ -35,9 +38,15 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [viewCount, setViewCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const currentStory = storyUser.stories[currentIndex];
   const isOwnStory = user?.id === storyUser.user_id;
+  const isVideo = currentStory.media_type === 'video';
 
   // Record view
   useEffect(() => {
@@ -61,26 +70,99 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     recordView();
   }, [currentStory.id, user, isOwnStory]);
 
-  // Fetch view count for own stories
-  useEffect(() => {
-    if (!isOwnStory) return;
-
-    const fetchViewCount = async () => {
-      const { count } = await supabase
+  // Fetch counts and like status
+  const fetchCounts = useCallback(async () => {
+    const [viewsResult, likesResult, commentsResult] = await Promise.all([
+      supabase
         .from('story_views')
         .select('*', { count: 'exact', head: true })
-        .eq('story_id', currentStory.id);
-      
-      setViewCount(count || 0);
-    };
+        .eq('story_id', currentStory.id),
+      supabase
+        .from('story_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('story_id', currentStory.id),
+      supabase
+        .from('story_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('story_id', currentStory.id)
+    ]);
 
-    fetchViewCount();
-  }, [currentStory.id, isOwnStory]);
+    setViewCount(viewsResult.count || 0);
+    setLikeCount(likesResult.count || 0);
+    setCommentCount(commentsResult.count || 0);
+
+    // Check if current user liked
+    if (user) {
+      const { data: likeData } = await supabase
+        .from('story_likes')
+        .select('id')
+        .eq('story_id', currentStory.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setIsLiked(!!likeData);
+    }
+  }, [currentStory.id, user]);
+
+  useEffect(() => {
+    fetchCounts();
+
+    // Subscribe to realtime updates for views, likes, comments
+    const channel = supabase
+      .channel(`story-stats-${currentStory.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'story_views', filter: `story_id=eq.${currentStory.id}` },
+        () => fetchCounts()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'story_likes', filter: `story_id=eq.${currentStory.id}` },
+        () => fetchCounts()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'story_comments', filter: `story_id=eq.${currentStory.id}` },
+        () => fetchCounts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentStory.id, fetchCounts]);
+
+  const handleLike = async () => {
+    if (!user) {
+      toast.error('Please login to like stories');
+      return;
+    }
+
+    try {
+      if (isLiked) {
+        await supabase
+          .from('story_likes')
+          .delete()
+          .eq('story_id', currentStory.id)
+          .eq('user_id', user.id);
+      } else {
+        await supabase
+          .from('story_likes')
+          .insert({
+            story_id: currentStory.id,
+            user_id: user.id
+          });
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
 
   const goToNext = useCallback(() => {
     if (currentIndex < storyUser.stories.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setProgress(0);
+      setShowComments(false);
     } else {
       onClose();
     }
@@ -90,15 +172,41 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
       setProgress(0);
+      setShowComments(false);
     }
   }, [currentIndex]);
 
   // Progress timer
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || showComments) return;
 
-    const duration = currentStory.duration * 1000; // Convert to ms
-    const interval = 50; // Update every 50ms
+    // For videos, use video duration instead
+    if (isVideo && videoRef.current) {
+      const video = videoRef.current;
+      
+      const handleTimeUpdate = () => {
+        if (video.duration) {
+          const progressPercent = (video.currentTime / video.duration) * 100;
+          setProgress(progressPercent);
+        }
+      };
+
+      const handleEnded = () => {
+        goToNext();
+      };
+
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      video.addEventListener('ended', handleEnded);
+
+      return () => {
+        video.removeEventListener('timeupdate', handleTimeUpdate);
+        video.removeEventListener('ended', handleEnded);
+      };
+    }
+
+    // For images, use the duration from story
+    const duration = currentStory.duration * 1000;
+    const interval = 50;
     const increment = (interval / duration) * 100;
 
     const timer = setInterval(() => {
@@ -112,15 +220,37 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }, interval);
 
     return () => clearInterval(timer);
-  }, [currentStory.duration, isPaused, goToNext]);
+  }, [currentStory.duration, isPaused, goToNext, isVideo, showComments]);
 
   // Reset progress when story changes
   useEffect(() => {
     setProgress(0);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
   }, [currentIndex]);
 
-  const handleTouchStart = () => setIsPaused(true);
-  const handleTouchEnd = () => setIsPaused(false);
+  const handleTouchStart = () => {
+    setIsPaused(true);
+    if (videoRef.current) videoRef.current.pause();
+  };
+  
+  const handleTouchEnd = () => {
+    setIsPaused(false);
+    if (videoRef.current) videoRef.current.play().catch(() => {});
+  };
+
+  const toggleComments = () => {
+    setShowComments(!showComments);
+    if (!showComments) {
+      setIsPaused(true);
+      if (videoRef.current) videoRef.current.pause();
+    } else {
+      setIsPaused(false);
+      if (videoRef.current) videoRef.current.play().catch(() => {});
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
@@ -175,11 +305,22 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
         onMouseDown={handleTouchStart}
         onMouseUp={handleTouchEnd}
       >
-        <img
-          src={currentStory.media_url}
-          alt="Story"
-          className="max-w-full max-h-full object-contain"
-        />
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            src={currentStory.media_url}
+            className="max-w-full max-h-full object-contain"
+            autoPlay
+            muted
+            playsInline
+          />
+        ) : (
+          <img
+            src={currentStory.media_url}
+            alt="Story"
+            className="max-w-full max-h-full object-contain"
+          />
+        )}
       </div>
 
       {/* Navigation */}
@@ -215,12 +356,49 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
         </Button>
       )}
 
-      {/* View count for own stories */}
-      {isOwnStory && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 text-white">
-          <Eye className="w-5 h-5" />
-          <span className="text-sm">{viewCount} views</span>
+      {/* Bottom stats and actions */}
+      <div className="absolute bottom-8 left-0 right-0 px-4 flex items-center justify-between z-10">
+        {/* View count (for owner) */}
+        {isOwnStory ? (
+          <div className="flex items-center gap-2 text-white">
+            <Eye className="w-5 h-5" />
+            <span className="text-sm">{viewCount}</span>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {/* Like and Comment buttons */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleLike}
+            className="flex items-center gap-1 text-white"
+          >
+            <Heart 
+              className={`w-6 h-6 transition-colors ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
+            />
+            <span className="text-sm">{likeCount}</span>
+          </button>
+          <button
+            onClick={toggleComments}
+            className="flex items-center gap-1 text-white"
+          >
+            <MessageCircle className="w-6 h-6" />
+            <span className="text-sm">{commentCount}</span>
+          </button>
         </div>
+      </div>
+
+      {/* Comments Panel */}
+      {showComments && (
+        <StoryComments 
+          storyId={currentStory.id} 
+          onClose={() => {
+            setShowComments(false);
+            setIsPaused(false);
+            if (videoRef.current) videoRef.current.play().catch(() => {});
+          }} 
+        />
       )}
     </div>
   );
