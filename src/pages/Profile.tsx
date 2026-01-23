@@ -6,8 +6,7 @@ import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid3X3, Bookmark, Settings } from 'lucide-react';
+import { Grid3X3, Settings } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Post {
@@ -130,66 +129,48 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Posts Tabs */}
-          <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-4">
-              <TabsTrigger value="posts" className="flex items-center gap-2">
-                <Grid3X3 className="w-4 h-4" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger value="saved" className="flex items-center gap-2">
-                <Bookmark className="w-4 h-4" />
-                Saved
-              </TabsTrigger>
-            </TabsList>
+          {/* Posts Section */}
+          <div className="w-full">
+            <div className="flex items-center gap-2 mb-4 border-b border-border pb-2">
+              <Grid3X3 className="w-4 h-4" />
+              <span className="text-sm font-medium">Posts</span>
+            </div>
 
-            <TabsContent value="posts">
-              {loading ? (
-                <div className="grid grid-cols-3 gap-1">
-                  {Array.from({ length: 9 }).map((_, i) => (
-                    <Skeleton key={i} className="aspect-square" />
-                  ))}
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="text-center py-12">
-                  <Grid3X3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">No Posts Yet</h3>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Share your first photo with the community
-                  </p>
-                  <Button asChild className="gradient-maroon text-primary-foreground">
-                    <Link to="/create">Create Post</Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-1">
-                  {posts.map((post) => (
-                    <Link
-                      key={post.id}
-                      to={`/post/${post.id}`}
-                      className="aspect-square bg-muted overflow-hidden"
-                    >
-                      <img
-                        src={post.image_url}
-                        alt=""
-                        className="w-full h-full object-cover hover:opacity-80 transition-opacity"
-                      />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="saved">
-              <div className="text-center py-12">
-                <Bookmark className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">Saved Posts</h3>
-                <p className="text-muted-foreground text-sm">
-                  Posts you save will appear here
-                </p>
+            {loading ? (
+              <div className="grid grid-cols-3 gap-1">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-square" />
+                ))}
               </div>
-            </TabsContent>
-          </Tabs>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-12">
+                <Grid3X3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">No Posts Yet</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Share your first photo with the community
+                </p>
+                <Button asChild className="gradient-maroon text-primary-foreground">
+                  <Link to="/create">Create Post</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {posts.map((post) => (
+                  <Link
+                    key={post.id}
+                    to={`/post/${post.id}`}
+                    className="aspect-square bg-muted overflow-hidden"
+                  >
+                    <img
+                      src={post.image_url}
+                      alt=""
+                      className="w-full h-full object-cover hover:opacity-80 transition-opacity"
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 

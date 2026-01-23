@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, User, Settings, LogOut, Trash2 } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, User, Bookmark, Settings, LogOut, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
@@ -88,6 +88,12 @@ const Header = () => {
                   <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
                     <User className="w-4 h-4" />
                     Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/saved" className="flex items-center gap-2 cursor-pointer">
+                    <Bookmark className="w-4 h-4" />
+                    Saved
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
