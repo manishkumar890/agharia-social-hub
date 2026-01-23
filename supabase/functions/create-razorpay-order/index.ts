@@ -49,7 +49,7 @@ serve(async (req) => {
       body: JSON.stringify({
         amount: amount,
         currency: "INR",
-        receipt: `premium_${user.id}_${Date.now()}`,
+        receipt: `prm_${user.id.slice(0, 8)}_${Date.now().toString(36)}`,
         notes: {
           user_id: user.id,
           plan: "premium_lifetime"
