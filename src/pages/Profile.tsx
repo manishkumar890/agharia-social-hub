@@ -6,7 +6,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
-import PremiumBadge from '@/components/PremiumBadge';
+import VerificationBadge from '@/components/VerificationBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -159,10 +159,12 @@ const Profile = () => {
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <h1 className="text-xl font-semibold flex items-center gap-1">
-                  {profile.username || profile.full_name}
-                  {isPremium && <PremiumBadge size="lg" />}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold">
+                    {profile.username || profile.full_name}
+                  </h1>
+                  <VerificationBadge isPremium={isPremium} isOwnProfile={true} size="lg" />
+                </div>
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/settings">
                     <Settings className="w-4 h-4 mr-2" />
