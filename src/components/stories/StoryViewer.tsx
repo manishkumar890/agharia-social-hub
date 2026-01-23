@@ -369,9 +369,8 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }
   };
 
-  // Guard against empty stories array
+  // Guard against empty stories array - don't auto close
   if (!currentStory) {
-    onClose();
     return null;
   }
 
