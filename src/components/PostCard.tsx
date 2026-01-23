@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import PremiumBadge from '@/components/PremiumBadge';
+import SendPostDialog from '@/components/SendPostDialog';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -44,6 +45,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [commentsCount, setCommentsCount] = useState(0);
   const [animateLike, setAnimateLike] = useState(false);
   const [isAuthorPremium, setIsAuthorPremium] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+
+  const postUrl = `${window.location.origin}/post/${post.id}`;
 
   useEffect(() => {
     fetchLikesAndComments();
@@ -129,18 +133,17 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.share({
-        title: 'Agharia Samaj Post',
-        text: post.caption || 'Check out this post!',
-        url: window.location.origin + '/post/' + post.id
-      });
-    } catch {
-      // Fallback to copy link
-      navigator.clipboard.writeText(window.location.origin + '/post/' + post.id);
-      toast.success('Link copied to clipboard');
+  const handleSend = () => {
+    if (!user) {
+      toast.error('Please login to send posts');
+      return;
     }
+    setSendDialogOpen(true);
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(postUrl);
+    toast.success('Link copied to clipboard');
   };
 
   const canDelete = user?.id === post.user_id || isAdmin;
@@ -174,7 +177,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleShare}>Share</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSend}>Send</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyLink}>Copy Link</DropdownMenuItem>
             {canDelete && (
               <DropdownMenuItem onClick={handleDelete} className="text-destructive">
                 Delete
@@ -232,8 +236,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
                 <MessageCircle className="w-6 h-6" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleShare}>
-              <Share2 className="w-6 h-6" />
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSend}>
+              <Send className="w-6 h-6" />
             </Button>
           </div>
           <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -266,6 +270,13 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
         </p>
       </div>
+
+      <SendPostDialog
+        open={sendDialogOpen}
+        onOpenChange={setSendDialogOpen}
+        postId={post.id}
+        postUrl={postUrl}
+      />
     </article>
   );
 };

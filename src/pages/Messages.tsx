@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -300,7 +300,7 @@ const Messages = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-3 flex-1">
-              <div className="relative">
+              <Link to={`/user/${otherUserId}`} className="relative">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={activeConversation.otherUser?.avatar_url || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
@@ -310,8 +310,8 @@ const Messages = () => {
                 {isUserOnline(otherUserId) && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
                 )}
-              </div>
-              <div>
+              </Link>
+              <Link to={`/user/${otherUserId}`} className="flex-1">
                 <p className="font-semibold text-sm">
                   {activeConversation.otherUser?.full_name || activeConversation.otherUser?.username || 'User'}
                 </p>
@@ -322,7 +322,7 @@ const Messages = () => {
                 ) : (
                   <p className="text-xs text-muted-foreground">Offline</p>
                 )}
-              </div>
+              </Link>
             </div>
           </div>
 
@@ -419,7 +419,11 @@ const Messages = () => {
                     onClick={() => navigate(`/messages/${conv.id}`)}
                     className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
                   >
-                    <div className="relative">
+                    <Link 
+                      to={`/user/${otherUserId}`} 
+                      className="relative"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Avatar className="w-12 h-12">
                         <AvatarImage src={conv.otherUser?.avatar_url || undefined} />
                         <AvatarFallback className="bg-primary text-primary-foreground">
@@ -429,7 +433,7 @@ const Messages = () => {
                       {isUserOnline(otherUserId) && (
                         <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
                       )}
-                    </div>
+                    </Link>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">
                         {conv.otherUser?.full_name || conv.otherUser?.username || 'User'}
