@@ -17,7 +17,9 @@ import {
   Trash2, 
   Search,
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -55,15 +57,31 @@ interface Comment {
   };
 }
 
+interface PremiumUser {
+  id: string;
+  user_id: string;
+  plan_type: string;
+  payment_id: string | null;
+  amount: number | null;
+  purchased_at: string | null;
+  profile?: {
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    phone: string;
+  };
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { isAdmin, loading: authLoading } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0 });
+  const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -127,15 +145,52 @@ const Admin = () => {
       );
       setComments(commentsWithProfiles as Comment[]);
 
+      // Fetch premium users
+      const { data: subscriptionsData, count: premiumCount } = await supabase
+        .from('user_subscriptions')
+        .select('*', { count: 'exact' })
+        .eq('plan_type', 'premium')
+        .order('purchased_at', { ascending: false });
+
+      const premiumWithProfiles = await Promise.all(
+        (subscriptionsData || []).map(async (sub) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, username, avatar_url, phone')
+            .eq('user_id', sub.user_id)
+            .single();
+          return { ...sub, profile };
+        })
+      );
+      setPremiumUsers(premiumWithProfiles as PremiumUser[]);
+
       setStats({
         users: usersCount || 0,
         posts: postsCount || 0,
         comments: commentsCount || 0,
+        premium: premiumCount || 0,
       });
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemovePremium = async (subscriptionId: string, userId: string) => {
+    if (!confirm('Are you sure you want to remove premium from this user?')) return;
+
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .update({ plan_type: 'free' })
+      .eq('id', subscriptionId);
+    
+    if (error) {
+      toast.error('Failed to remove premium');
+    } else {
+      toast.success('Premium removed successfully');
+      setPremiumUsers(premiumUsers.filter(p => p.id !== subscriptionId));
+      setStats(prev => ({ ...prev, premium: prev.premium - 1 }));
     }
   };
 
@@ -198,7 +253,7 @@ const Admin = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardContent className="flex items-center gap-4 p-6">
                 <div className="p-3 rounded-full bg-primary/10">
@@ -232,6 +287,17 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+            <Card>
+              <CardContent className="flex items-center gap-4 p-6">
+                <div className="p-3 rounded-full bg-amber-500/10">
+                  <Crown className="w-6 h-6 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.premium}</p>
+                  <p className="text-sm text-muted-foreground">Premium Users</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Management Tabs */}
@@ -248,6 +314,10 @@ const Admin = () => {
               <TabsTrigger value="comments" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Comments
+              </TabsTrigger>
+              <TabsTrigger value="premium" className="flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Premium
               </TabsTrigger>
             </TabsList>
 
@@ -382,6 +452,65 @@ const Admin = () => {
                             onClick={() => handleDeleteComment(comment.id)}
                           >
                             <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Premium Users Tab */}
+            <TabsContent value="premium">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-amber-500" />
+                    Premium Users
+                  </CardTitle>
+                  <CardDescription>Manage premium subscriptions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {loading ? (
+                      <p className="text-muted-foreground text-center py-8">Loading...</p>
+                    ) : premiumUsers.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">No premium users yet</p>
+                    ) : (
+                      premiumUsers.map((sub) => (
+                        <div 
+                          key={sub.id}
+                          className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={sub.profile?.avatar_url || undefined} />
+                              <AvatarFallback className="bg-amber-500 text-white">
+                                {sub.profile?.full_name?.charAt(0) || 'P'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{sub.profile?.full_name || 'No name'}</p>
+                                <Badge className="bg-amber-500 text-white text-xs">Premium</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {sub.profile?.username ? `@${sub.profile.username}` : sub.profile?.phone}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ₹{sub.amount} • {sub.purchased_at ? formatDistanceToNow(new Date(sub.purchased_at), { addSuffix: true }) : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => handleRemovePremium(sub.id, sub.user_id)}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Remove
                           </Button>
                         </div>
                       ))
