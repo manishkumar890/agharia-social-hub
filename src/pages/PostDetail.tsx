@@ -26,6 +26,7 @@ interface Post {
   location: string | null;
   created_at: string;
   media_type?: string;
+  thumbnail_url?: string | null;
   profiles?: {
     full_name: string | null;
     username: string | null;
@@ -254,6 +255,7 @@ const PostDetail = () => {
               {post.media_type === 'video' ? (
                 <video
                   src={post.image_url}
+                  poster={post.thumbnail_url || undefined}
                   className="w-full max-h-[70vh] object-contain"
                   controls
                   controlsList="nodownload noplaybackrate"

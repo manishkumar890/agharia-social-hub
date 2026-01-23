@@ -24,6 +24,7 @@ interface Post {
   location: string | null;
   created_at: string;
   media_type?: string;
+  thumbnail_url?: string | null;
   profiles?: {
     full_name: string | null;
     username: string | null;
@@ -191,6 +192,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         {post.media_type === 'video' ? (
           <video 
             src={post.image_url} 
+            poster={post.thumbnail_url || undefined}
             className="w-full h-full object-cover"
             controls
             controlsList="nodownload noplaybackrate"

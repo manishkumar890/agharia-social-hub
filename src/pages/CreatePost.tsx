@@ -21,6 +21,8 @@ const CreatePost = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState('');
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState('');
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +30,46 @@ const CreatePost = () => {
   // Size limits based on subscription
   const imageSizeLimit = 5 * 1024 * 1024; // 5MB for images
   const videoSizeLimit = isPremium ? 100 * 1024 * 1024 : 25 * 1024 * 1024; // 100MB premium, 25MB free
+
+  // Generate thumbnail from video
+  const generateVideoThumbnail = (videoFile: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      
+      video.onloadeddata = () => {
+        // Seek to 1 second or 10% of video duration
+        video.currentTime = Math.min(1, video.duration * 0.1);
+      };
+      
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to generate thumbnail'));
+          }
+        }, 'image/jpeg', 0.8);
+        
+        URL.revokeObjectURL(video.src);
+      };
+      
+      video.onerror = () => {
+        reject(new Error('Failed to load video'));
+      };
+      
+      video.src = URL.createObjectURL(videoFile);
+    });
+  };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -75,12 +117,23 @@ const CreatePost = () => {
       reader.readAsDataURL(file);
       setMediaFile(file);
       setMediaType('video');
+
+      // Generate thumbnail
+      try {
+        const thumbnail = await generateVideoThumbnail(file);
+        setThumbnailBlob(thumbnail);
+        setThumbnailPreview(URL.createObjectURL(thumbnail));
+      } catch (error) {
+        console.error('Failed to generate thumbnail:', error);
+      }
     }
   };
 
   const clearMedia = () => {
     setMediaFile(null);
     setMediaPreview('');
+    setThumbnailBlob(null);
+    setThumbnailPreview('');
   };
 
   const handleSubmit = async () => {
@@ -112,12 +165,29 @@ const CreatePost = () => {
 
       const mediaUrl = urlData.publicUrl;
 
+      // Upload thumbnail for videos
+      let thumbnailUrl = null;
+      if (mediaType === 'video' && thumbnailBlob) {
+        const thumbFileName = `${user.id}/${Date.now()}_thumb.jpg`;
+        const { error: thumbError } = await supabase.storage
+          .from('posts')
+          .upload(thumbFileName, thumbnailBlob);
+
+        if (!thumbError) {
+          const { data: thumbUrlData } = supabase.storage
+            .from('posts')
+            .getPublicUrl(thumbFileName);
+          thumbnailUrl = thumbUrlData.publicUrl;
+        }
+      }
+
       const { error } = await supabase.from('posts').insert({
         user_id: user.id,
         image_url: mediaUrl,
         caption: caption.trim() || null,
         location: location.trim() || null,
         media_type: mediaType,
+        thumbnail_url: thumbnailUrl,
       });
 
       if (error) throw error;
@@ -131,6 +201,7 @@ const CreatePost = () => {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background">

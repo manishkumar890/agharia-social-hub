@@ -18,6 +18,7 @@ interface Post {
   image_url: string;
   created_at: string;
   media_type: string;
+  thumbnail_url?: string | null;
 }
 
 const Profile = () => {
@@ -41,7 +42,7 @@ const Profile = () => {
     try {
       const { data: postsData, count: postsCount } = await supabase
         .from('posts')
-        .select('id, image_url, created_at, media_type', { count: 'exact' })
+        .select('id, image_url, created_at, media_type, thumbnail_url', { count: 'exact' })
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -120,11 +121,19 @@ const Profile = () => {
           >
             {post.media_type === 'video' ? (
               <>
-                <video
-                  src={post.image_url}
-                  className="w-full h-full object-cover"
-                  preload="metadata"
-                />
+                {post.thumbnail_url ? (
+                  <img
+                    src={post.thumbnail_url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={post.image_url}
+                    className="w-full h-full object-cover"
+                    preload="metadata"
+                  />
+                )}
                 <div className="absolute top-2 right-2">
                   <Video className="w-4 h-4 text-white drop-shadow-lg" />
                 </div>

@@ -190,6 +190,7 @@ export type Database = {
           image_url: string
           location: string | null
           media_type: string
+          thumbnail_url: string | null
           updated_at: string
           user_id: string
         }
@@ -200,6 +201,7 @@ export type Database = {
           image_url: string
           location?: string | null
           media_type?: string
+          thumbnail_url?: string | null
           updated_at?: string
           user_id: string
         }
@@ -210,6 +212,7 @@ export type Database = {
           image_url?: string
           location?: string | null
           media_type?: string
+          thumbnail_url?: string | null
           updated_at?: string
           user_id?: string
         }
