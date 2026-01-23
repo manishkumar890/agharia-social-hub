@@ -8,7 +8,8 @@ import FollowersDialog from '@/components/FollowersDialog';
 import PremiumBadge from '@/components/PremiumBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Grid3X3, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Grid3X3, Image, Video, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -25,6 +26,7 @@ interface Profile {
 interface Post {
   id: string;
   image_url: string;
+  media_type: string;
 }
 
 const UserProfile = () => {
@@ -50,7 +52,6 @@ const UserProfile = () => {
 
   const fetchUserData = async () => {
     try {
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -61,22 +62,19 @@ const UserProfile = () => {
         setProfile(profileData);
       }
 
-      // Fetch posts
       const { data: postsData, count: postsCount } = await supabase
         .from('posts')
-        .select('id, image_url', { count: 'exact' })
+        .select('id, image_url, media_type', { count: 'exact' })
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       setPosts(postsData || []);
 
-      // Fetch followers count
       const { count: followersCount } = await supabase
         .from('followers')
         .select('*', { count: 'exact', head: true })
         .eq('following_id', userId);
 
-      // Fetch following count
       const { count: followingCount } = await supabase
         .from('followers')
         .select('*', { count: 'exact', head: true })
@@ -88,7 +86,6 @@ const UserProfile = () => {
         following: followingCount || 0,
       });
 
-      // Check if current user follows this user
       if (user && userId !== user.id) {
         const { data: followData } = await supabase
           .from('followers')
@@ -100,7 +97,6 @@ const UserProfile = () => {
         setIsFollowing(!!followData);
       }
 
-      // Check if this user is premium
       const { data: subscriptionData } = await supabase
         .from('user_subscriptions')
         .select('plan_type')
@@ -150,11 +146,66 @@ const UserProfile = () => {
     }
   };
 
+  const imagePosts = posts.filter(p => p.media_type === 'image' || !p.media_type);
+  const videoPosts = posts.filter(p => p.media_type === 'video');
+
+  const renderPostGrid = (postsToRender: Post[]) => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-3 gap-1">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square" />
+          ))}
+        </div>
+      );
+    }
+
+    if (postsToRender.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <Grid3X3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No posts yet</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-3 gap-1">
+        {postsToRender.map((post) => (
+          <Link
+            key={post.id}
+            to={`/post/${post.id}`}
+            className="aspect-square bg-muted overflow-hidden relative"
+          >
+            {post.media_type === 'video' ? (
+              <>
+                <video
+                  src={post.image_url}
+                  className="w-full h-full object-cover"
+                  preload="metadata"
+                />
+                <div className="absolute top-2 right-2">
+                  <Video className="w-4 h-4 text-white drop-shadow-lg" />
+                </div>
+              </>
+            ) : (
+              <img
+                src={post.image_url}
+                alt=""
+                className="w-full h-full object-cover hover:opacity-80 transition-opacity"
+              />
+            )}
+          </Link>
+        ))}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="pt-[calc(4rem+3.5rem)] pb-20 flex items-center justify-center">
+        <div className="pt-14 pb-20 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
         <MobileNav />
@@ -166,7 +217,7 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="pt-[calc(4rem+3.5rem)] pb-20 text-center py-12">
+        <div className="pt-14 pb-20 text-center py-12">
           <p className="text-muted-foreground">User not found</p>
         </div>
         <MobileNav />
@@ -178,7 +229,7 @@ const UserProfile = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* Profile Header */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
@@ -243,36 +294,35 @@ const UserProfile = () => {
             </div>
           </div>
 
-          {/* Posts Grid */}
-          <div className="border-t border-border pt-4">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Grid3X3 className="w-4 h-4" />
-              <span className="text-sm font-medium">Posts</span>
-            </div>
+          {/* Posts Section with Tabs */}
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Grid3X3 className="w-4 h-4" />
+                <span className="hidden sm:inline">All</span>
+              </TabsTrigger>
+              <TabsTrigger value="images" className="flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                <span className="hidden sm:inline">Images</span>
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="flex items-center gap-2">
+                <Video className="w-4 h-4" />
+                <span className="hidden sm:inline">Videos</span>
+              </TabsTrigger>
+            </TabsList>
 
-            {posts.length === 0 ? (
-              <div className="text-center py-12">
-                <Grid3X3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No posts yet</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-1">
-                {posts.map((post) => (
-                  <Link
-                    key={post.id}
-                    to={`/post/${post.id}`}
-                    className="aspect-square bg-muted overflow-hidden"
-                  >
-                    <img
-                      src={post.image_url}
-                      alt=""
-                      className="w-full h-full object-cover hover:opacity-80 transition-opacity"
-                    />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+            <TabsContent value="all">
+              {renderPostGrid(posts)}
+            </TabsContent>
+
+            <TabsContent value="images">
+              {renderPostGrid(imagePosts)}
+            </TabsContent>
+
+            <TabsContent value="videos">
+              {renderPostGrid(videoPosts)}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
