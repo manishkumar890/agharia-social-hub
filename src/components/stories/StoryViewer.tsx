@@ -389,7 +389,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   return (
     <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
       {/* Progress bars */}
-      <div className="absolute top-2 left-2 right-2 flex gap-1 z-10">
+      <div className="absolute top-2 left-2 right-2 flex gap-1 z-30">
         {storyUser.stories.map((_, index) => (
           <div key={index} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
             <div 
@@ -404,7 +404,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       </div>
 
       {/* Header */}
-      <div className="absolute top-6 left-0 right-0 px-4 flex items-center justify-between z-10">
+      <div className="absolute top-6 left-0 right-0 px-4 flex items-center justify-between z-30">
         <div className="flex items-center gap-3">
           <Avatar className="w-10 h-10 border-2 border-white">
             <AvatarImage src={storyUser.avatar_url || undefined} />
@@ -490,7 +490,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           variant="ghost"
           size="icon"
           onClick={goToPrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 hidden md:flex"
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 hidden md:flex z-20"
         >
           <ChevronLeft className="w-8 h-8" />
         </Button>
@@ -500,14 +500,14 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           variant="ghost"
           size="icon"
           onClick={goToNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 hidden md:flex"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 hidden md:flex z-20"
         >
           <ChevronRight className="w-8 h-8" />
         </Button>
       )}
 
       {/* Bottom stats and actions */}
-      <div className="absolute bottom-8 left-0 right-0 px-4 flex items-center justify-between z-10">
+      <div className="absolute bottom-8 left-0 right-0 px-4 flex items-center justify-between z-20">
         {/* View and Like counts (for owner - clickable) */}
         {isOwnStory ? (
           <div className="flex items-center gap-4">
@@ -642,7 +642,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Story</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this story? This action cannot be undone.
+              This will permanently delete this story for everyone, and it cannot be recovered.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
