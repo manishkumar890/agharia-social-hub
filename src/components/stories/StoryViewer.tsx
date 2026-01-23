@@ -1,9 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Eye, Heart, MessageCircle } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye, Heart, MessageCircle, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import StoryComments from './StoryComments';
@@ -42,11 +52,13 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const [commentCount, setCommentCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const currentStory = storyUser.stories[currentIndex];
   const isOwnStory = user?.id === storyUser.user_id;
-  const isVideo = currentStory.media_type === 'video';
+  const isVideo = currentStory?.media_type === 'video';
 
   // Record view
   useEffect(() => {
@@ -252,6 +264,49 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!currentStory) return;
+    
+    setIsDeleting(true);
+    try {
+      // Delete story from database
+      const { error } = await supabase
+        .from('stories')
+        .delete()
+        .eq('id', currentStory.id);
+
+      if (error) throw error;
+
+      toast.success('Story deleted');
+      
+      // If there are more stories, go to next or previous
+      if (storyUser.stories.length > 1) {
+        if (currentIndex === storyUser.stories.length - 1) {
+          // If it's the last story, go back
+          setCurrentIndex(prev => Math.max(0, prev - 1));
+        }
+        // Refresh to update the list
+        onRefresh();
+      } else {
+        // No more stories, close the viewer
+        onClose();
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error deleting story:', error);
+      toast.error('Failed to delete story');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  // Guard against empty stories array
+  if (!currentStory) {
+    onClose();
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
       {/* Progress bars */}
@@ -287,14 +342,30 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="text-white hover:bg-white/20"
-        >
-          <X className="w-6 h-6" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {isOwnStory && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setShowDeleteDialog(true);
+                setIsPaused(true);
+                if (videoRef.current) videoRef.current.pause();
+              }}
+              className="text-white hover:bg-white/20"
+            >
+              <Trash2 className="w-5 h-5" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/20"
+          >
+            <X className="w-6 h-6" />
+          </Button>
+        </div>
       </div>
 
       {/* Story Content */}
@@ -400,6 +471,36 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           }} 
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Story</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this story? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setIsPaused(false);
+                if (videoRef.current) videoRef.current.play().catch(() => {});
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
