@@ -249,12 +249,12 @@ const PostDetail = () => {
           </div>
 
           <div className="md:flex md:border md:border-border md:rounded-lg md:overflow-hidden md:m-6">
-            {/* Media */}
-            <div className="md:w-1/2 md:flex-shrink-0">
+            {/* Media - shows original aspect ratio */}
+            <div className="md:w-1/2 md:flex-shrink-0 bg-muted flex items-center justify-center">
               {post.media_type === 'video' ? (
                 <video
                   src={post.image_url}
-                  className="w-full aspect-square md:h-full object-cover"
+                  className="w-full max-h-[70vh] object-contain"
                   controls
                   preload="metadata"
                 />
@@ -262,7 +262,7 @@ const PostDetail = () => {
                 <img
                   src={post.image_url}
                   alt={post.caption || 'Post'}
-                  className="w-full aspect-square md:h-full object-cover"
+                  className="w-full max-h-[70vh] object-contain"
                 />
               )}
             </div>
