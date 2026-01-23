@@ -46,13 +46,15 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [animateLike, setAnimateLike] = useState(false);
   const [isAuthorPremium, setIsAuthorPremium] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const postUrl = `${window.location.origin}/post/${post.id}`;
 
   useEffect(() => {
     fetchLikesAndComments();
     fetchAuthorPremiumStatus();
-  }, [post.id]);
+    fetchSavedStatus();
+  }, [post.id, user]);
 
   const fetchAuthorPremiumStatus = async () => {
     const { data } = await supabase
@@ -80,7 +82,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         .select('id')
         .eq('post_id', post.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       setLiked(!!userLike);
     }
@@ -92,6 +94,52 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
       .eq('post_id', post.id);
     
     setCommentsCount(commentsTotal || 0);
+  };
+
+  const fetchSavedStatus = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('saved_posts')
+      .select('id')
+      .eq('post_id', post.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    setSaved(!!data);
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error('Please login to save posts');
+      return;
+    }
+
+    if (saved) {
+      const { error } = await supabase
+        .from('saved_posts')
+        .delete()
+        .eq('post_id', post.id)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        toast.error('Failed to unsave post');
+      } else {
+        setSaved(false);
+        toast.success('Post unsaved');
+      }
+    } else {
+      const { error } = await supabase
+        .from('saved_posts')
+        .insert({ post_id: post.id, user_id: user.id });
+      
+      if (error) {
+        toast.error('Failed to save post');
+      } else {
+        setSaved(true);
+        toast.success('Post saved');
+      }
+    }
   };
 
   const handleLike = async () => {
@@ -240,8 +288,11 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
               <Send className="w-6 h-6" />
             </Button>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Bookmark className="w-6 h-6" />
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSave}>
+            <Bookmark className={cn(
+              "w-6 h-6 transition-colors",
+              saved ? "text-primary fill-primary" : "text-foreground"
+            )} />
           </Button>
         </div>
 
