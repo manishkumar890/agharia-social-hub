@@ -57,7 +57,7 @@ interface MusicSelectorProps {
   onUpload: (file: File) => Promise<string | null>;
   maxSize?: number; // in bytes
 }
-const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 5 * 1024 * 1024 }: MusicSelectorProps) => {
+const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 10 * 1024 * 1024 }: MusicSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,7 +234,7 @@ const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 5 * 1024 *
                 ) : (
                   <>
                     <Upload className="w-4 h-4" />
-                    Upload Your Audio (max 5MB)
+                    Upload Your Audio (max 10MB, 60s limit)
                   </>
                 )}
               </Button>

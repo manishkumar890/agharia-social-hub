@@ -135,15 +135,15 @@ const ImageCarousel = ({
 
       {/* Dots Indicator */}
       {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
           {images.map((_, index) => (
             <button
               key={index}
               className={cn(
-                "w-1.5 h-1.5 rounded-full transition-all",
+                "w-2 h-2 rounded-full transition-all shadow-sm",
                 index === currentIndex 
-                  ? "bg-primary w-2.5" 
-                  : "bg-background/60"
+                  ? "bg-primary scale-110" 
+                  : "bg-muted-foreground/50"
               )}
               onClick={(e) => {
                 e.stopPropagation();
