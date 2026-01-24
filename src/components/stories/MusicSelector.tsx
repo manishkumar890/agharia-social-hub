@@ -121,7 +121,10 @@ const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 5 * 1024 *
     const getDuration = new Promise<number>((resolve) => {
       audio.onloadedmetadata = () => {
         URL.revokeObjectURL(audio.src);
-        resolve(Math.round(audio.duration));
+        // Cap duration at maxDuration (default 60s) - audio will only play for this long
+        const actualDuration = Math.round(audio.duration);
+        const maxDuration = 60; // Max 60 seconds for posts
+        resolve(Math.min(actualDuration, maxDuration));
       };
       audio.onerror = () => {
         resolve(30); // Default to 30 seconds if can't determine
