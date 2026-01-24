@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import PremiumUpgradeDialog from '@/components/PremiumUpgradeDialog';
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -18,6 +19,7 @@ const AIChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -134,9 +136,13 @@ const AIChat = () => {
           <p className="text-muted-foreground mb-6 max-w-sm">
             AI Assistant is available only for premium members. Upgrade now to get quick answers!
           </p>
-          <Button onClick={() => navigate('/settings')}>
+          <Button onClick={() => setShowUpgradeDialog(true)}>
             Upgrade to Premium
           </Button>
+          <PremiumUpgradeDialog 
+            open={showUpgradeDialog} 
+            onOpenChange={setShowUpgradeDialog} 
+          />
         </div>
       </div>
     );
