@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Music } from 'lucide-react';
+import { Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -7,27 +7,45 @@ interface ImageCarouselProps {
   images: string[];
   backgroundAudioUrl?: string | null;
   className?: string;
-  showControls?: boolean;
 }
 
 const ImageCarousel = ({ 
   images, 
   backgroundAudioUrl, 
-  className,
-  showControls = true 
+  className
 }: ImageCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
   };
 
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && currentIndex < images.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
   };
 
   // Auto-play audio when component mounts
@@ -83,7 +101,22 @@ const ImageCarousel = ({
   }
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div 
+      ref={containerRef}
+      className={cn("relative overflow-hidden", className)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Image Count Indicator - Instagram style */}
+      {images.length > 1 && (
+        <div className="absolute top-3 right-3 z-10 bg-background/70 backdrop-blur-sm px-2.5 py-1 rounded-full">
+          <span className="text-xs font-medium text-foreground">
+            {currentIndex + 1}/{images.length}
+          </span>
+        </div>
+      )}
+
       {/* Images */}
       <div 
         className="flex transition-transform duration-300 ease-out"
@@ -99,28 +132,6 @@ const ImageCarousel = ({
           </div>
         ))}
       </div>
-
-      {/* Navigation Arrows */}
-      {showControls && images.length > 1 && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/60 backdrop-blur-sm hover:bg-background/80"
-            onClick={handlePrev}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/60 backdrop-blur-sm hover:bg-background/80"
-            onClick={handleNext}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-        </>
-      )}
 
       {/* Dots Indicator */}
       {images.length > 1 && (
