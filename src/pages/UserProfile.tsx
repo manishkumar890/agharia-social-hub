@@ -11,8 +11,8 @@ import StoryViewer from '@/components/stories/StoryViewer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -61,6 +61,7 @@ const UserProfile = () => {
   const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [showFollowPopup, setShowFollowPopup] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
@@ -313,7 +314,16 @@ const UserProfile = () => {
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
             {/* Profile Avatar with Story Ring */}
             <button
-              onClick={() => userStories.length > 0 && setShowStoryViewer(true)}
+              onClick={() => {
+                if (userStories.length > 0) {
+                  // Allow viewing if own profile or following
+                  if (isOwnProfile || isFollowing) {
+                    setShowStoryViewer(true);
+                  } else {
+                    setShowFollowPopup(true);
+                  }
+                }
+              }}
               disabled={userStories.length === 0}
               className={`w-24 h-24 md:w-36 md:h-36 rounded-full p-1 ${
                 userStories.length > 0 
@@ -481,6 +491,45 @@ const UserProfile = () => {
           onRefresh={fetchUserStories}
         />
       )}
+
+      {/* Follow to View Story Popup */}
+      <Dialog open={showFollowPopup} onOpenChange={setShowFollowPopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Follow to View Story
+            </DialogTitle>
+            <DialogDescription>
+              Follow @{profile.username || profile.full_name} to view their stories and stay updated with their content.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button
+              onClick={async () => {
+                await handleFollow();
+                setShowFollowPopup(false);
+                // After following, show the story
+                if (userStories.length > 0) {
+                  setShowStoryViewer(true);
+                }
+              }}
+              disabled={followLoading}
+              className="gradient-maroon text-primary-foreground"
+            >
+              {followLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <UserPlus className="w-4 h-4 mr-2" />
+              )}
+              Follow {profile.username || profile.full_name}
+            </Button>
+            <Button variant="outline" onClick={() => setShowFollowPopup(false)}>
+              Maybe Later
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
