@@ -8,10 +8,12 @@ import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
 import VerificationBadge from '@/components/VerificationBadge';
 import VIPCard from '@/components/VIPCard';
+import StoryViewer from '@/components/stories/StoryViewer';
+import StoryUpload from '@/components/stories/StoryUpload';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Grid3X3, Image, Video, Settings, Crown } from 'lucide-react';
+import { Grid3X3, Image, Video, Settings, Crown, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
@@ -23,6 +25,17 @@ interface Post {
   thumbnail_url?: string | null;
 }
 
+interface Story {
+  id: string;
+  user_id: string;
+  media_url: string;
+  media_type?: string;
+  duration: number;
+  created_at: string;
+  expires_at: string;
+  background_audio_url?: string;
+}
+
 const Profile = () => {
   const { user, profile, isAdmin } = useAuth();
   const { isPremium } = useSubscription();
@@ -31,12 +44,32 @@ const Profile = () => {
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
+  const [myStories, setMyStories] = useState<Story[]>([]);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [showStoryUpload, setShowStoryUpload] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserData();
+      fetchMyStories();
     }
   }, [user]);
+
+  const fetchMyStories = async () => {
+    if (!user) return;
+    try {
+      const { data: stories } = await supabase
+        .from('stories')
+        .select('*')
+        .eq('user_id', user.id)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+      
+      setMyStories(stories || []);
+    } catch (error) {
+      console.error('Error fetching stories:', error);
+    }
+  };
 
   const fetchUserData = async () => {
     if (!user) return;
@@ -161,12 +194,31 @@ const Profile = () => {
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* Profile Header */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
-            <Avatar className="w-24 h-24 md:w-36 md:h-36 border-4 border-primary/30">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
-                {profile.full_name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            {/* Profile Avatar with Story Ring */}
+            <div className="relative">
+              <button
+                onClick={() => myStories.length > 0 ? setShowStoryViewer(true) : setShowStoryUpload(true)}
+                className={`w-24 h-24 md:w-36 md:h-36 rounded-full p-1 ${
+                  myStories.length > 0 
+                    ? 'bg-gradient-to-tr from-primary to-accent' 
+                    : 'bg-muted'
+                }`}
+              >
+                <Avatar className="w-full h-full border-2 border-card">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
+                    {profile.full_name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              {/* Add story button */}
+              <button
+                onClick={() => setShowStoryUpload(true)}
+                className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-2 border-card"
+              >
+                <Plus className="w-5 h-5 text-primary-foreground" />
+              </button>
+            </div>
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
@@ -287,6 +339,32 @@ const Profile = () => {
             onOpenChange={setFollowingOpen}
           />
         </>
+      )}
+
+      {/* Story Viewer */}
+      {showStoryViewer && user && profile && (
+        <StoryViewer
+          storyUser={{
+            user_id: user.id,
+            avatar_url: profile.avatar_url,
+            username: profile.username,
+            full_name: profile.full_name,
+            stories: myStories
+          }}
+          onClose={() => setShowStoryViewer(false)}
+          onRefresh={fetchMyStories}
+        />
+      )}
+
+      {/* Story Upload */}
+      {showStoryUpload && (
+        <StoryUpload
+          onClose={() => setShowStoryUpload(false)}
+          onSuccess={() => {
+            setShowStoryUpload(false);
+            fetchMyStories();
+          }}
+        />
       )}
     </div>
   );
