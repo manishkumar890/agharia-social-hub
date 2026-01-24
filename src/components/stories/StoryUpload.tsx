@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Upload, Loader2, Crown, Image, Video } from 'lucide-react';
+import { X, Upload, Loader2, Crown, Image, Video, Music } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -17,16 +17,19 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const { isPremium } = useSubscription();
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio'>('image');
   const [isUploading, setIsUploading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const [selectedExpiry, setSelectedExpiry] = useState<24 | 48>(24);
 
   // Limits based on subscription
   const maxImageSize = 5 * 1024 * 1024; // 5MB for images
   const maxVideoSize = isPremium ? 50 * 1024 * 1024 : 25 * 1024 * 1024; // 50MB premium, 25MB free
+  const maxAudioSize = 10 * 1024 * 1024; // 10MB for audio
   const maxVideoDuration = isPremium ? 60 : 30; // 60s premium, 30s free
+  const maxAudioDuration = isPremium ? 60 : 30; // Same as video
   const imageDuration = 5; // 5 seconds for image stories
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +99,50 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
     setMediaPreview(URL.createObjectURL(file));
   };
 
+  const handleAudioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Please select an audio file');
+      return;
+    }
+
+    if (file.size > maxAudioSize) {
+      toast.error('Audio must be less than 10MB');
+      return;
+    }
+
+    // Check audio duration
+    const audio = document.createElement('audio');
+    audio.preload = 'metadata';
+    
+    const checkDuration = new Promise<boolean>((resolve) => {
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(audio.src);
+        if (audio.duration > maxAudioDuration) {
+          toast.error(`Audio must be ${maxAudioDuration} seconds or less`);
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+      audio.onerror = () => {
+        toast.error('Error loading audio');
+        resolve(false);
+      };
+    });
+
+    audio.src = URL.createObjectURL(file);
+    const isValid = await checkDuration;
+
+    if (!isValid) return;
+
+    setMediaFile(file);
+    setMediaType('audio');
+    setMediaPreview(URL.createObjectURL(file));
+  };
+
   const clearMedia = () => {
     setMediaFile(null);
     setMediaPreview(null);
@@ -128,7 +175,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
       expiresAt.setHours(expiresAt.getHours() + expiryHours);
 
       // Create story record - use appropriate duration based on media type
-      const storyDuration = mediaType === 'video' ? maxVideoDuration : imageDuration;
+      const storyDuration = mediaType === 'image' ? imageDuration : (mediaType === 'video' ? maxVideoDuration : maxAudioDuration);
       const { error: insertError } = await supabase
         .from('stories')
         .insert({
@@ -166,14 +213,18 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
         <div className="p-4">
           {!mediaPreview ? (
             <Tabs defaultValue="image" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="image" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="image" className="flex items-center gap-1 text-xs sm:text-sm">
                   <Image className="w-4 h-4" />
                   Photo
                 </TabsTrigger>
-                <TabsTrigger value="video" className="flex items-center gap-2">
+                <TabsTrigger value="video" className="flex items-center gap-1 text-xs sm:text-sm">
                   <Video className="w-4 h-4" />
                   Video
+                </TabsTrigger>
+                <TabsTrigger value="audio" className="flex items-center gap-1 text-xs sm:text-sm">
+                  <Music className="w-4 h-4" />
+                  Audio
                 </TabsTrigger>
               </TabsList>
 
@@ -206,6 +257,22 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                   />
                 </label>
               </TabsContent>
+
+              <TabsContent value="audio">
+                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                  <Music className="w-10 h-10 text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground">Click to upload audio</span>
+                  <span className="text-xs text-muted-foreground mt-1">
+                    Max 10MB, {maxAudioDuration}s
+                  </span>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleAudioChange}
+                    className="hidden"
+                  />
+                </label>
+              </TabsContent>
             </Tabs>
           ) : (
             <div className="relative">
@@ -215,7 +282,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                   alt="Story preview"
                   className="w-full h-64 object-cover rounded-lg"
                 />
-              ) : (
+              ) : mediaType === 'video' ? (
                 <video
                   ref={videoRef}
                   src={mediaPreview}
@@ -223,6 +290,18 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                   controls
                   muted
                 />
+              ) : (
+                <div className="w-full h-64 bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex flex-col items-center justify-center gap-4">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Music className="w-10 h-10 text-primary" />
+                  </div>
+                  <audio
+                    ref={audioRef}
+                    src={mediaPreview}
+                    controls
+                    className="w-full max-w-[90%]"
+                  />
+                </div>
               )}
               <Button
                 variant="secondary"
@@ -240,7 +319,9 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
             <div className="flex items-center gap-2 text-sm">
               {isPremium && <Crown className="w-4 h-4 text-primary" />}
               <span className="text-muted-foreground">
-                {mediaType === 'image' ? 'Photo' : 'Video'} Duration: <span className="text-foreground font-medium">{mediaType === 'image' ? imageDuration : maxVideoDuration}s</span>
+                {mediaType === 'image' ? 'Photo' : mediaType === 'video' ? 'Video' : 'Audio'} Duration: <span className="text-foreground font-medium">
+                  {mediaType === 'image' ? imageDuration : mediaType === 'video' ? maxVideoDuration : maxAudioDuration}s
+                </span>
               </span>
             </div>
             
@@ -277,9 +358,12 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span className="text-muted-foreground">
-                Video limit: <span className="text-foreground font-medium">{isPremium ? '50' : '25'}MB</span>
+                Video: <span className="text-foreground font-medium">{isPremium ? '50' : '25'}MB</span>
+              </span>
+              <span className="text-muted-foreground">
+                Audio: <span className="text-foreground font-medium">10MB</span>
               </span>
             </div>
             {!isPremium && (
