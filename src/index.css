@@ -128,8 +128,10 @@
     font-family: 'Inter', sans-serif;
   }
 
+  /* Using Inter for headings too for a cleaner, modern look */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
   }
 }
 

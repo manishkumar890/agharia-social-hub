@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User, Bookmark, Settings, LogOut, RefreshCw, MessageCircle, Bot } from 'lucide-react';
+import { User, Bookmark, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
@@ -18,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { isPremium } = useSubscription();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [aiChatOpen, setAiChatOpen] = useState(false);
@@ -114,6 +116,22 @@ const Header = () => {
                     <Settings className="w-4 h-4" />
                     Settings
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="w-4 h-4" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-4 h-4" />
+                      Dark Mode
+                    </>
+                  )}
                 </DropdownMenuItem>
                 {isAdmin && (
                   <>

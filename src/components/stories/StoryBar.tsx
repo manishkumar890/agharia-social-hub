@@ -23,6 +23,7 @@ interface StoryUser {
   username: string | null;
   full_name: string | null;
   stories: Story[];
+  hasSeen?: boolean;
 }
 
 const StoryBar = () => {
@@ -38,12 +39,12 @@ const StoryBar = () => {
 
   const fetchStories = async () => {
     try {
-      // Fetch all active stories
+      // Fetch all active stories - chronological order (first uploaded = first)
       const { data: stories, error } = await supabase
         .from('stories')
         .select('*')
         .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true }); // Changed to ascending for chronological order
 
       if (error) throw error;
 
@@ -66,23 +67,39 @@ const StoryBar = () => {
         (profiles || []).map(p => [p.user_id, p])
       );
 
-      // Group stories by user
+      // Fetch user's story views to determine seen status
+      let viewedStoryIds: Set<string> = new Set();
+      if (user) {
+        const { data: views } = await supabase
+          .from('story_views')
+          .select('story_id')
+          .eq('viewer_id', user.id);
+        
+        if (views) {
+          viewedStoryIds = new Set(views.map(v => v.story_id));
+        }
+      }
+
+      // Group stories by user (maintaining chronological order)
       const userStoriesMap = new Map<string, Story[]>();
       stories.forEach(story => {
         const existing = userStoriesMap.get(story.user_id) || [];
         userStoriesMap.set(story.user_id, [...existing, story]);
       });
 
-      // Build story users array
+      // Build story users array with seen status
       const users: StoryUser[] = [];
       userStoriesMap.forEach((userStories, userId) => {
         const profile = profilesMap.get(userId);
+        // User has seen all stories if all their stories are in viewedStoryIds
+        const hasSeen = userStories.every(story => viewedStoryIds.has(story.id));
         users.push({
           user_id: userId,
           avatar_url: profile?.avatar_url || null,
           username: profile?.username || null,
           full_name: profile?.full_name || null,
-          stories: userStories
+          stories: userStories,
+          hasSeen
         });
       });
 
@@ -93,7 +110,13 @@ const StoryBar = () => {
       }
 
       // Filter out current user from the list (will show separately)
-      const otherUsers = users.filter(u => u.user_id !== user?.id);
+      // Sort: unseen stories first, then seen stories
+      const otherUsers = users
+        .filter(u => u.user_id !== user?.id)
+        .sort((a, b) => {
+          if (a.hasSeen === b.hasSeen) return 0;
+          return a.hasSeen ? 1 : -1;
+        });
       setStoryUsers(otherUsers);
     } catch (error) {
       console.error('Error fetching stories:', error);
@@ -160,7 +183,11 @@ const StoryBar = () => {
               >
                 <button
                   onClick={() => handleStoryClick(storyUser)}
-                  className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-primary to-accent"
+                  className={`w-16 h-16 rounded-full p-0.5 ${
+                    storyUser.hasSeen 
+                      ? 'bg-muted-foreground/40' // Gray ring for seen stories
+                      : 'bg-gradient-to-tr from-primary to-accent' // Colorful ring for unseen
+                  }`}
                 >
                   <Avatar className="w-full h-full border-2 border-card">
                     <AvatarImage src={storyUser.avatar_url || undefined} />
