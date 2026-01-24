@@ -27,6 +27,7 @@ interface Story {
   duration: number;
   created_at: string;
   expires_at: string;
+  background_audio_url?: string;
 }
 
 interface StoryUser {
@@ -73,7 +74,10 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const isOwnStory = user?.id === storyUser.user_id;
   const isVideo = currentStory?.media_type === 'video';
   const isAudio = currentStory?.media_type === 'audio';
+  const isImage = currentStory?.media_type === 'image';
+  const hasBackgroundAudio = isImage && !!currentStory?.background_audio_url;
   const hasMediaElement = isVideo || isAudio;
+  const bgAudioRef = useRef<HTMLAudioElement>(null);
 
   // Handle back button - navigate to home instead of closing app
   useEffect(() => {
@@ -353,7 +357,12 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {});
     }
-  }, [currentIndex]);
+    // Play background audio for image stories
+    if (bgAudioRef.current && hasBackgroundAudio) {
+      bgAudioRef.current.currentTime = 0;
+      bgAudioRef.current.play().catch(() => {});
+    }
+  }, [currentIndex, hasBackgroundAudio]);
 
   // Handle media loaded
   const handleMediaLoaded = () => {
@@ -364,12 +373,14 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     setIsPaused(true);
     if (videoRef.current) videoRef.current.pause();
     if (audioRef.current) audioRef.current.pause();
+    if (bgAudioRef.current) bgAudioRef.current.pause();
   };
   
   const handleTouchEnd = () => {
     setIsPaused(false);
     if (videoRef.current) videoRef.current.play().catch(() => {});
     if (audioRef.current) audioRef.current.play().catch(() => {});
+    if (bgAudioRef.current) bgAudioRef.current.play().catch(() => {});
   };
 
   const togglePause = () => {
@@ -387,10 +398,12 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
       if (audioRef.current) audioRef.current.pause();
+      if (bgAudioRef.current) bgAudioRef.current.pause();
     } else {
       setIsPaused(false);
       if (videoRef.current) videoRef.current.play().catch(() => {});
       if (audioRef.current) audioRef.current.play().catch(() => {});
+      if (bgAudioRef.current) bgAudioRef.current.play().catch(() => {});
     }
   };
 
@@ -401,10 +414,12 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
       if (audioRef.current) audioRef.current.pause();
+      if (bgAudioRef.current) bgAudioRef.current.pause();
     } else {
       setIsPaused(false);
       if (videoRef.current) videoRef.current.play().catch(() => {});
       if (audioRef.current) audioRef.current.play().catch(() => {});
+      if (bgAudioRef.current) bgAudioRef.current.play().catch(() => {});
     }
   };
 
@@ -567,12 +582,31 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             </div>
           </div>
         ) : (
-          <img
-            src={currentStory.media_url}
-            alt="Story"
-            className="max-w-full max-h-full object-contain"
-            onLoad={handleMediaLoaded}
-          />
+          <>
+            <img
+              src={currentStory.media_url}
+              alt="Story"
+              className="max-w-full max-h-full object-contain"
+              onLoad={handleMediaLoaded}
+            />
+            {/* Background audio for image stories */}
+            {hasBackgroundAudio && (
+              <>
+                <audio
+                  ref={bgAudioRef}
+                  src={currentStory.background_audio_url}
+                  autoPlay
+                  loop
+                  className="hidden"
+                />
+                {/* Music indicator */}
+                <div className="absolute bottom-24 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 rounded-full z-20">
+                  <Music className="w-4 h-4 text-white animate-pulse" />
+                  <span className="text-white text-xs">♪ Music</span>
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -664,6 +698,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                 setIsPaused(true);
                 if (videoRef.current) videoRef.current.pause();
                 if (audioRef.current) audioRef.current.pause();
+                if (bgAudioRef.current) bgAudioRef.current.pause();
               }}
               className="text-white hover:bg-white/20"
             >
@@ -776,6 +811,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             setIsPaused(false);
             if (videoRef.current) videoRef.current.play().catch(() => {});
             if (audioRef.current) audioRef.current.play().catch(() => {});
+            if (bgAudioRef.current) bgAudioRef.current.play().catch(() => {});
           }
         }}
       >
@@ -794,6 +830,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                 setIsPaused(false);
                 if (videoRef.current) videoRef.current.play().catch(() => {});
                 if (audioRef.current) audioRef.current.play().catch(() => {});
+                if (bgAudioRef.current) bgAudioRef.current.play().catch(() => {});
               }}
             >
               Cancel

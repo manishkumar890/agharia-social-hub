@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
-import { X, Upload, Loader2, Crown, Image, Video, Music } from 'lucide-react';
+import { X, Upload, Loader2, Crown, Image, Video } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import MusicSelector from './MusicSelector';
 
 interface StoryUploadProps {
   onClose: () => void;
@@ -17,19 +18,18 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const { isPremium } = useSubscription();
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | 'audio'>('image');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedMusic, setSelectedMusic] = useState<{ url: string; name: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   const [selectedExpiry, setSelectedExpiry] = useState<24 | 48>(24);
 
   // Limits based on subscription
   const maxImageSize = 5 * 1024 * 1024; // 5MB for images
   const maxVideoSize = isPremium ? 50 * 1024 * 1024 : 25 * 1024 * 1024; // 50MB premium, 25MB free
-  const maxAudioSize = 10 * 1024 * 1024; // 10MB for audio
+  const maxAudioSize = 5 * 1024 * 1024; // 5MB for background audio
   const maxVideoDuration = isPremium ? 60 : 30; // 60s premium, 30s free
-  const maxAudioDuration = isPremium ? 60 : 30; // Same as video
   const imageDuration = 5; // 5 seconds for image stories
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,55 +97,36 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
     setMediaFile(file);
     setMediaType('video');
     setMediaPreview(URL.createObjectURL(file));
+    // Clear music when switching to video
+    setSelectedMusic(null);
   };
 
-  const handleAudioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAudioUpload = async (file: File): Promise<string | null> => {
+    if (!user) return null;
 
-    if (!file.type.startsWith('audio/')) {
-      toast.error('Please select an audio file');
-      return;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/audio_${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('stories')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error('Error uploading audio:', uploadError);
+      return null;
     }
 
-    if (file.size > maxAudioSize) {
-      toast.error('Audio must be less than 10MB');
-      return;
-    }
+    const { data: { publicUrl } } = supabase.storage
+      .from('stories')
+      .getPublicUrl(fileName);
 
-    // Check audio duration
-    const audio = document.createElement('audio');
-    audio.preload = 'metadata';
-    
-    const checkDuration = new Promise<boolean>((resolve) => {
-      audio.onloadedmetadata = () => {
-        URL.revokeObjectURL(audio.src);
-        if (audio.duration > maxAudioDuration) {
-          toast.error(`Audio must be ${maxAudioDuration} seconds or less`);
-          resolve(false);
-        } else {
-          resolve(true);
-        }
-      };
-      audio.onerror = () => {
-        toast.error('Error loading audio');
-        resolve(false);
-      };
-    });
-
-    audio.src = URL.createObjectURL(file);
-    const isValid = await checkDuration;
-
-    if (!isValid) return;
-
-    setMediaFile(file);
-    setMediaType('audio');
-    setMediaPreview(URL.createObjectURL(file));
+    return publicUrl;
   };
 
   const clearMedia = () => {
     setMediaFile(null);
     setMediaPreview(null);
+    setSelectedMusic(null);
   };
 
   const handleUpload = async () => {
@@ -154,7 +135,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
     setIsUploading(true);
 
     try {
-      // Upload to storage
+      // Upload media to storage
       const fileExt = mediaFile.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
@@ -174,17 +155,32 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + expiryHours);
 
-      // Create story record - use appropriate duration based on media type
-      const storyDuration = mediaType === 'image' ? imageDuration : (mediaType === 'video' ? maxVideoDuration : maxAudioDuration);
+      // Create story record with background audio if selected
+      const storyDuration = mediaType === 'image' ? imageDuration : maxVideoDuration;
+      
+      const storyData: {
+        user_id: string;
+        media_url: string;
+        media_type: string;
+        duration: number;
+        expires_at: string;
+        background_audio_url?: string;
+      } = {
+        user_id: user.id,
+        media_url: publicUrl,
+        media_type: mediaType,
+        duration: storyDuration,
+        expires_at: expiresAt.toISOString()
+      };
+
+      // Add background audio URL for image stories
+      if (mediaType === 'image' && selectedMusic) {
+        storyData.background_audio_url = selectedMusic.url;
+      }
+
       const { error: insertError } = await supabase
         .from('stories')
-        .insert({
-          user_id: user.id,
-          media_url: publicUrl,
-          media_type: mediaType,
-          duration: storyDuration,
-          expires_at: expiresAt.toISOString()
-        });
+        .insert(storyData);
 
       if (insertError) throw insertError;
 
@@ -200,9 +196,9 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4">
-      <div className="bg-card rounded-lg max-w-md w-full overflow-hidden">
+      <div className="bg-card rounded-lg max-w-md w-full overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
           <h2 className="font-semibold">Add Story</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -210,10 +206,10 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto flex-1">
           {!mediaPreview ? (
             <Tabs defaultValue="image" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="image" className="flex items-center gap-1 text-xs sm:text-sm">
                   <Image className="w-4 h-4" />
                   Photo
@@ -222,17 +218,13 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                   <Video className="w-4 h-4" />
                   Video
                 </TabsTrigger>
-                <TabsTrigger value="audio" className="flex items-center gap-1 text-xs sm:text-sm">
-                  <Music className="w-4 h-4" />
-                  Audio
-                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="image">
                 <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                   <Upload className="w-10 h-10 text-muted-foreground mb-2" />
                   <span className="text-sm text-muted-foreground">Click to upload image</span>
-                  <span className="text-xs text-muted-foreground mt-1">Max 5MB</span>
+                  <span className="text-xs text-muted-foreground mt-1">Max 5MB • Add music after</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -257,60 +249,44 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                   />
                 </label>
               </TabsContent>
-
-              <TabsContent value="audio">
-                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Music className="w-10 h-10 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">Click to upload audio</span>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    Max 10MB, {maxAudioDuration}s
-                  </span>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleAudioChange}
-                    className="hidden"
-                  />
-                </label>
-              </TabsContent>
             </Tabs>
           ) : (
-            <div className="relative">
-              {mediaType === 'image' ? (
-                <img
-                  src={mediaPreview}
-                  alt="Story preview"
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-              ) : mediaType === 'video' ? (
-                <video
-                  ref={videoRef}
-                  src={mediaPreview}
-                  className="w-full h-64 object-cover rounded-lg"
-                  controls
-                  muted
-                />
-              ) : (
-                <div className="w-full h-64 bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex flex-col items-center justify-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Music className="w-10 h-10 text-primary" />
-                  </div>
-                  <audio
-                    ref={audioRef}
+            <div className="space-y-4">
+              <div className="relative">
+                {mediaType === 'image' ? (
+                  <img
                     src={mediaPreview}
-                    controls
-                    className="w-full max-w-[90%]"
+                    alt="Story preview"
+                    className="w-full h-64 object-cover rounded-lg"
                   />
-                </div>
+                ) : (
+                  <video
+                    ref={videoRef}
+                    src={mediaPreview}
+                    className="w-full h-64 object-cover rounded-lg"
+                    controls
+                    muted
+                  />
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={clearMedia}
+                  className="absolute top-2 right-2"
+                >
+                  Change
+                </Button>
+              </div>
+
+              {/* Music selector - only for images */}
+              {mediaType === 'image' && (
+                <MusicSelector
+                  selectedMusic={selectedMusic}
+                  onSelect={setSelectedMusic}
+                  onUpload={handleAudioUpload}
+                  maxSize={maxAudioSize}
+                />
               )}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={clearMedia}
-                className="absolute top-2 right-2"
-              >
-                Change
-              </Button>
             </div>
           )}
 
@@ -319,8 +295,8 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
             <div className="flex items-center gap-2 text-sm">
               {isPremium && <Crown className="w-4 h-4 text-primary" />}
               <span className="text-muted-foreground">
-                {mediaType === 'image' ? 'Photo' : mediaType === 'video' ? 'Video' : 'Audio'} Duration: <span className="text-foreground font-medium">
-                  {mediaType === 'image' ? imageDuration : mediaType === 'video' ? maxVideoDuration : maxAudioDuration}s
+                {mediaType === 'image' ? 'Photo' : 'Video'} Duration: <span className="text-foreground font-medium">
+                  {mediaType === 'image' ? imageDuration : maxVideoDuration}s
                 </span>
               </span>
             </div>
@@ -363,7 +339,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                 Video: <span className="text-foreground font-medium">{isPremium ? '50' : '25'}MB</span>
               </span>
               <span className="text-muted-foreground">
-                Audio: <span className="text-foreground font-medium">10MB</span>
+                Audio: <span className="text-foreground font-medium">5MB</span>
               </span>
             </div>
             {!isPremium && (
@@ -375,7 +351,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border flex-shrink-0">
           <Button
             onClick={handleUpload}
             disabled={!mediaFile || isUploading}

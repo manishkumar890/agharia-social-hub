@@ -312,6 +312,7 @@ export type Database = {
       }
       stories: {
         Row: {
+          background_audio_url: string | null
           created_at: string
           duration: number
           expires_at: string
@@ -321,6 +322,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          background_audio_url?: string | null
           created_at?: string
           duration?: number
           expires_at: string
@@ -330,6 +332,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          background_audio_url?: string | null
           created_at?: string
           duration?: number
           expires_at?: string
