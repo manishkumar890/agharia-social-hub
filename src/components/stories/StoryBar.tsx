@@ -35,6 +35,22 @@ const StoryBar = () => {
 
   useEffect(() => {
     fetchStories();
+
+    // Subscribe to real-time story changes (inserts and deletes)
+    const channel = supabase
+      .channel('stories-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'stories' },
+        () => {
+          fetchStories();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchStories = async () => {
@@ -51,6 +67,14 @@ const StoryBar = () => {
       if (!stories || stories.length === 0) {
         setStoryUsers([]);
         setMyStories([]);
+        // If viewing and stories are gone, close viewer
+        setViewingUser(prev => {
+          if (prev) {
+            const userStillHasStories = stories?.some(s => s.user_id === prev.user_id);
+            if (!userStillHasStories) return null;
+          }
+          return prev;
+        });
         return;
       }
 
@@ -108,6 +132,18 @@ const StoryBar = () => {
         const mine = stories.filter(s => s.user_id === user.id);
         setMyStories(mine);
       }
+
+      // Update viewing user if currently viewing (to reflect deleted stories)
+      setViewingUser(prev => {
+        if (!prev) return null;
+        const updatedUser = users.find(u => u.user_id === prev.user_id);
+        if (!updatedUser || updatedUser.stories.length === 0) {
+          // User has no more stories, close viewer
+          return null;
+        }
+        // Update with fresh stories
+        return updatedUser;
+      });
 
       // Filter out current user from the list (will show separately)
       // Sort: unseen stories first, then seen stories
