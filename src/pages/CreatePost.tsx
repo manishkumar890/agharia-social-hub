@@ -39,7 +39,6 @@ const CreatePost = () => {
   // Size limits based on subscription
   const imageSizeLimit = 30 * 1024 * 1024; // 30MB for images (will be compressed before upload)
   const videoSizeLimit = isPremium ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
-  const maxMusicDuration = 60; // 60 seconds for premium
 
   // Generate thumbnail from video
   const generateVideoThumbnail = (videoFile: File): Promise<Blob> => {
@@ -325,7 +324,6 @@ const CreatePost = () => {
                       isPremium={isPremium}
                       maxImages={10}
                       maxImageSize={imageSizeLimit}
-                      maxMusicDuration={maxMusicDuration}
                     />
                   </TabsContent>
                 )}

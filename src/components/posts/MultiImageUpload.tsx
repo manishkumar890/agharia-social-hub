@@ -17,7 +17,6 @@ interface MultiImageUploadProps {
   isPremium: boolean;
   maxImages?: number;
   maxImageSize?: number;
-  maxMusicDuration?: number;
 }
 
 const MultiImageUpload = ({
@@ -31,7 +30,6 @@ const MultiImageUpload = ({
   isPremium,
   maxImages = 10,
   maxImageSize = 30 * 1024 * 1024,
-  maxMusicDuration = 60,
 }: MultiImageUploadProps) => {
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -220,17 +218,11 @@ const MultiImageUpload = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Music className="w-4 h-4 text-muted-foreground" />
-            <Label>Background Music (max {maxMusicDuration}s)</Label>
+            <Label>Background Music (max 10MB)</Label>
           </div>
           <MusicSelector
             selectedMusic={selectedMusic}
-            onSelect={(music) => {
-              if (music && music.duration && music.duration > maxMusicDuration) {
-                toast.error(`Music must be ${maxMusicDuration} seconds or less`);
-                return;
-              }
-              onMusicChange(music);
-            }}
+            onSelect={onMusicChange}
             onUpload={onMusicUpload}
             maxSize={10 * 1024 * 1024}
           />
