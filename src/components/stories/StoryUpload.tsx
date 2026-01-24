@@ -20,7 +20,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedMusic, setSelectedMusic] = useState<{ url: string; name: string } | null>(null);
+  const [selectedMusic, setSelectedMusic] = useState<{ url: string; name: string; duration?: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [selectedExpiry, setSelectedExpiry] = useState<24 | 48>(24);
@@ -30,7 +30,8 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const maxVideoSize = isPremium ? 50 * 1024 * 1024 : 25 * 1024 * 1024; // 50MB premium, 25MB free
   const maxAudioSize = 5 * 1024 * 1024; // 5MB for background audio
   const maxVideoDuration = isPremium ? 60 : 30; // 60s premium, 30s free
-  const imageDuration = 5; // 5 seconds for image stories
+  const maxMusicDuration = isPremium ? 60 : 30; // 60s premium, 30s free for music
+  const defaultImageDuration = 5; // 5 seconds for image stories without music
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,7 +157,15 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
       expiresAt.setHours(expiresAt.getHours() + expiryHours);
 
       // Create story record with background audio if selected
-      const storyDuration = mediaType === 'image' ? imageDuration : maxVideoDuration;
+      // For images: 5s without music, or music duration (capped) with music
+      // For videos: use video duration
+      let storyDuration = defaultImageDuration;
+      if (mediaType === 'video') {
+        storyDuration = maxVideoDuration;
+      } else if (selectedMusic?.duration) {
+        // Cap music duration based on subscription
+        storyDuration = Math.min(selectedMusic.duration, maxMusicDuration);
+      }
       
       const storyData: {
         user_id: string;
@@ -296,7 +305,11 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
               {isPremium && <Crown className="w-4 h-4 text-primary" />}
               <span className="text-muted-foreground">
                 {mediaType === 'image' ? 'Photo' : 'Video'} Duration: <span className="text-foreground font-medium">
-                  {mediaType === 'image' ? imageDuration : maxVideoDuration}s
+                  {mediaType === 'image' 
+                    ? (selectedMusic?.duration 
+                        ? `${Math.min(selectedMusic.duration, maxMusicDuration)}s (music)` 
+                        : `${defaultImageDuration}s`)
+                    : `${maxVideoDuration}s`}
                 </span>
               </span>
             </div>

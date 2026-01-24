@@ -52,12 +52,11 @@ const PRESET_TRACKS = [
 ];
 
 interface MusicSelectorProps {
-  selectedMusic: { url: string; name: string } | null;
-  onSelect: (music: { url: string; name: string } | null) => void;
+  selectedMusic: { url: string; name: string; duration?: number } | null;
+  onSelect: (music: { url: string; name: string; duration?: number } | null) => void;
   onUpload: (file: File) => Promise<string | null>;
   maxSize?: number; // in bytes
 }
-
 const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 5 * 1024 * 1024 }: MusicSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -97,7 +96,7 @@ const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 5 * 1024 *
       audioRef.current.pause();
     }
     setPlayingId(null);
-    onSelect({ url: track.url, name: track.name });
+    onSelect({ url: track.url, name: track.name, duration: track.duration });
     setIsOpen(false);
   };
 
@@ -115,11 +114,28 @@ const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 5 * 1024 *
       return;
     }
 
+    // Get audio duration
+    const audio = document.createElement('audio');
+    audio.preload = 'metadata';
+    
+    const getDuration = new Promise<number>((resolve) => {
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(audio.src);
+        resolve(Math.round(audio.duration));
+      };
+      audio.onerror = () => {
+        resolve(30); // Default to 30 seconds if can't determine
+      };
+    });
+
+    audio.src = URL.createObjectURL(file);
+    const duration = await getDuration;
+
     setIsUploading(true);
     try {
       const url = await onUpload(file);
       if (url) {
-        onSelect({ url, name: file.name });
+        onSelect({ url, name: file.name, duration });
         setIsOpen(false);
       }
     } catch {
