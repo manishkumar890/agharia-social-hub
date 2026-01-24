@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Eye, Heart, Trash2, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, ChevronLeft, ChevronRight, Eye, Heart, Trash2, Loader2, Music, Pause, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -51,9 +52,11 @@ interface ViewerInfo {
 
 const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [viewCount, setViewCount] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
@@ -64,10 +67,32 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const [viewers, setViewers] = useState<ViewerInfo[]>([]);
   const [likers, setLikers] = useState<ViewerInfo[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const currentStory = storyUser.stories[currentIndex];
   const isOwnStory = user?.id === storyUser.user_id;
   const isVideo = currentStory?.media_type === 'video';
+  const isAudio = currentStory?.media_type === 'audio';
+  const hasMediaElement = isVideo || isAudio;
+
+  // Handle back button - navigate to home instead of closing app
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      // Push a new state to prevent app exit, then close viewer
+      window.history.pushState(null, '', window.location.href);
+      onClose();
+      navigate('/', { replace: true });
+    };
+
+    // Push initial state so back button triggers popstate
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [onClose, navigate]);
 
   // Record view
   useEffect(() => {
@@ -270,15 +295,16 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
 
   // Progress timer
   useEffect(() => {
-    if (isPaused || showViewers || showLikers) return;
+    if (isPaused || showViewers || showLikers || isLoading) return;
 
-    // For videos, use video duration instead
-    if (isVideo && videoRef.current) {
-      const video = videoRef.current;
+    // For videos/audio, use media duration
+    if (hasMediaElement) {
+      const mediaElement = isVideo ? videoRef.current : audioRef.current;
+      if (!mediaElement) return;
       
       const handleTimeUpdate = () => {
-        if (video.duration) {
-          const progressPercent = (video.currentTime / video.duration) * 100;
+        if (mediaElement.duration) {
+          const progressPercent = (mediaElement.currentTime / mediaElement.duration) * 100;
           setProgress(progressPercent);
         }
       };
@@ -287,12 +313,12 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
         autoAdvance();
       };
 
-      video.addEventListener('timeupdate', handleTimeUpdate);
-      video.addEventListener('ended', handleEnded);
+      mediaElement.addEventListener('timeupdate', handleTimeUpdate);
+      mediaElement.addEventListener('ended', handleEnded);
 
       return () => {
-        video.removeEventListener('timeupdate', handleTimeUpdate);
-        video.removeEventListener('ended', handleEnded);
+        mediaElement.removeEventListener('timeupdate', handleTimeUpdate);
+        mediaElement.removeEventListener('ended', handleEnded);
       };
     }
 
@@ -312,25 +338,46 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     }, interval);
 
     return () => clearInterval(timer);
-  }, [currentStory.duration, isPaused, autoAdvance, isVideo, showViewers, showLikers]);
+  }, [currentStory.duration, isPaused, autoAdvance, hasMediaElement, isVideo, showViewers, showLikers, isLoading]);
 
   // Reset progress when story changes
   useEffect(() => {
     setProgress(0);
+    setIsLoading(true);
+    
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {});
     }
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    }
   }, [currentIndex]);
+
+  // Handle media loaded
+  const handleMediaLoaded = () => {
+    setIsLoading(false);
+  };
 
   const handleTouchStart = () => {
     setIsPaused(true);
     if (videoRef.current) videoRef.current.pause();
+    if (audioRef.current) audioRef.current.pause();
   };
   
   const handleTouchEnd = () => {
     setIsPaused(false);
     if (videoRef.current) videoRef.current.play().catch(() => {});
+    if (audioRef.current) audioRef.current.play().catch(() => {});
+  };
+
+  const togglePause = () => {
+    if (isPaused) {
+      handleTouchEnd();
+    } else {
+      handleTouchStart();
+    }
   };
 
   const toggleViewers = () => {
@@ -339,9 +386,11 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     if (!showViewers) {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
+      if (audioRef.current) audioRef.current.pause();
     } else {
       setIsPaused(false);
       if (videoRef.current) videoRef.current.play().catch(() => {});
+      if (audioRef.current) audioRef.current.play().catch(() => {});
     }
   };
 
@@ -351,9 +400,11 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
     if (!showLikers) {
       setIsPaused(true);
       if (videoRef.current) videoRef.current.pause();
+      if (audioRef.current) audioRef.current.pause();
     } else {
       setIsPaused(false);
       if (videoRef.current) videoRef.current.play().catch(() => {});
+      if (audioRef.current) audioRef.current.play().catch(() => {});
     }
   };
 
@@ -409,15 +460,16 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
-      {/* Progress bars */}
+      {/* Progress bars - improved with smoother animation */}
       <div className="absolute top-2 left-2 right-2 flex gap-1 z-30">
         {storyUser.stories.map((_, index) => (
-          <div key={index} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
+          <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-white transition-all duration-50"
+              className={`h-full bg-white rounded-full ${isPaused ? '' : 'transition-all ease-linear'}`}
               style={{ 
                 width: index < currentIndex ? '100%' : 
-                       index === currentIndex ? `${progress}%` : '0%' 
+                       index === currentIndex ? `${progress}%` : '0%',
+                transitionDuration: isPaused ? '0ms' : '50ms'
               }}
             />
           </div>
@@ -454,12 +506,28 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
 
       {/* Story Content */}
       <div 
-        className="w-full h-full flex items-center justify-center"
+        className="w-full h-full flex items-center justify-center relative"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onMouseEnter={handleTouchStart}
         onMouseLeave={handleTouchEnd}
       >
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Pause indicator - shows when paused on mobile */}
+        {isPaused && !isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
+              <Pause className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        )}
+
         {isVideo ? (
           <video
             ref={videoRef}
@@ -467,15 +535,53 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             className="max-w-full max-h-full object-contain"
             autoPlay
             playsInline
+            onLoadedData={handleMediaLoaded}
+            onCanPlay={handleMediaLoaded}
           />
+        ) : isAudio ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/30 to-primary/60">
+            <div className="w-32 h-32 rounded-full bg-white/10 flex items-center justify-center mb-8 animate-pulse">
+              <Music className="w-16 h-16 text-white" />
+            </div>
+            <audio
+              ref={audioRef}
+              src={currentStory.media_url}
+              autoPlay
+              onLoadedData={handleMediaLoaded}
+              onCanPlay={handleMediaLoaded}
+              className="hidden"
+            />
+            {/* Audio visualizer placeholder */}
+            <div className="flex items-end gap-1 h-16">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-1.5 bg-white/80 rounded-full ${!isPaused ? 'animate-pulse' : ''}`}
+                  style={{
+                    height: `${Math.random() * 50 + 10}px`,
+                    animationDelay: `${i * 0.1}s`,
+                    animationDuration: '0.5s'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         ) : (
           <img
             src={currentStory.media_url}
             alt="Story"
             className="max-w-full max-h-full object-contain"
+            onLoad={handleMediaLoaded}
           />
         )}
       </div>
+
+      {/* Mobile pause/play button */}
+      <button
+        onClick={togglePause}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 z-15 md:hidden"
+        aria-label={isPaused ? 'Play' : 'Pause'}
+      />
 
       {/* Navigation */}
       <button
@@ -557,6 +663,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                 setShowDeleteDialog(true);
                 setIsPaused(true);
                 if (videoRef.current) videoRef.current.pause();
+                if (audioRef.current) audioRef.current.pause();
               }}
               className="text-white hover:bg-white/20"
             >
@@ -668,6 +775,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           if (!open) {
             setIsPaused(false);
             if (videoRef.current) videoRef.current.play().catch(() => {});
+            if (audioRef.current) audioRef.current.play().catch(() => {});
           }
         }}
       >
@@ -685,6 +793,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                 setShowDeleteDialog(false);
                 setIsPaused(false);
                 if (videoRef.current) videoRef.current.play().catch(() => {});
+                if (audioRef.current) audioRef.current.play().catch(() => {});
               }}
             >
               Cancel
