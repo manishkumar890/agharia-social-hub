@@ -106,7 +106,7 @@ const MusicSelector = ({ selectedMusic, onSelect, onUpload, maxSize = 10 * 1024 
           ) : (
             <>
               <Upload className="w-4 h-4" />
-              Upload Your Audio (max 10MB)
+              Upload Your Audio (max {Math.round(maxSize / (1024 * 1024))}MB)
             </>
           )}
         </Button>
