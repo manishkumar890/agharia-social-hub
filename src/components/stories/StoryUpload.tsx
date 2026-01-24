@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import MusicSelector from './MusicSelector';
+import { compressImage } from '@/lib/imageCompression';
 
 interface StoryUploadProps {
   onClose: () => void;
@@ -26,7 +27,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const [selectedExpiry, setSelectedExpiry] = useState<24 | 48>(24);
 
   // Limits based on subscription
-  const maxImageSize = 5 * 1024 * 1024; // 5MB for images
+  const maxImageSize = 30 * 1024 * 1024; // 30MB for images (will be compressed)
   const maxVideoSize = isPremium ? 50 * 1024 * 1024 : 25 * 1024 * 1024; // 50MB premium, 25MB free
   const maxAudioSize = 5 * 1024 * 1024; // 5MB for background audio
   const maxVideoDuration = isPremium ? 60 : 30; // 60s premium, 30s free
@@ -43,17 +44,31 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
     }
 
     if (file.size > maxImageSize) {
-      toast.error('Image must be less than 5MB');
+      toast.error('Image must be less than 30MB');
       return;
     }
 
-    setMediaFile(file);
-    setMediaType('image');
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setMediaPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Compress image before setting
+    try {
+      const compressedFile = await compressImage(file, 1920, 0.85);
+      setMediaFile(compressedFile);
+      setMediaType('image');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      // Fall back to original file
+      setMediaFile(file);
+      setMediaType('image');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,7 +248,7 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
                 <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                   <Upload className="w-10 h-10 text-muted-foreground mb-2" />
                   <span className="text-sm text-muted-foreground">Click to upload image</span>
-                  <span className="text-xs text-muted-foreground mt-1">Max 5MB • Add music after</span>
+                  <span className="text-xs text-muted-foreground mt-1">Max 30MB • Auto-compressed</span>
                   <input
                     type="file"
                     accept="image/*"
