@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
-import { ImagePlus, X, ChevronLeft, ChevronRight, Music } from 'lucide-react';
+import { ImagePlus, X, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import MusicSelector from '@/components/stories/MusicSelector';
 
@@ -32,7 +31,36 @@ const MultiImageUpload = ({
   maxImageSize = 30 * 1024 * 1024,
 }: MultiImageUploadProps) => {
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Minimum swipe distance
+  const minSwipeDistance = 50;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && currentPreviewIndex < previews.length - 1) {
+      setCurrentPreviewIndex(prev => prev + 1);
+    }
+    if (isRightSwipe && currentPreviewIndex > 0) {
+      setCurrentPreviewIndex(prev => prev - 1);
+    }
+  };
 
   const handleAddImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -87,14 +115,6 @@ const MultiImageUpload = ({
     }
   };
 
-  const handlePrev = () => {
-    setCurrentPreviewIndex((prev) => (prev === 0 ? previews.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentPreviewIndex((prev) => (prev === previews.length - 1 ? 0 : prev + 1));
-  };
-
   // No images yet - show upload area
   if (previews.length === 0) {
     return (
@@ -145,7 +165,21 @@ const MultiImageUpload = ({
       </div>
 
       {/* Preview Carousel */}
-      <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
+      <div 
+        className="relative aspect-square rounded-lg overflow-hidden border border-border"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Image Counter */}
+        {previews.length > 1 && (
+          <div className="absolute top-3 right-12 z-10 bg-background/70 backdrop-blur-sm px-2.5 py-1 rounded-full">
+            <span className="text-xs font-medium">
+              {currentPreviewIndex + 1}/{previews.length}
+            </span>
+          </div>
+        )}
+
         {/* Main Image */}
         <div 
           className="flex transition-transform duration-300 ease-out h-full"
@@ -170,47 +204,6 @@ const MultiImageUpload = ({
             </div>
           ))}
         </div>
-
-        {/* Navigation */}
-        {previews.length > 1 && (
-          <>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/60 backdrop-blur-sm hover:bg-background/80"
-              onClick={handlePrev}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/60 backdrop-blur-sm hover:bg-background/80"
-              onClick={handleNext}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-
-            {/* Dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-              {previews.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className={cn(
-                    "w-1.5 h-1.5 rounded-full transition-all",
-                    index === currentPreviewIndex 
-                      ? "bg-primary w-2.5" 
-                      : "bg-background/60"
-                  )}
-                  onClick={() => setCurrentPreviewIndex(index)}
-                />
-              ))}
-            </div>
-          </>
-        )}
       </div>
 
       {/* Music Selector - Premium only */}
