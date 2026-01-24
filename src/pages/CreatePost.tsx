@@ -10,26 +10,35 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ImagePlus, Video, MapPin, Loader2, X } from 'lucide-react';
+import { ImagePlus, Video, MapPin, Loader2, X, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MultiImageUpload from '@/components/posts/MultiImageUpload';
 
 const CreatePost = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium } = useSubscription();
+  
+  // Single media states (for non-premium or video)
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState('');
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState('');
+  
+  // Multi-image states (premium only)
+  const [multiImages, setMultiImages] = useState<File[]>([]);
+  const [multiPreviews, setMultiPreviews] = useState<string[]>([]);
+  const [selectedMusic, setSelectedMusic] = useState<{ url: string; name: string; duration?: number } | null>(null);
+  
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Size limits based on subscription
   const imageSizeLimit = 5 * 1024 * 1024; // 5MB for images
-  const videoSizeLimit = isPremium ? 100 * 1024 * 1024 : 25 * 1024 * 1024; // 100MB premium, 25MB free
+  const videoSizeLimit = isPremium ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+  const maxMusicDuration = 60; // 60 seconds for premium
 
   // Generate thumbnail from video
   const generateVideoThumbnail = (videoFile: File): Promise<Blob> => {
@@ -43,7 +52,6 @@ const CreatePost = () => {
       video.playsInline = true;
       
       video.onloadeddata = () => {
-        // Seek to 1 second or 10% of video duration
         video.currentTime = Math.min(1, video.duration * 0.1);
       };
       
@@ -71,7 +79,7 @@ const CreatePost = () => {
     });
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > imageSizeLimit) {
@@ -118,26 +126,52 @@ const CreatePost = () => {
       setMediaFile(file);
       setMediaType('video');
 
-      // Generate thumbnail
       try {
         const thumbnail = await generateVideoThumbnail(file);
         setThumbnailBlob(thumbnail);
-        setThumbnailPreview(URL.createObjectURL(thumbnail));
       } catch (error) {
         console.error('Failed to generate thumbnail:', error);
       }
     }
   };
 
+  const handleMusicUpload = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/audio_${Date.now()}.${fileExt}`;
+    
+    const { error } = await supabase.storage
+      .from('posts')
+      .upload(fileName, file);
+    
+    if (error) {
+      toast.error('Failed to upload audio');
+      return null;
+    }
+    
+    const { data: urlData } = supabase.storage
+      .from('posts')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+  };
+
   const clearMedia = () => {
     setMediaFile(null);
     setMediaPreview('');
     setThumbnailBlob(null);
-    setThumbnailPreview('');
+    setMultiImages([]);
+    setMultiPreviews([]);
+    setSelectedMusic(null);
   };
 
   const handleSubmit = async () => {
-    if (!mediaFile) {
+    const hasMedia = isPremium && multiImages.length > 0 
+      ? multiImages.length > 0 
+      : mediaFile !== null;
+
+    if (!hasMedia) {
       toast.error('Please add an image or video');
       return;
     }
@@ -150,47 +184,82 @@ const CreatePost = () => {
     setIsLoading(true);
 
     try {
-      const fileExt = mediaFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('posts')
-        .upload(fileName, mediaFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('posts')
-        .getPublicUrl(fileName);
-
-      const mediaUrl = urlData.publicUrl;
-
-      // Upload thumbnail for videos
-      let thumbnailUrl = null;
-      if (mediaType === 'video' && thumbnailBlob) {
-        const thumbFileName = `${user.id}/${Date.now()}_thumb.jpg`;
-        const { error: thumbError } = await supabase.storage
-          .from('posts')
-          .upload(thumbFileName, thumbnailBlob);
-
-        if (!thumbError) {
-          const { data: thumbUrlData } = supabase.storage
+      // Handle multi-image carousel post (premium only)
+      if (isPremium && multiImages.length > 0) {
+        const uploadedUrls: string[] = [];
+        
+        for (const imageFile of multiImages) {
+          const fileExt = imageFile.name.split('.').pop();
+          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
             .from('posts')
-            .getPublicUrl(thumbFileName);
-          thumbnailUrl = thumbUrlData.publicUrl;
+            .upload(fileName, imageFile);
+
+          if (uploadError) throw uploadError;
+
+          const { data: urlData } = supabase.storage
+            .from('posts')
+            .getPublicUrl(fileName);
+
+          uploadedUrls.push(urlData.publicUrl);
         }
+
+        const { error } = await supabase.from('posts').insert({
+          user_id: user.id,
+          image_url: uploadedUrls[0], // First image as main
+          image_urls: uploadedUrls,
+          caption: caption.trim() || null,
+          location: location.trim() || null,
+          media_type: 'image',
+          background_audio_url: selectedMusic?.url || null,
+        });
+
+        if (error) throw error;
+      } else {
+        // Handle single image/video post
+        const fileExt = mediaFile!.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('posts')
+          .upload(fileName, mediaFile!);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('posts')
+          .getPublicUrl(fileName);
+
+        const mediaUrl = urlData.publicUrl;
+
+        // Upload thumbnail for videos
+        let thumbnailUrl = null;
+        if (mediaType === 'video' && thumbnailBlob) {
+          const thumbFileName = `${user.id}/${Date.now()}_thumb.jpg`;
+          const { error: thumbError } = await supabase.storage
+            .from('posts')
+            .upload(thumbFileName, thumbnailBlob);
+
+          if (!thumbError) {
+            const { data: thumbUrlData } = supabase.storage
+              .from('posts')
+              .getPublicUrl(thumbFileName);
+            thumbnailUrl = thumbUrlData.publicUrl;
+          }
+        }
+
+        const { error } = await supabase.from('posts').insert({
+          user_id: user.id,
+          image_url: mediaUrl,
+          caption: caption.trim() || null,
+          location: location.trim() || null,
+          media_type: mediaType,
+          thumbnail_url: thumbnailUrl,
+        });
+
+        if (error) throw error;
       }
-
-      const { error } = await supabase.from('posts').insert({
-        user_id: user.id,
-        image_url: mediaUrl,
-        caption: caption.trim() || null,
-        location: location.trim() || null,
-        media_type: mediaType,
-        thumbnail_url: thumbnailUrl,
-      });
-
-      if (error) throw error;
 
       toast.success('Post created successfully!');
       navigate('/');
@@ -202,6 +271,8 @@ const CreatePost = () => {
     }
   };
 
+  const isMultiImageMode = isPremium && multiImages.length > 0;
+  const hasContent = isMultiImageMode || mediaFile !== null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -215,11 +286,17 @@ const CreatePost = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Media Upload Tabs */}
-              <Tabs defaultValue="image" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="image" className="flex items-center gap-2">
+              <Tabs defaultValue={isPremium ? "multi-photo" : "photo"} className="w-full">
+                <TabsList className={`grid w-full ${isPremium ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {isPremium && (
+                    <TabsTrigger value="multi-photo" className="flex items-center gap-2">
+                      <Crown className="w-4 h-4" />
+                      Photos
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="photo" className="flex items-center gap-2">
                     <ImagePlus className="w-4 h-4" />
-                    Photo
+                    {isPremium ? 'Single' : 'Photo'}
                   </TabsTrigger>
                   <TabsTrigger value="video" className="flex items-center gap-2">
                     <Video className="w-4 h-4" />
@@ -227,7 +304,27 @@ const CreatePost = () => {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="image" className="mt-4">
+                {/* Multi-Photo Tab - Premium Only */}
+                {isPremium && (
+                  <TabsContent value="multi-photo" className="mt-4">
+                    <MultiImageUpload
+                      images={multiImages}
+                      onImagesChange={setMultiImages}
+                      previews={multiPreviews}
+                      onPreviewsChange={setMultiPreviews}
+                      selectedMusic={selectedMusic}
+                      onMusicChange={setSelectedMusic}
+                      onMusicUpload={handleMusicUpload}
+                      isPremium={isPremium}
+                      maxImages={10}
+                      maxImageSize={imageSizeLimit}
+                      maxMusicDuration={maxMusicDuration}
+                    />
+                  </TabsContent>
+                )}
+
+                {/* Single Photo Tab */}
+                <TabsContent value="photo" className="mt-4">
                   <div className="space-y-2">
                     <Label>Photo (max 5MB)</Label>
                     {mediaPreview && mediaType === 'image' ? (
@@ -253,7 +350,7 @@ const CreatePost = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={handleImageChange}
+                          onChange={handleSingleImageChange}
                           className="hidden"
                         />
                       </label>
@@ -261,6 +358,7 @@ const CreatePost = () => {
                   </div>
                 </TabsContent>
 
+                {/* Video Tab */}
                 <TabsContent value="video" className="mt-4">
                   <div className="space-y-2">
                     <Label>
@@ -338,7 +436,7 @@ const CreatePost = () => {
               <Button
                 className="w-full gradient-maroon text-primary-foreground"
                 onClick={handleSubmit}
-                disabled={isLoading || !mediaFile}
+                disabled={isLoading || !hasContent}
               >
                 {isLoading ? (
                   <>

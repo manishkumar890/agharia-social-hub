@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import PremiumBadge from '@/components/PremiumBadge';
 import SendPostDialog from '@/components/SendPostDialog';
+import ImageCarousel from '@/components/posts/ImageCarousel';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -21,6 +22,8 @@ interface Post {
   id: string;
   user_id: string;
   image_url: string;
+  image_urls?: string[] | null;
+  background_audio_url?: string | null;
   caption: string | null;
   location: string | null;
   created_at: string;
@@ -243,6 +246,11 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             controls
             controlsList="nodownload noplaybackrate"
             preload="metadata"
+          />
+        ) : post.image_urls && post.image_urls.length > 1 ? (
+          <ImageCarousel 
+            images={post.image_urls}
+            backgroundAudioUrl={post.background_audio_url}
           />
         ) : (
           <img 

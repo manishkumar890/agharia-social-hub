@@ -202,10 +202,12 @@ export type Database = {
       }
       posts: {
         Row: {
+          background_audio_url: string | null
           caption: string | null
           created_at: string
           id: string
           image_url: string
+          image_urls: string[] | null
           location: string | null
           media_type: string
           thumbnail_url: string | null
@@ -213,10 +215,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          background_audio_url?: string | null
           caption?: string | null
           created_at?: string
           id?: string
           image_url: string
+          image_urls?: string[] | null
           location?: string | null
           media_type?: string
           thumbnail_url?: string | null
@@ -224,10 +228,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          background_audio_url?: string | null
           caption?: string | null
           created_at?: string
           id?: string
           image_url?: string
+          image_urls?: string[] | null
           location?: string | null
           media_type?: string
           thumbnail_url?: string | null

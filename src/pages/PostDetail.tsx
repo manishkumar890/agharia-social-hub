@@ -17,11 +17,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import ImageCarousel from '@/components/posts/ImageCarousel';
 
 interface Post {
   id: string;
   user_id: string;
   image_url: string;
+  image_urls?: string[] | null;
+  background_audio_url?: string | null;
   caption: string | null;
   location: string | null;
   created_at: string;
@@ -260,6 +263,12 @@ const PostDetail = () => {
                   controls
                   controlsList="nodownload noplaybackrate"
                   preload="metadata"
+                />
+              ) : post.image_urls && post.image_urls.length > 1 ? (
+                <ImageCarousel 
+                  images={post.image_urls}
+                  backgroundAudioUrl={post.background_audio_url}
+                  className="w-full max-h-[70vh]"
                 />
               ) : (
                 <img
