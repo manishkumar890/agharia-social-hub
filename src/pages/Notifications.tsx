@@ -184,7 +184,7 @@ const Notifications = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-lg mx-auto px-4 py-4">
           <h2 className="text-lg font-display font-semibold mb-4">Activity</h2>
 

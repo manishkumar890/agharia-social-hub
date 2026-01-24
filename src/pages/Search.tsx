@@ -64,7 +64,7 @@ const Search = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-4xl mx-auto px-4 py-4">
           {/* Search Bar */}
           <div className="relative mb-6">
