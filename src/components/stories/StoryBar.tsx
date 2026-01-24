@@ -190,9 +190,11 @@ const StoryBar = () => {
       });
 
       // Filter out current user from the list (will show separately)
+      // Only show stories from users that the current user follows
       // Sort: unseen stories first, then seen stories
       const otherUsers = users
         .filter(u => u.user_id !== user?.id)
+        .filter(u => followingIds.has(u.user_id)) // Only show followed users' stories
         .sort((a, b) => {
           if (a.hasSeen === b.hasSeen) return 0;
           return a.hasSeen ? 1 : -1;

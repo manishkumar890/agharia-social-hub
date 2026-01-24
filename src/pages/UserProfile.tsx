@@ -7,6 +7,7 @@ import MobileNav from '@/components/MobileNav';
 import FollowersDialog from '@/components/FollowersDialog';
 import VerificationBadge from '@/components/VerificationBadge';
 import VIPCard from '@/components/VIPCard';
+import StoryViewer from '@/components/stories/StoryViewer';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,6 +35,17 @@ interface Post {
   thumbnail_url?: string | null;
 }
 
+interface Story {
+  id: string;
+  user_id: string;
+  media_url: string;
+  media_type?: string;
+  duration: number;
+  created_at: string;
+  expires_at: string;
+  background_audio_url?: string;
+}
+
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -47,14 +59,33 @@ const UserProfile = () => {
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
   const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
     if (userId) {
       fetchUserData();
+      fetchUserStories();
     }
   }, [userId, user]);
+
+  const fetchUserStories = async () => {
+    if (!userId) return;
+    try {
+      const { data: stories } = await supabase
+        .from('stories')
+        .select('*')
+        .eq('user_id', userId)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+      
+      setUserStories(stories || []);
+    } catch (error) {
+      console.error('Error fetching user stories:', error);
+    }
+  };
 
   const fetchUserData = async () => {
     try {
@@ -280,12 +311,23 @@ const UserProfile = () => {
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* Profile Header */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
-            <Avatar className="w-24 h-24 md:w-36 md:h-36 border-4 border-primary/30">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
-                {profile.full_name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            {/* Profile Avatar with Story Ring */}
+            <button
+              onClick={() => userStories.length > 0 && setShowStoryViewer(true)}
+              disabled={userStories.length === 0}
+              className={`w-24 h-24 md:w-36 md:h-36 rounded-full p-1 ${
+                userStories.length > 0 
+                  ? 'bg-gradient-to-tr from-primary to-accent cursor-pointer' 
+                  : 'bg-muted cursor-default'
+              }`}
+            >
+              <Avatar className="w-full h-full border-2 border-card">
+                <AvatarImage src={profile.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
+                  {profile.full_name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </button>
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
@@ -423,6 +465,21 @@ const UserProfile = () => {
             onOpenChange={setFollowingOpen}
           />
         </>
+      )}
+
+      {/* Story Viewer */}
+      {showStoryViewer && profile && userId && (
+        <StoryViewer
+          storyUser={{
+            user_id: userId,
+            avatar_url: profile.avatar_url,
+            username: profile.username,
+            full_name: profile.full_name,
+            stories: userStories
+          }}
+          onClose={() => setShowStoryViewer(false)}
+          onRefresh={fetchUserStories}
+        />
       )}
     </div>
   );
