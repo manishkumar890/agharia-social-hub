@@ -14,6 +14,7 @@ import { ImagePlus, Video, MapPin, Loader2, X, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MultiImageUpload from '@/components/posts/MultiImageUpload';
+import { compressImage, compressImages } from '@/lib/imageCompression';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ const CreatePost = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Size limits based on subscription
-  const imageSizeLimit = 5 * 1024 * 1024; // 5MB for images
+  const imageSizeLimit = 30 * 1024 * 1024; // 30MB for images (will be compressed before upload)
   const videoSizeLimit = isPremium ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
   const maxMusicDuration = 60; // 60 seconds for premium
 
@@ -83,7 +84,7 @@ const CreatePost = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > imageSizeLimit) {
-        toast.error('Image must be less than 5MB');
+        toast.error('Image must be less than 30MB');
         return;
       }
 
@@ -92,12 +93,16 @@ const CreatePost = () => {
         return;
       }
 
+      // Show preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
         setMediaPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      setMediaFile(file);
+      
+      // Compress image for faster loading (max 1920px, 85% quality)
+      const compressedFile = await compressImage(file, 1920, 0.85);
+      setMediaFile(compressedFile);
       setMediaType('image');
     }
   };
@@ -188,9 +193,11 @@ const CreatePost = () => {
       if (isPremium && multiImages.length > 0) {
         const uploadedUrls: string[] = [];
         
-        for (const imageFile of multiImages) {
-          const fileExt = imageFile.name.split('.').pop();
-          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        // Compress all images before upload for faster loading
+        const compressedImages = await compressImages(multiImages, 1920, 0.85);
+        
+        for (const imageFile of compressedImages) {
+          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
           
           const { error: uploadError } = await supabase.storage
             .from('posts')
@@ -326,7 +333,7 @@ const CreatePost = () => {
                 {/* Single Photo Tab */}
                 <TabsContent value="photo" className="mt-4">
                   <div className="space-y-2">
-                    <Label>Photo (max 5MB)</Label>
+                    <Label>Photo (max 30MB)</Label>
                     {mediaPreview && mediaType === 'image' ? (
                       <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
                         <img 

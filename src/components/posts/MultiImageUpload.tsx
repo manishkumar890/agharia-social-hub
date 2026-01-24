@@ -30,7 +30,7 @@ const MultiImageUpload = ({
   onMusicUpload,
   isPremium,
   maxImages = 10,
-  maxImageSize = 5 * 1024 * 1024,
+  maxImageSize = 30 * 1024 * 1024,
   maxMusicDuration = 60,
 }: MultiImageUploadProps) => {
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
@@ -49,7 +49,7 @@ const MultiImageUpload = ({
 
     for (const file of files) {
       if (file.size > maxImageSize) {
-        toast.error(`Image "${file.name}" exceeds 5MB limit`);
+        toast.error(`Image "${file.name}" exceeds 30MB limit`);
         continue;
       }
 
@@ -101,7 +101,7 @@ const MultiImageUpload = ({
   if (previews.length === 0) {
     return (
       <div className="space-y-4">
-        <Label>Photos (up to {maxImages}, max 5MB each)</Label>
+        <Label>Photos (up to {maxImages}, max 30MB each)</Label>
         <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
           <ImagePlus className="w-12 h-12 text-muted-foreground mb-2" />
           <span className="text-sm text-muted-foreground">Click to upload photos</span>
