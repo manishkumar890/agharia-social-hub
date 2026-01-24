@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, Bookmark, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -6,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
-import AIChatDialog from '@/components/AIChatDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +20,6 @@ const Header = () => {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [aiChatOpen, setAiChatOpen] = useState(false);
 
   const isAuthPage = location.pathname === '/auth';
 
@@ -71,12 +68,12 @@ const Header = () => {
           {/* Navigation Icons */}
           <div className="flex items-center gap-2">
             {/* AI Bot Button */}
-            <button 
-              onClick={() => setAiChatOpen(true)}
+            <Link
+              to="/ai-chat"
               className="p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
             >
               <Bot className="w-5 h-5" />
-            </button>
+            </Link>
 
             {/* Messages Button */}
             <Link
@@ -156,8 +153,6 @@ const Header = () => {
           </div>
         </div>
       </nav>
-      
-      <AIChatDialog open={aiChatOpen} onOpenChange={setAiChatOpen} />
     </header>
   );
 };
