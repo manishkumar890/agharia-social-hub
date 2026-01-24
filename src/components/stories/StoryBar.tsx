@@ -63,21 +63,12 @@ const StoryBar = () => {
     }
   };
 
+  // Fetch following first, then stories
   useEffect(() => {
-    fetchStories();
-    fetchFollowing();
-
-    // Subscribe to real-time story changes (inserts and deletes)
-    const storiesChannel = supabase
-      .channel('stories-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'stories' },
-        () => {
-          fetchStories();
-        }
-      )
-      .subscribe();
+    const init = async () => {
+      await fetchFollowing();
+    };
+    init();
 
     // Subscribe to follow changes to update following list
     const followersChannel = supabase
@@ -92,10 +83,30 @@ const StoryBar = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(storiesChannel);
       supabase.removeChannel(followersChannel);
     };
   }, [user]);
+
+  // Fetch stories when followingIds changes
+  useEffect(() => {
+    fetchStories();
+
+    // Subscribe to real-time story changes
+    const storiesChannel = supabase
+      .channel('stories-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'stories' },
+        () => {
+          fetchStories();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(storiesChannel);
+    };
+  }, [user, followingIds]);
 
   const fetchStories = async () => {
     try {
