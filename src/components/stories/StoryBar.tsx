@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import StoryViewer from './StoryViewer';
 import StoryUpload from './StoryUpload';
+import { toast } from 'sonner';
 
 interface Story {
   id: string;
@@ -32,12 +41,34 @@ const StoryBar = () => {
   const [viewingUser, setViewingUser] = useState<StoryUser | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [myStories, setMyStories] = useState<Story[]>([]);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const [showFollowPrompt, setShowFollowPrompt] = useState(false);
+  const [pendingStoryUser, setPendingStoryUser] = useState<StoryUser | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // Fetch users the current user is following
+  const fetchFollowing = async () => {
+    if (!user) {
+      setFollowingIds(new Set());
+      return;
+    }
+
+    const { data } = await supabase
+      .from('followers')
+      .select('following_id')
+      .eq('follower_id', user.id);
+
+    if (data) {
+      setFollowingIds(new Set(data.map(f => f.following_id)));
+    }
+  };
 
   useEffect(() => {
     fetchStories();
+    fetchFollowing();
 
     // Subscribe to real-time story changes (inserts and deletes)
-    const channel = supabase
+    const storiesChannel = supabase
       .channel('stories-realtime')
       .on(
         'postgres_changes',
@@ -48,8 +79,21 @@ const StoryBar = () => {
       )
       .subscribe();
 
+    // Subscribe to follow changes to update following list
+    const followersChannel = supabase
+      .channel('followers-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'followers', filter: `follower_id=eq.${user?.id}` },
+        () => {
+          fetchFollowing();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(storiesChannel);
+      supabase.removeChannel(followersChannel);
     };
   }, [user]);
 
@@ -160,7 +204,50 @@ const StoryBar = () => {
   };
 
   const handleStoryClick = (storyUser: StoryUser) => {
-    setViewingUser(storyUser);
+    // Own story - always viewable
+    if (storyUser.user_id === user?.id) {
+      setViewingUser(storyUser);
+      return;
+    }
+
+    // Check if user follows this story owner
+    if (followingIds.has(storyUser.user_id)) {
+      setViewingUser(storyUser);
+    } else {
+      // Show follow prompt
+      setPendingStoryUser(storyUser);
+      setShowFollowPrompt(true);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!user || !pendingStoryUser) return;
+
+    setIsFollowing(true);
+    try {
+      const { error } = await supabase
+        .from('followers')
+        .insert({
+          follower_id: user.id,
+          following_id: pendingStoryUser.user_id
+        });
+
+      if (error) throw error;
+
+      // Update local state
+      setFollowingIds(prev => new Set([...prev, pendingStoryUser.user_id]));
+      toast.success(`You are now following ${pendingStoryUser.username || pendingStoryUser.full_name || 'this user'}`);
+      
+      // Close dialog and open story viewer
+      setShowFollowPrompt(false);
+      setViewingUser(pendingStoryUser);
+      setPendingStoryUser(null);
+    } catch (error) {
+      console.error('Error following user:', error);
+      toast.error('Failed to follow user');
+    } finally {
+      setIsFollowing(false);
+    }
   };
 
   const handleViewMyStory = () => {
@@ -267,6 +354,64 @@ const StoryBar = () => {
           }}
         />
       )}
+
+      {/* Follow Prompt Dialog */}
+      <Dialog open={showFollowPrompt} onOpenChange={setShowFollowPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Follow to View Story
+            </DialogTitle>
+            <DialogDescription>
+              Follow {pendingStoryUser?.username || pendingStoryUser?.full_name || 'this user'} to view their stories
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <Avatar className="w-20 h-20 border-4 border-primary/20">
+              <AvatarImage src={pendingStoryUser?.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                {pendingStoryUser?.full_name?.charAt(0) || pendingStoryUser?.username?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <p className="font-semibold text-lg">
+              {pendingStoryUser?.full_name || pendingStoryUser?.username || 'User'}
+            </p>
+            {pendingStoryUser?.username && pendingStoryUser?.full_name && (
+              <p className="text-muted-foreground text-sm">@{pendingStoryUser.username}</p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setShowFollowPrompt(false);
+                setPendingStoryUser(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleFollow}
+              disabled={isFollowing}
+            >
+              {isFollowing ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Following...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Follow & View
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
