@@ -236,7 +236,7 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-8">
+      <main className="pt-14 pb-8">
         <div className="max-w-6xl mx-auto px-4 py-6">
           {/* Header */}
           <div className="flex items-center gap-4 mb-6">
