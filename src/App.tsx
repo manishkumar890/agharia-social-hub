@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { usePreventScreenshot } from "@/hooks/usePreventScreenshot";
 import PremiumPopup from "@/components/PremiumPopup";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -24,12 +23,6 @@ import AIChat from "./pages/AIChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-// Component to enable screenshot prevention on native platforms
-const PrivacyScreenProvider = ({ children }: { children: React.ReactNode }) => {
-  usePreventScreenshot();
-  return <>{children}</>;
-};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -80,10 +73,8 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <SubscriptionProvider>
-              <PrivacyScreenProvider>
-                <PremiumPopup />
-                <AppRoutes />
-              </PrivacyScreenProvider>
+              <PremiumPopup />
+              <AppRoutes />
             </SubscriptionProvider>
           </AuthProvider>
         </BrowserRouter>
