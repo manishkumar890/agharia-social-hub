@@ -28,6 +28,8 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
+const ADMIN_PHONE = '7326937200';
+
 interface User {
   id: string;
   user_id: string;
@@ -182,18 +184,18 @@ const Admin = () => {
     }
   };
 
-  const handleToggleDisabled = async (userId: string, currentStatus: boolean) => {
+  const handleToggleDisabled = async (profileId: string, userIdAuth: string, currentStatus: boolean) => {
     const newStatus = !currentStatus;
     const { error } = await supabase
       .from('profiles')
       .update({ is_disabled: newStatus })
-      .eq('id', userId);
+      .eq('user_id', userIdAuth);
 
     if (error) {
       toast.error('Failed to update user status');
     } else {
       toast.success(newStatus ? 'User disabled' : 'User enabled');
-      setUsers(users.map(u => u.id === userId ? { ...u, is_disabled: newStatus } : u));
+      setUsers(users.map(u => u.id === profileId ? { ...u, is_disabled: newStatus } : u));
     }
   };
 
@@ -402,15 +404,22 @@ const Admin = () => {
                             <Badge variant="secondary" className="text-xs">
                               {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
                             </Badge>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground hidden sm:inline">
-                                {user.is_disabled ? 'Disabled' : 'Active'}
-                              </span>
-                              <Switch
-                                checked={!user.is_disabled}
-                                onCheckedChange={() => handleToggleDisabled(user.id, user.is_disabled)}
-                              />
-                            </div>
+                            {user.phone === ADMIN_PHONE ? (
+                              <Badge variant="outline" className="text-xs">
+                                <Shield className="w-3 h-3 mr-1" />
+                                Admin
+                              </Badge>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground hidden sm:inline">
+                                  {user.is_disabled ? 'Disabled' : 'Active'}
+                                </span>
+                                <Switch
+                                  checked={!user.is_disabled}
+                                  onCheckedChange={() => handleToggleDisabled(user.id, user.user_id, user.is_disabled)}
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))
