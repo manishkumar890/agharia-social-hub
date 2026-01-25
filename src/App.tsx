@@ -25,7 +25,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isDisabled, signOut } = useAuth();
   
   if (loading) {
     return (
@@ -37,6 +37,36 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (isDisabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-20 h-20 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-display font-bold text-destructive">Account Disabled</h1>
+            <p className="text-muted-foreground">
+              Your account has been disabled by Agharia Samaj administration. 
+              You cannot access your account at this time.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            If you believe this is a mistake, please contact the administrator.
+          </p>
+          <button
+            onClick={() => signOut()}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
   }
   
   return <>{children}</>;

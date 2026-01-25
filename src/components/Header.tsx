@@ -1,10 +1,10 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, Bookmark, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
-import DeleteAccountDialog from '@/components/DeleteAccountDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,14 +14,29 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+const TITLES = [
+  { text: 'अघरिया समाज', lang: 'Hindi' },
+  { text: 'ଅଘରିଆ ସମାଜ', lang: 'Odia' },
+  { text: 'Agharia Samaj', lang: 'English' },
+];
+
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { isPremium } = useSubscription();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [titleIndex, setTitleIndex] = useState(0);
 
   const isAuthPage = location.pathname === '/auth';
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTitleIndex((prev) => (prev + 1) % TITLES.length);
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -54,8 +69,12 @@ const Header = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           {/* Logo/Home with Refresh */}
           <div className="flex items-center gap-2">
-            <Link to="/" className="font-display text-lg font-semibold text-primary hover:text-primary/80 transition-colors">
-              अघरिया समाज
+            <Link 
+              to="/" 
+              className="font-display text-lg font-semibold text-primary hover:text-primary/80 transition-all duration-500"
+              key={titleIndex}
+            >
+              {TITLES[titleIndex].text}
             </Link>
             <button 
               onClick={handleRefresh}
@@ -146,8 +165,6 @@ const Header = () => {
                   <LogOut className="w-4 h-4" />
                   Sign Out
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DeleteAccountDialog />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

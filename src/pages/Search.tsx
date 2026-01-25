@@ -5,7 +5,8 @@ import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search as SearchIcon, Users, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search as SearchIcon, Users, TrendingUp, Ban } from 'lucide-react';
 
 interface User {
   id: string;
@@ -13,6 +14,7 @@ interface User {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  is_disabled: boolean;
 }
 
 interface Post {
@@ -52,7 +54,7 @@ const Search = () => {
     setLoading(true);
     const { data } = await supabase
       .from('profiles')
-      .select('id, user_id, full_name, username, avatar_url')
+      .select('id, user_id, full_name, username, avatar_url, is_disabled')
       .or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
       .limit(20);
     
@@ -92,24 +94,52 @@ const Search = () => {
               ) : (
                 <div className="space-y-2">
                   {users.map((user) => (
-                    <Link
-                      key={user.id}
-                      to={`/user/${user.user_id}`}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <Avatar>
-                        <AvatarImage src={user.avatar_url || undefined} />
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {user.full_name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{user.full_name || 'User'}</p>
-                        {user.username && (
-                          <p className="text-sm text-muted-foreground">@{user.username}</p>
-                        )}
+                    user.is_disabled ? (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30"
+                      >
+                        <Avatar className="opacity-50">
+                          <AvatarImage src={user.avatar_url || undefined} />
+                          <AvatarFallback className="bg-muted text-muted-foreground">
+                            <Ban className="w-5 h-5" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-muted-foreground line-through">
+                              {user.full_name || 'User'}
+                            </p>
+                            <Badge variant="destructive" className="text-xs">
+                              <Ban className="w-3 h-3 mr-1" />
+                              Disabled
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-destructive">
+                            This user is disabled from Agharia Samaj
+                          </p>
+                        </div>
                       </div>
-                    </Link>
+                    ) : (
+                      <Link
+                        key={user.id}
+                        to={`/user/${user.user_id}`}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <Avatar>
+                          <AvatarImage src={user.avatar_url || undefined} />
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            {user.full_name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{user.full_name || 'User'}</p>
+                          {user.username && (
+                            <p className="text-sm text-muted-foreground">@{user.username}</p>
+                          )}
+                        </div>
+                      </Link>
+                    )
                   ))}
                 </div>
               )}

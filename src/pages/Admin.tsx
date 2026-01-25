@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Users, 
   FileImage, 
@@ -17,9 +20,10 @@ import {
   Trash2, 
   Search,
   ArrowLeft,
-  ChevronRight,
   Crown,
-  XCircle
+  XCircle,
+  Ban,
+  CheckCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -32,6 +36,7 @@ interface User {
   username: string | null;
   avatar_url: string | null;
   created_at: string;
+  is_disabled: boolean;
 }
 
 interface Post {
@@ -120,7 +125,7 @@ const Admin = () => {
             .from('profiles')
             .select('full_name, username')
             .eq('user_id', post.user_id)
-            .single();
+            .maybeSingle();
           return { ...post, profiles: profile };
         })
       );
@@ -139,7 +144,7 @@ const Admin = () => {
             .from('profiles')
             .select('full_name')
             .eq('user_id', comment.user_id)
-            .single();
+            .maybeSingle();
           return { ...comment, profiles: profile };
         })
       );
@@ -158,7 +163,7 @@ const Admin = () => {
             .from('profiles')
             .select('full_name, username, avatar_url, phone')
             .eq('user_id', sub.user_id)
-            .single();
+            .maybeSingle();
           return { ...sub, profile };
         })
       );
@@ -174,6 +179,21 @@ const Admin = () => {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleDisabled = async (userId: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_disabled: newStatus })
+      .eq('id', userId);
+
+    if (error) {
+      toast.error('Failed to update user status');
+    } else {
+      toast.success(newStatus ? 'User disabled' : 'User enabled');
+      setUsers(users.map(u => u.id === userId ? { ...u, is_disabled: newStatus } : u));
     }
   };
 
@@ -236,65 +256,65 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-14 pb-8">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+      <main className="pt-14 pb-20 md:pb-8">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
             <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-                <Shield className="w-6 h-6 text-primary" />
-                Admin Panel
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl font-display font-bold flex items-center gap-2">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+                <span className="truncate">Admin Panel</span>
               </h1>
-              <p className="text-muted-foreground text-sm">Manage your community</p>
+              <p className="text-muted-foreground text-xs sm:text-sm">Manage your community</p>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-8">
             <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="p-3 rounded-full bg-primary/10">
-                  <Users className="w-6 h-6 text-primary" />
+              <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                <div className="p-2 sm:p-3 rounded-full bg-primary/10 flex-shrink-0">
+                  <Users className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.users}</p>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-bold">{stats.users}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Users</p>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="p-3 rounded-full bg-secondary/50">
-                  <FileImage className="w-6 h-6 text-secondary-foreground" />
+              <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                <div className="p-2 sm:p-3 rounded-full bg-secondary/50 flex-shrink-0">
+                  <FileImage className="w-4 h-4 sm:w-6 sm:h-6 text-secondary-foreground" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.posts}</p>
-                  <p className="text-sm text-muted-foreground">Total Posts</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="p-3 rounded-full bg-muted">
-                  <MessageSquare className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.comments}</p>
-                  <p className="text-sm text-muted-foreground">Total Comments</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-bold">{stats.posts}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Posts</p>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="p-3 rounded-full bg-amber-500/10">
-                  <Crown className="w-6 h-6 text-amber-500" />
+              <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                <div className="p-2 sm:p-3 rounded-full bg-muted flex-shrink-0">
+                  <MessageSquare className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.premium}</p>
-                  <p className="text-sm text-muted-foreground">Premium Users</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-bold">{stats.comments}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Comments</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                <div className="p-2 sm:p-3 rounded-full bg-amber-500/10 flex-shrink-0">
+                  <Crown className="w-4 h-4 sm:w-6 sm:h-6 text-amber-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-bold">{stats.premium}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Premium</p>
                 </div>
               </CardContent>
             </Card>
@@ -302,44 +322,46 @@ const Admin = () => {
 
           {/* Management Tabs */}
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger value="posts" className="flex items-center gap-2">
-                <FileImage className="w-4 h-4" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger value="comments" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Comments
-              </TabsTrigger>
-              <TabsTrigger value="premium" className="flex items-center gap-2">
-                <Crown className="w-4 h-4" />
-                Premium
-              </TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full">
+              <TabsList className="mb-4 sm:mb-6 w-max">
+                <TabsTrigger value="users" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Users</span>
+                </TabsTrigger>
+                <TabsTrigger value="posts" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <FileImage className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Posts</span>
+                </TabsTrigger>
+                <TabsTrigger value="comments" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Comments</span>
+                </TabsTrigger>
+                <TabsTrigger value="premium" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <Crown className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Premium</span>
+                </TabsTrigger>
+              </TabsList>
+            </ScrollArea>
 
             {/* Users Tab */}
             <TabsContent value="users">
               <Card>
-                <CardHeader>
-                  <CardTitle>Registered Users</CardTitle>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Registered Users</CardTitle>
                   <CardDescription>
                     <div className="relative mt-2">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
-                        placeholder="Search by name, username, or phone..."
+                        placeholder="Search users..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 text-sm"
                       />
                     </div>
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                  <div className="space-y-2 sm:space-y-3">
                     {loading ? (
                       <p className="text-muted-foreground text-center py-8">Loading...</p>
                     ) : filteredUsers.length === 0 ? (
@@ -348,27 +370,47 @@ const Admin = () => {
                       filteredUsers.map((user) => (
                         <div 
                           key={user.id} 
-                          className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border transition-colors gap-3 ${
+                            user.is_disabled ? 'bg-destructive/10 border-destructive/30' : 'border-border hover:bg-muted/50'
+                          }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <Avatar>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Avatar className="w-10 h-10 flex-shrink-0">
                               <AvatarImage src={user.avatar_url || undefined} />
                               <AvatarFallback className="bg-primary text-primary-foreground">
                                 {user.full_name?.charAt(0) || 'U'}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <p className="font-medium">{user.full_name || 'No name'}</p>
-                              <p className="text-sm text-muted-foreground">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-sm sm:text-base truncate">
+                                  {user.full_name || 'No name'}
+                                </p>
+                                {user.is_disabled && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    <Ban className="w-3 h-3 mr-1" />
+                                    Disabled
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 {user.username ? `@${user.username}` : user.phone}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 sm:gap-3 justify-between sm:justify-end">
                             <Badge variant="secondary" className="text-xs">
                               {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
                             </Badge>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground hidden sm:inline">
+                                {user.is_disabled ? 'Disabled' : 'Active'}
+                              </span>
+                              <Switch
+                                checked={!user.is_disabled}
+                                onCheckedChange={() => handleToggleDisabled(user.id, user.is_disabled)}
+                              />
+                            </div>
                           </div>
                         </div>
                       ))
@@ -381,12 +423,12 @@ const Admin = () => {
             {/* Posts Tab */}
             <TabsContent value="posts">
               <Card>
-                <CardHeader>
-                  <CardTitle>All Posts</CardTitle>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">All Posts</CardTitle>
                   <CardDescription>Manage community posts</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-4">
                     {loading ? (
                       <p className="text-muted-foreground text-center py-8 col-span-full">Loading...</p>
                     ) : posts.length === 0 ? (
@@ -397,15 +439,16 @@ const Admin = () => {
                           <img
                             src={post.image_url}
                             alt={post.caption || ''}
-                            className="aspect-square object-cover rounded-lg"
+                            className="aspect-square object-cover rounded-lg w-full"
                           />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                             <Button
                               variant="destructive"
                               size="icon"
+                              className="w-8 h-8 sm:w-10 sm:h-10"
                               onClick={() => handleDeletePost(post.id)}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 truncate">
@@ -422,12 +465,12 @@ const Admin = () => {
             {/* Comments Tab */}
             <TabsContent value="comments">
               <Card>
-                <CardHeader>
-                  <CardTitle>Recent Comments</CardTitle>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Recent Comments</CardTitle>
                   <CardDescription>Moderate community comments</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                  <div className="space-y-2 sm:space-y-3">
                     {loading ? (
                       <p className="text-muted-foreground text-center py-8">Loading...</p>
                     ) : comments.length === 0 ? (
@@ -436,11 +479,11 @@ const Admin = () => {
                       comments.map((comment) => (
                         <div 
                           key={comment.id}
-                          className="flex items-start justify-between p-3 rounded-lg border border-border"
+                          className="flex items-start justify-between p-3 rounded-lg border border-border gap-2"
                         >
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{comment.profiles?.full_name || 'Unknown'}</p>
-                            <p className="text-sm text-foreground">{comment.content}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-xs sm:text-sm">{comment.profiles?.full_name || 'Unknown'}</p>
+                            <p className="text-xs sm:text-sm text-foreground line-clamp-2">{comment.content}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                             </p>
@@ -448,7 +491,7 @@ const Admin = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive flex-shrink-0 w-8 h-8"
                             onClick={() => handleDeleteComment(comment.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -464,15 +507,15 @@ const Admin = () => {
             {/* Premium Users Tab */}
             <TabsContent value="premium">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-amber-500" />
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
                     Premium Users
                   </CardTitle>
                   <CardDescription>Manage premium subscriptions</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
+                <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                  <div className="space-y-2 sm:space-y-3">
                     {loading ? (
                       <p className="text-muted-foreground text-center py-8">Loading...</p>
                     ) : premiumUsers.length === 0 ? (
@@ -481,21 +524,21 @@ const Admin = () => {
                       premiumUsers.map((sub) => (
                         <div 
                           key={sub.id}
-                          className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors gap-3"
                         >
-                          <div className="flex items-center gap-3">
-                            <Avatar>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Avatar className="w-10 h-10 flex-shrink-0">
                               <AvatarImage src={sub.profile?.avatar_url || undefined} />
                               <AvatarFallback className="bg-amber-500 text-white">
                                 {sub.profile?.full_name?.charAt(0) || 'P'}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium">{sub.profile?.full_name || 'No name'}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-sm sm:text-base truncate">{sub.profile?.full_name || 'No name'}</p>
                                 <Badge className="bg-amber-500 text-white text-xs">Premium</Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 {sub.profile?.username ? `@${sub.profile.username}` : sub.profile?.phone}
                               </p>
                               <p className="text-xs text-muted-foreground">
@@ -506,7 +549,7 @@ const Admin = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground w-full sm:w-auto"
                             onClick={() => handleRemovePremium(sub.id, sub.user_id)}
                           >
                             <XCircle className="w-4 h-4 mr-1" />
@@ -522,6 +565,8 @@ const Admin = () => {
           </Tabs>
         </div>
       </main>
+
+      <MobileNav />
     </div>
   );
 };
