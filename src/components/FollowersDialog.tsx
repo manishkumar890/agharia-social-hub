@@ -17,6 +17,7 @@ interface FollowUser {
   username: string | null;
   avatar_url: string | null;
   isPremium?: boolean;
+  is_disabled?: boolean;
 }
 
 interface FollowersDialogProps {
@@ -65,17 +66,21 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
         return;
       }
 
-      // Fetch profiles for these users
+      // Fetch profiles for these users (including is_disabled status)
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, full_name, username, avatar_url')
+        .select('user_id, full_name, username, avatar_url, is_disabled')
         .in('user_id', userIds);
 
-      // Fetch subscription status for all users
+      // Filter out disabled users
+      const activeProfiles = (profiles || []).filter(p => !p.is_disabled);
+      const activeUserIds = activeProfiles.map(p => p.user_id);
+
+      // Fetch subscription status for active users only
       const { data: subscriptions } = await supabase
         .from('user_subscriptions')
         .select('user_id, plan_type')
-        .in('user_id', userIds);
+        .in('user_id', activeUserIds);
 
       const premiumUserIds = new Set(
         (subscriptions || [])
@@ -83,7 +88,7 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
           .map(s => s.user_id)
       );
 
-      const usersWithPremium = (profiles || []).map(profile => ({
+      const usersWithPremium = activeProfiles.map(profile => ({
         ...profile,
         isPremium: premiumUserIds.has(profile.user_id),
       }));
