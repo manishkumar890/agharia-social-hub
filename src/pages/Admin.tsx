@@ -81,7 +81,7 @@ interface PremiumUser {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading, user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -89,6 +89,7 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
+  const [adminRelationships, setAdminRelationships] = useState<{followers: string[], following: string[]}>({ followers: [], following: [] });
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -105,6 +106,19 @@ const Admin = () => {
 
   const fetchData = async () => {
     try {
+      // Fetch admin's followers and following relationships
+      if (user) {
+        const [followersResult, followingResult] = await Promise.all([
+          supabase.from('followers').select('follower_id').eq('following_id', user.id),
+          supabase.from('followers').select('following_id').eq('follower_id', user.id)
+        ]);
+        
+        setAdminRelationships({
+          followers: (followersResult.data || []).map(f => f.follower_id),
+          following: (followingResult.data || []).map(f => f.following_id)
+        });
+      }
+
       // Fetch users
       const { data: usersData, count: usersCount } = await supabase
         .from('profiles')
@@ -182,6 +196,11 @@ const Admin = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if a user is a follower or following the admin
+  const isRelatedToAdmin = (userId: string) => {
+    return adminRelationships.followers.includes(userId) || adminRelationships.following.includes(userId);
   };
 
   const handleToggleDisabled = async (profileId: string, userIdAuth: string, currentStatus: boolean) => {
@@ -408,6 +427,11 @@ const Admin = () => {
                               <Badge variant="outline" className="text-xs">
                                 <Shield className="w-3 h-3 mr-1" />
                                 Admin
+                              </Badge>
+                            ) : isRelatedToAdmin(user.user_id) ? (
+                              <Badge variant="secondary" className="text-xs">
+                                <Users className="w-3 h-3 mr-1" />
+                                Connected
                               </Badge>
                             ) : (
                               <div className="flex items-center gap-2">
