@@ -10,6 +10,7 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  is_disabled?: boolean;
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isDisabled: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -31,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isDisabled, setIsDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -89,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profileData = await fetchProfile(user.id);
       if (profileData) {
         setProfile(profileData);
+        setIsDisabled(profileData.is_disabled || false);
         await checkAdminRole(user.id, profileData.phone);
       }
     }
@@ -107,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchProfile(session.user.id).then((profileData) => {
               if (profileData) {
                 setProfile(profileData);
+                setIsDisabled(profileData.is_disabled || false);
                 checkAdminRole(session.user.id, profileData.phone);
               }
               setLoading(false);
@@ -115,6 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setProfile(null);
           setIsAdmin(false);
+          setIsDisabled(false);
           setLoading(false);
         }
       }
@@ -129,6 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         fetchProfile(session.user.id).then((profileData) => {
           if (profileData) {
             setProfile(profileData);
+            setIsDisabled(profileData.is_disabled || false);
             checkAdminRole(session.user.id, profileData.phone);
           }
           setLoading(false);
@@ -147,10 +154,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setIsDisabled(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, isAdmin, isDisabled, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

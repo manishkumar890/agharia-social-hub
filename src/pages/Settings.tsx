@@ -4,12 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import DeleteAccountDialog from '@/components/DeleteAccountDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -72,7 +74,7 @@ const Settings = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-lg mx-auto px-4 py-6">
           {/* Header */}
           <div className="flex items-center gap-4 mb-6">
@@ -190,6 +192,16 @@ const Settings = () => {
                   'Save Changes'
                 )}
               </Button>
+
+              {/* Separator and Delete Account */}
+              <Separator className="my-4" />
+              
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground text-center">
+                  Danger Zone
+                </p>
+                <DeleteAccountDialog />
+              </div>
             </CardContent>
           </Card>
         </div>
