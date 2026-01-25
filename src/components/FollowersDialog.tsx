@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Ban } from 'lucide-react';
 
 interface FollowUser {
   user_id: string;
@@ -72,9 +73,8 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
         .select('user_id, full_name, username, avatar_url, is_disabled')
         .in('user_id', userIds);
 
-      // Filter out disabled users
-      const activeProfiles = (profiles || []).filter(p => !p.is_disabled);
-      const activeUserIds = activeProfiles.map(p => p.user_id);
+      // Get active user IDs for subscription lookup
+      const activeUserIds = (profiles || []).filter(p => !p.is_disabled).map(p => p.user_id);
 
       // Fetch subscription status for active users only
       const { data: subscriptions } = await supabase
@@ -88,9 +88,9 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
           .map(s => s.user_id)
       );
 
-      const usersWithPremium = activeProfiles.map(profile => ({
+      const usersWithPremium = (profiles || []).map(profile => ({
         ...profile,
-        isPremium: premiumUserIds.has(profile.user_id),
+        isPremium: profile.is_disabled ? false : premiumUserIds.has(profile.user_id),
       }));
 
       setUsers(usersWithPremium);
@@ -128,28 +128,51 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
           ) : (
             <div className="space-y-3">
               {users.map((user) => (
-                <Link
-                  key={user.user_id}
-                  to={`/user/${user.user_id}`}
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={user.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user.full_name?.charAt(0) || user.username?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-sm flex items-center gap-1">
-                      {user.username || user.full_name || 'User'}
-                      {user.isPremium && <PremiumBadge size="sm" />}
-                    </p>
-                    {user.full_name && user.username && (
-                      <p className="text-xs text-muted-foreground">{user.full_name}</p>
-                    )}
+                user.is_disabled ? (
+                  <div
+                    key={user.user_id}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 opacity-60"
+                  >
+                    <Avatar className="w-10 h-10 grayscale">
+                      <AvatarImage src={user.avatar_url || undefined} />
+                      <AvatarFallback className="bg-muted text-muted-foreground">
+                        <Ban className="w-5 h-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-sm text-muted-foreground flex items-center gap-1">
+                        <Ban className="w-3 h-3" />
+                        Account Disabled
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        This user is disabled from Agharia Samaj
+                      </p>
+                    </div>
                   </div>
-                </Link>
+                ) : (
+                  <Link
+                    key={user.user_id}
+                    to={`/user/${user.user_id}`}
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={user.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user.full_name?.charAt(0) || user.username?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-sm flex items-center gap-1">
+                        {user.username || user.full_name || 'User'}
+                        {user.isPremium && <PremiumBadge size="sm" />}
+                      </p>
+                      {user.full_name && user.username && (
+                        <p className="text-xs text-muted-foreground">{user.full_name}</p>
+                      )}
+                    </div>
+                  </Link>
+                )
               ))}
             </div>
           )}
