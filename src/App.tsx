@@ -20,6 +20,7 @@ import Admin from "./pages/Admin";
 import Saved from "./pages/Saved";
 import Messages from "./pages/Messages";
 import AIChat from "./pages/AIChat";
+import Category from "./pages/Category";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const AppRoutes = () => {
       <Route path="/messages/:conversationId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route path="/category/:categoryId" element={<ProtectedRoute><Category /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
