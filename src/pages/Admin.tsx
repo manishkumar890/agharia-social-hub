@@ -96,6 +96,8 @@ const CATEGORIES = [
   { id: 'news', name: 'News', icon: '📰' },
   { id: 'devotional', name: 'Devotional', icon: '🙏' },
   { id: 'movie', name: 'Movie', icon: '🎬' },
+  { id: 'songs', name: 'Songs', icon: '🎵' },
+  { id: 'sports', name: 'Sports', icon: '⚽' },
   { id: 'festival', name: 'Festival', icon: '🎉' },
   { id: 'nature', name: 'Nature', icon: '🌿' },
   { id: 'education', name: 'Education', icon: '📚' },
