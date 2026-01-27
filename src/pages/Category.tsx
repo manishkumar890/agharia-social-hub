@@ -47,6 +47,21 @@ const categoryInfo: Record<string, { title: string; description: string; icon: s
     description: 'Educational and learning resources',
     icon: '📚',
   },
+  knowledge: {
+    title: 'Knowledge',
+    description: 'Knowledge sharing and informative content',
+    icon: '💡',
+  },
+  history: {
+    title: 'History',
+    description: 'Historical content and heritage stories',
+    icon: '📜',
+  },
+  more: {
+    title: 'More',
+    description: 'Additional content and resources',
+    icon: '➕',
+  },
 };
 
 interface CategorySetting {

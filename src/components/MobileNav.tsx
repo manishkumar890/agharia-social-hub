@@ -20,6 +20,9 @@ const categories = [
   { id: 'festival', name: 'Festival', icon: '🎉' },
   { id: 'nature', name: 'Nature', icon: '🌿' },
   { id: 'education', name: 'Education', icon: '📚' },
+  { id: 'knowledge', name: 'Knowledge', icon: '💡' },
+  { id: 'history', name: 'History', icon: '📜' },
+  { id: 'more', name: 'More', icon: '➕' },
 ];
 
 const MobileNav = () => {
