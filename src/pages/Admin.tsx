@@ -103,7 +103,6 @@ const CATEGORIES = [
   { id: 'education', name: 'Education', icon: '📚' },
   { id: 'knowledge', name: 'Knowledge', icon: '💡' },
   { id: 'history', name: 'History', icon: '📜' },
-  { id: 'more', name: 'More', icon: '➕' },
 ];
 
 const MAX_BANNER_SIZE = 3 * 1024 * 1024; // 3MB
