@@ -93,6 +93,7 @@ interface CategorySetting {
 }
 
 const CATEGORIES = [
+  { id: 'news', name: 'News', icon: '📰' },
   { id: 'devotional', name: 'Devotional', icon: '🙏' },
   { id: 'movie', name: 'Movie', icon: '🎬' },
   { id: 'festival', name: 'Festival', icon: '🎉' },

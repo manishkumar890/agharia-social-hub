@@ -7,6 +7,11 @@ import MobileNav from '@/components/MobileNav';
 import { supabase } from '@/integrations/supabase/client';
 
 const categoryInfo: Record<string, { title: string; description: string; icon: string }> = {
+  news: {
+    title: 'News',
+    description: 'Latest news and updates from Agharia Samaj',
+    icon: '📰',
+  },
   devotional: {
     title: 'Devotional',
     description: 'Spiritual and religious content from Agharia Samaj',
