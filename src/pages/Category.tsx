@@ -57,11 +57,6 @@ const categoryInfo: Record<string, { title: string; description: string; icon: s
     description: 'Historical content and heritage stories',
     icon: '📜',
   },
-  more: {
-    title: 'More',
-    description: 'Additional content and resources',
-    icon: '➕',
-  },
 };
 
 interface CategorySetting {
