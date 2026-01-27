@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_settings: {
+        Row: {
+          banner_url: string | null
+          category_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          banner_url?: string | null
+          category_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          banner_url?: string | null
+          category_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
