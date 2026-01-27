@@ -22,6 +22,16 @@ const categoryInfo: Record<string, { title: string; description: string; icon: s
     description: 'Movies and entertainment content',
     icon: '🎬',
   },
+  songs: {
+    title: 'Songs',
+    description: 'Music and songs from Agharia Samaj',
+    icon: '🎵',
+  },
+  sports: {
+    title: 'Sports',
+    description: 'Sports and athletic content',
+    icon: '⚽',
+  },
   festival: {
     title: 'Festival',
     description: 'Festival celebrations and cultural events',
