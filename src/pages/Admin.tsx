@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,7 +24,12 @@ import {
   Crown,
   XCircle,
   Ban,
-  CheckCircle
+  CheckCircle,
+  FolderOpen,
+  Video,
+  Image,
+  Loader2,
+  Save
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -79,6 +85,23 @@ interface PremiumUser {
   };
 }
 
+interface CategorySetting {
+  id: string;
+  category_id: string;
+  video_url: string | null;
+  banner_url: string | null;
+}
+
+const CATEGORIES = [
+  { id: 'devotional', name: 'Devotional', icon: '🙏' },
+  { id: 'movie', name: 'Movie', icon: '🎬' },
+  { id: 'festival', name: 'Festival', icon: '🎉' },
+  { id: 'nature', name: 'Nature', icon: '🌿' },
+  { id: 'education', name: 'Education', icon: '📚' },
+];
+
+const MAX_BANNER_SIZE = 3 * 1024 * 1024; // 3MB
+
 const Admin = () => {
   const navigate = useNavigate();
   const { isAdmin, loading: authLoading } = useAuth();
@@ -86,6 +109,11 @@ const Admin = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
+  const [categorySettings, setCategorySettings] = useState<CategorySetting[]>([]);
+  const [categoryVideoUrls, setCategoryVideoUrls] = useState<Record<string, string>>({});
+  const [savingCategory, setSavingCategory] = useState<string | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState<string | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
@@ -177,6 +205,20 @@ const Admin = () => {
         comments: commentsCount || 0,
         premium: premiumCount || 0,
       });
+
+      // Fetch category settings
+      const { data: catSettings } = await supabase
+        .from('category_settings')
+        .select('*');
+      
+      setCategorySettings(catSettings || []);
+      
+      // Initialize video URLs from settings
+      const videoUrls: Record<string, string> = {};
+      (catSettings || []).forEach(cs => {
+        videoUrls[cs.category_id] = cs.video_url || '';
+      });
+      setCategoryVideoUrls(videoUrls);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -242,6 +284,108 @@ const Admin = () => {
       setComments(comments.filter(c => c.id !== commentId));
       setStats(prev => ({ ...prev, comments: prev.comments - 1 }));
     }
+  };
+
+  const handleSaveCategoryVideo = async (categoryId: string) => {
+    setSavingCategory(categoryId);
+    const videoUrl = categoryVideoUrls[categoryId] || '';
+    
+    try {
+      const existingSetting = categorySettings.find(cs => cs.category_id === categoryId);
+      
+      if (existingSetting) {
+        const { error } = await supabase
+          .from('category_settings')
+          .update({ video_url: videoUrl })
+          .eq('category_id', categoryId);
+        
+        if (error) throw error;
+        
+        setCategorySettings(prev => 
+          prev.map(cs => cs.category_id === categoryId ? { ...cs, video_url: videoUrl } : cs)
+        );
+      } else {
+        const { data, error } = await supabase
+          .from('category_settings')
+          .insert({ category_id: categoryId, video_url: videoUrl })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        if (data) setCategorySettings(prev => [...prev, data]);
+      }
+      
+      toast.success('Video link saved');
+    } catch (error) {
+      console.error('Error saving video:', error);
+      toast.error('Failed to save video link');
+    } finally {
+      setSavingCategory(null);
+    }
+  };
+
+  const handleBannerUpload = async (categoryId: string, file: File) => {
+    if (file.size > MAX_BANNER_SIZE) {
+      toast.error('Banner image must be less than 3MB');
+      return;
+    }
+
+    setUploadingBanner(categoryId);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${categoryId}-${Date.now()}.${fileExt}`;
+      
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('category-banners')
+        .upload(fileName, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('category-banners')
+        .getPublicUrl(fileName);
+      
+      const bannerUrl = urlData.publicUrl;
+      
+      // Save to database
+      const existingSetting = categorySettings.find(cs => cs.category_id === categoryId);
+      
+      if (existingSetting) {
+        const { error } = await supabase
+          .from('category_settings')
+          .update({ banner_url: bannerUrl })
+          .eq('category_id', categoryId);
+        
+        if (error) throw error;
+        
+        setCategorySettings(prev => 
+          prev.map(cs => cs.category_id === categoryId ? { ...cs, banner_url: bannerUrl } : cs)
+        );
+      } else {
+        const { data, error } = await supabase
+          .from('category_settings')
+          .insert({ category_id: categoryId, banner_url: bannerUrl })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        if (data) setCategorySettings(prev => [...prev, data]);
+      }
+      
+      toast.success('Banner uploaded');
+    } catch (error) {
+      console.error('Error uploading banner:', error);
+      toast.error('Failed to upload banner');
+    } finally {
+      setUploadingBanner(null);
+    }
+  };
+
+  const getCategorySetting = (categoryId: string) => {
+    return categorySettings.find(cs => cs.category_id === categoryId);
   };
 
   const filteredUsers = users.filter(u => 
@@ -341,6 +485,10 @@ const Admin = () => {
                 <TabsTrigger value="premium" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <Crown className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Premium</span>
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Categories</span>
                 </TabsTrigger>
               </TabsList>
             </ScrollArea>
@@ -567,6 +715,116 @@ const Admin = () => {
                         </div>
                       ))
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Categories Tab */}
+            <TabsContent value="categories">
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    Category Settings
+                  </CardTitle>
+                  <CardDescription>Add video links (Google Drive) and banner images for each category</CardDescription>
+                </CardHeader>
+                <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                  <div className="space-y-4 sm:space-y-6">
+                    {CATEGORIES.map((category) => {
+                      const setting = getCategorySetting(category.id);
+                      return (
+                        <div 
+                          key={category.id}
+                          className="p-4 rounded-lg border border-border"
+                        >
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="text-2xl">{category.icon}</span>
+                            <h3 className="font-semibold text-lg">{category.name}</h3>
+                          </div>
+                          
+                          {/* Video URL Input */}
+                          <div className="space-y-2 mb-4">
+                            <Label className="flex items-center gap-2 text-sm">
+                              <Video className="w-4 h-4" />
+                              Video Link (Google Drive)
+                            </Label>
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="https://drive.google.com/..."
+                                value={categoryVideoUrls[category.id] || ''}
+                                onChange={(e) => setCategoryVideoUrls(prev => ({
+                                  ...prev,
+                                  [category.id]: e.target.value
+                                }))}
+                                className="flex-1"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveCategoryVideo(category.id)}
+                                disabled={savingCategory === category.id}
+                              >
+                                {savingCategory === category.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Save className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Banner Image Upload */}
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2 text-sm">
+                              <Image className="w-4 h-4" />
+                              Banner Image (Max 3MB)
+                            </Label>
+                            <div className="flex items-center gap-3">
+                              {setting?.banner_url ? (
+                                <img 
+                                  src={setting.banner_url} 
+                                  alt={`${category.name} banner`}
+                                  className="w-24 h-14 object-cover rounded-lg border"
+                                />
+                              ) : (
+                                <div className="w-24 h-14 bg-muted rounded-lg border flex items-center justify-center">
+                                  <Image className="w-6 h-6 text-muted-foreground" />
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                ref={(el) => { fileInputRefs.current[category.id] = el; }}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleBannerUpload(category.id, file);
+                                }}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInputRefs.current[category.id]?.click()}
+                                disabled={uploadingBanner === category.id}
+                              >
+                                {uploadingBanner === category.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileImage className="w-4 h-4 mr-2" />
+                                    {setting?.banner_url ? 'Change' : 'Upload'}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
