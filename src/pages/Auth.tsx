@@ -567,7 +567,7 @@ const Auth = () => {
       <div className="relative overflow-hidden">
         {/* Decorative Pattern Background */}
         <div 
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-60"
           style={{ 
             backgroundImage: `url(${sambalpuriPattern})`,
             backgroundSize: 'cover',
@@ -576,7 +576,7 @@ const Auth = () => {
         />
         
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/80 via-primary/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/50 to-primary/30" />
         
         {/* Content */}
         <div className="relative z-10 px-6 pt-10 pb-16 text-center">
@@ -586,29 +586,22 @@ const Auth = () => {
               Agharia Samaj
             </span>
           </h1>
-          <p className="text-primary-foreground/90 text-sm font-medium mb-4">
+          <p className="text-primary-foreground/90 text-sm font-medium">
             अघरिया समाज • ଅଘରିଆ ସମାଜ
           </p>
-          
-          {/* Tagline */}
-          <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm px-4 py-2 rounded-full border border-secondary/30">
-            <span className="text-primary-foreground/90 text-xs font-medium">
-              Celebrating Our Culture & Heritage
-            </span>
-          </div>
         </div>
         
         {/* Decorative Wave Border */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-8">
-            <path d="M0 60L60 50C120 40 240 20 360 15C480 10 600 20 720 25C840 30 960 30 1080 25C1200 20 1320 10 1380 5L1440 0V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="hsl(var(--background))"/>
+            <path d="M0 60L60 50C120 40 240 20 360 15C480 10 600 20 720 25C840 30 960 30 1080 25C1200 20 1320 10 1380 5L1440 0V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="hsl(var(--card))"/>
           </svg>
         </div>
       </div>
 
       {/* Auth Form */}
       <div className="px-4 -mt-4 pb-8">
-        <Card className="max-w-md mx-auto shadow-lg border-2 border-primary/10 bg-card/95 backdrop-blur-sm">
+        <Card className="max-w-md mx-auto shadow-lg border-2 border-primary/10 bg-card/80 backdrop-blur-md">
           {/* Decorative Top Border */}
           <div className="h-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-t-lg" />
           
