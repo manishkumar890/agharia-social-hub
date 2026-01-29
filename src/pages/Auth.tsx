@@ -562,28 +562,81 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header Banner */}
-      <div 
-        className="h-40 w-full bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${sambalpuriPattern})` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/40 to-background" />
-        <div className="relative z-10 h-full flex flex-col items-center justify-center">
-          <h1 className="text-4xl font-display font-bold text-gold drop-shadow-lg tracking-wide mb-2">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-secondary/5">
+      {/* Nuakhai Sambalpuri Header with Namaskar */}
+      <div className="relative overflow-hidden">
+        {/* Decorative Pattern Background */}
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={{ 
+            backgroundImage: `url(${sambalpuriPattern})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/80 via-primary/60 to-transparent" />
+        
+        {/* Content */}
+        <div className="relative z-10 px-6 pt-8 pb-16 text-center">
+          {/* Namaskar Hands Icon */}
+          <div className="mb-4 inline-flex items-center justify-center">
+            <div className="relative">
+              <span className="text-5xl">🙏</span>
+              <div className="absolute -inset-2 bg-secondary/30 rounded-full blur-xl animate-pulse" />
+            </div>
+          </div>
+          
+          {/* Namaskar Greeting */}
+          <div className="space-y-1 mb-4">
+            <p className="text-secondary font-medium text-lg tracking-wide">
+              नमस्कार
+            </p>
+            <p className="text-primary-foreground/80 text-sm">
+              ନମସ୍କାର | Namaskar
+            </p>
+          </div>
+          
+          {/* App Name */}
+          <h1 className="text-3xl font-bold text-primary-foreground drop-shadow-lg tracking-wide mb-1">
             Agharia Samaj
           </h1>
-          <p className="text-primary-foreground/90 text-sm font-medium">
-            अघरिया समाज
+          <p className="text-secondary/90 text-sm font-medium">
+            अघरिया समाज • ଅଘରିଆ ସମାଜ
           </p>
+          
+          {/* Nuakhai Tagline */}
+          <div className="mt-4 inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm px-4 py-2 rounded-full border border-secondary/30">
+            <span className="text-sm">🌾</span>
+            <span className="text-primary-foreground/90 text-xs font-medium">
+              Celebrating Our Culture & Heritage
+            </span>
+            <span className="text-sm">🌾</span>
+          </div>
+        </div>
+        
+        {/* Decorative Wave Border */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-8">
+            <path d="M0 60L60 50C120 40 240 20 360 15C480 10 600 20 720 25C840 30 960 30 1080 25C1200 20 1320 10 1380 5L1440 0V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="hsl(var(--background))"/>
+          </svg>
         </div>
       </div>
 
       {/* Auth Form */}
-      <div className="px-4 -mt-8 pb-8">
-        <Card className="max-w-md mx-auto shadow-elegant">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="font-display text-xl">
+      <div className="px-4 -mt-4 pb-8">
+        <Card className="max-w-md mx-auto shadow-lg border-2 border-primary/10 bg-card/95 backdrop-blur-sm">
+          {/* Decorative Top Border */}
+          <div className="h-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-t-lg" />
+          
+          <CardHeader className="text-center pb-4 pt-6">
+            <div className="mb-2 inline-flex mx-auto items-center gap-2">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-secondary" />
+              <span className="text-secondary text-lg">✦</span>
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-secondary" />
+            </div>
+            <CardTitle className="text-xl font-semibold text-foreground">
               {authMode === 'register' 
                 ? (regStep === 'form' ? 'Create Account' : 'Verify Mobile')
                 : authMode === 'forgot'
@@ -595,7 +648,7 @@ const Auth = () => {
                   : 'Welcome Back'
               }
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               {authMode === 'register'
                 ? (regStep === 'form' 
                     ? 'Join the Agharia community' 
@@ -611,16 +664,16 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="px-5 pb-6">
             {authMode === 'forgot' ? (
               // Forgot Password Flow
               <div className="space-y-4">
                 {forgotStep === 'phone' && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="forgotPhone">Mobile Number</Label>
+                      <Label htmlFor="forgotPhone" className="text-sm font-medium">Mobile Number</Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
                           +91
                         </span>
                         <Input
@@ -629,7 +682,7 @@ const Auth = () => {
                           placeholder="Enter 10 digit number"
                           value={forgotPhone}
                           onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          className="pl-12"
+                          className="pl-12 h-12 rounded-xl border-2 focus:border-primary/50"
                           maxLength={10}
                         />
                         <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -637,7 +690,7 @@ const Auth = () => {
                     </div>
 
                     <Button 
-                      className="w-full gradient-maroon text-primary-foreground"
+                      className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                       onClick={handleForgotSendOtp}
                       disabled={isLoading || forgotPhone.length !== 10}
                     >
@@ -650,8 +703,8 @@ const Auth = () => {
                     </Button>
 
                     <Button 
-                      variant="link" 
-                      className="w-full text-sm text-muted-foreground"
+                      variant="ghost" 
+                      className="w-full text-sm text-muted-foreground hover:text-foreground"
                       onClick={() => {
                         resetForgotPassword();
                         setAuthMode('login');
@@ -665,14 +718,14 @@ const Auth = () => {
                 {forgotStep === 'otp' && (
                   <>
                     {demoOtp && (
-                      <div className="p-3 bg-secondary/50 rounded-lg border border-secondary text-center">
+                      <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Demo OTP</p>
                         <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                       </div>
                     )}
 
                     <div className="space-y-2">
-                      <Label htmlFor="forgotOtp">Enter OTP</Label>
+                      <Label htmlFor="forgotOtp" className="text-sm font-medium">Enter OTP</Label>
                       <div className="relative">
                         <Input
                           id="forgotOtp"
@@ -680,7 +733,7 @@ const Auth = () => {
                           placeholder="000000"
                           value={forgotOtp}
                           onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          className="text-center text-2xl tracking-[0.5em] font-mono"
+                          className="text-center text-2xl tracking-[0.5em] font-mono h-14 rounded-xl border-2 focus:border-primary/50"
                           maxLength={6}
                         />
                         <Shield className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -688,7 +741,7 @@ const Auth = () => {
                     </div>
 
                     <Button 
-                      className="w-full gradient-maroon text-primary-foreground"
+                      className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                       onClick={handleForgotVerifyOtp}
                       disabled={isLoading || forgotOtp.length !== 6}
                     >
@@ -698,8 +751,8 @@ const Auth = () => {
 
                     <div className="text-center space-y-2">
                       <Button 
-                        variant="link" 
-                        className="text-sm text-muted-foreground"
+                        variant="ghost" 
+                        className="text-sm text-muted-foreground hover:text-foreground"
                         onClick={() => setForgotStep('phone')}
                       >
                         Change phone number
@@ -708,8 +761,8 @@ const Auth = () => {
                         <p className="text-sm text-muted-foreground">Resend OTP in {resendTimer}s</p>
                       ) : (
                         <Button 
-                          variant="link" 
-                          className="text-sm text-primary"
+                          variant="ghost" 
+                          className="text-sm text-primary hover:text-primary/80"
                           onClick={() => handleResendOtp(forgotPhone)}
                           disabled={isLoading}
                         >
@@ -723,7 +776,7 @@ const Auth = () => {
                 {forgotStep === 'newPassword' && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="forgotNewPassword">New Password</Label>
+                      <Label htmlFor="forgotNewPassword" className="text-sm font-medium">New Password</Label>
                       <div className="relative">
                         <Input
                           id="forgotNewPassword"
@@ -731,7 +784,7 @@ const Auth = () => {
                           placeholder="Enter new password"
                           value={forgotNewPassword}
                           onChange={(e) => setForgotNewPassword(e.target.value)}
-                          className="pl-10 pr-10"
+                          className="pl-10 pr-10 h-12 rounded-xl border-2 focus:border-primary/50"
                         />
                         <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <button
@@ -745,7 +798,7 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="forgotConfirmPassword">Confirm Password</Label>
+                      <Label htmlFor="forgotConfirmPassword" className="text-sm font-medium">Confirm Password</Label>
                       <div className="relative">
                         <Input
                           id="forgotConfirmPassword"
@@ -753,7 +806,7 @@ const Auth = () => {
                           placeholder="Confirm new password"
                           value={forgotConfirmPassword}
                           onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                          className="pl-10 pr-10"
+                          className="pl-10 pr-10 h-12 rounded-xl border-2 focus:border-primary/50"
                         />
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <button
@@ -767,7 +820,7 @@ const Auth = () => {
                     </div>
 
                     <Button 
-                      className="w-full gradient-maroon text-primary-foreground"
+                      className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                       onClick={handleForgotSetPassword}
                       disabled={isLoading || !forgotNewPassword || !forgotConfirmPassword}
                     >
@@ -776,8 +829,8 @@ const Auth = () => {
                     </Button>
 
                     <Button 
-                      variant="link" 
-                      className="w-full text-sm text-muted-foreground"
+                      variant="ghost" 
+                      className="w-full text-sm text-muted-foreground hover:text-foreground"
                       onClick={() => {
                         resetForgotPassword();
                         setAuthMode('login');
@@ -795,15 +848,19 @@ const Auth = () => {
                 resetRegistration();
                 resetLogin();
               }}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="register">Register</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-6 h-12 p-1 bg-muted/50 rounded-xl">
+                  <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm font-medium">
+                    Login
+                  </TabsTrigger>
+                  <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm font-medium">
+                    Register
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Login Tab */}
                 <TabsContent value="login" className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="loginIdentifier">Username or Email</Label>
+                    <Label htmlFor="loginIdentifier" className="text-sm font-medium">Username or Email</Label>
                     <div className="relative">
                       <Input
                         id="loginIdentifier"
@@ -811,14 +868,14 @@ const Auth = () => {
                         placeholder="Enter username or email"
                         value={loginIdentifier}
                         onChange={(e) => setLoginIdentifier(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-12 rounded-xl border-2 focus:border-primary/50"
                       />
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="loginPassword">Password</Label>
+                    <Label htmlFor="loginPassword" className="text-sm font-medium">Password</Label>
                     <div className="relative">
                       <Input
                         id="loginPassword"
@@ -826,7 +883,7 @@ const Auth = () => {
                         placeholder="Enter your password"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        className="pl-10 pr-10"
+                        className="pl-10 pr-10 h-12 rounded-xl border-2 focus:border-primary/50"
                       />
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <button
@@ -840,7 +897,7 @@ const Auth = () => {
                   </div>
 
                   <Button 
-                    className="w-full gradient-maroon text-primary-foreground"
+                    className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                     onClick={handleLoginSubmit}
                     disabled={isLoading || !loginIdentifier.trim() || !loginPassword}
                   >
@@ -853,8 +910,8 @@ const Auth = () => {
                   </Button>
 
                   <Button 
-                    variant="link" 
-                    className="w-full text-sm text-primary"
+                    variant="ghost" 
+                    className="w-full text-sm text-primary hover:text-primary/80"
                     onClick={() => {
                       resetLogin();
                       setAuthMode('forgot');
@@ -871,7 +928,7 @@ const Auth = () => {
                       {/* Avatar Upload */}
                       <div className="flex justify-center">
                         <div className="relative">
-                          <Avatar className={`w-24 h-24 border-4 ${regAvatarPreview ? 'border-primary/20' : 'border-destructive/50'}`}>
+                          <Avatar className={`w-24 h-24 border-4 ${regAvatarPreview ? 'border-secondary/50' : 'border-destructive/50'} shadow-lg`}>
                             {regAvatarPreview ? (
                               <AvatarImage src={regAvatarPreview} alt="Avatar preview" />
                             ) : (
@@ -882,7 +939,7 @@ const Auth = () => {
                           </Avatar>
                           <label 
                             htmlFor="avatarUpload" 
-                            className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
+                            className="absolute bottom-0 right-0 bg-secondary text-secondary-foreground rounded-full p-2.5 cursor-pointer hover:bg-secondary/90 transition-colors shadow-md"
                           >
                             <Camera className="w-4 h-4" />
                           </label>
@@ -900,18 +957,19 @@ const Auth = () => {
                       </p>
 
                       <div className="space-y-2">
-                        <Label htmlFor="regFullName">Full Name *</Label>
+                        <Label htmlFor="regFullName" className="text-sm font-medium">Full Name *</Label>
                         <Input
                           id="regFullName"
                           type="text"
                           placeholder="Enter your full name"
                           value={regFullName}
                           onChange={(e) => setRegFullName(e.target.value)}
+                          className="h-12 rounded-xl border-2 focus:border-primary/50"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="regUsername">Username *</Label>
+                        <Label htmlFor="regUsername" className="text-sm font-medium">Username *</Label>
                         <div className="relative">
                           <Input
                             id="regUsername"
@@ -919,14 +977,14 @@ const Auth = () => {
                             placeholder="Choose a username"
                             value={regUsername}
                             onChange={(e) => setRegUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                            className="pl-10"
+                            className="pl-10 h-12 rounded-xl border-2 focus:border-primary/50"
                           />
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="regEmail">Email *</Label>
+                        <Label htmlFor="regEmail" className="text-sm font-medium">Email *</Label>
                         <div className="relative">
                           <Input
                             id="regEmail"
@@ -934,16 +992,16 @@ const Auth = () => {
                             placeholder="Enter your email"
                             value={regEmail}
                             onChange={(e) => setRegEmail(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 h-12 rounded-xl border-2 focus:border-primary/50"
                           />
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="regPhone">Mobile Number *</Label>
+                        <Label htmlFor="regPhone" className="text-sm font-medium">Mobile Number *</Label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
                             +91
                           </span>
                           <Input
@@ -952,7 +1010,7 @@ const Auth = () => {
                             placeholder="Enter 10 digit number"
                             value={regPhone}
                             onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            className="pl-12"
+                            className="pl-12 h-12 rounded-xl border-2 focus:border-primary/50"
                             maxLength={10}
                           />
                           <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -960,7 +1018,7 @@ const Auth = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="regPassword">Password *</Label>
+                        <Label htmlFor="regPassword" className="text-sm font-medium">Password *</Label>
                         <div className="relative">
                           <Input
                             id="regPassword"
@@ -968,7 +1026,7 @@ const Auth = () => {
                             placeholder="Create a password"
                             value={regPassword}
                             onChange={(e) => setRegPassword(e.target.value)}
-                            className="pl-10 pr-10"
+                            className="pl-10 pr-10 h-12 rounded-xl border-2 focus:border-primary/50"
                           />
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <button
@@ -982,7 +1040,7 @@ const Auth = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="regConfirmPassword">Confirm Password *</Label>
+                        <Label htmlFor="regConfirmPassword" className="text-sm font-medium">Confirm Password *</Label>
                         <div className="relative">
                           <Input
                             id="regConfirmPassword"
@@ -990,7 +1048,7 @@ const Auth = () => {
                             placeholder="Confirm your password"
                             value={regConfirmPassword}
                             onChange={(e) => setRegConfirmPassword(e.target.value)}
-                            className="pl-10 pr-10"
+                            className="pl-10 pr-10 h-12 rounded-xl border-2 focus:border-primary/50"
                           />
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <button
@@ -1004,7 +1062,7 @@ const Auth = () => {
                       </div>
 
                       <Button 
-                        className="w-full gradient-maroon text-primary-foreground"
+                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                         onClick={handleRegisterSubmit}
                         disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword}
                       >
@@ -1019,14 +1077,14 @@ const Auth = () => {
                   ) : (
                     <>
                       {demoOtp && (
-                        <div className="p-3 bg-secondary/50 rounded-lg border border-secondary text-center">
+                        <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
                           <p className="text-xs text-muted-foreground mb-1">Demo OTP</p>
                           <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                         </div>
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="regOtp">Enter OTP</Label>
+                        <Label htmlFor="regOtp" className="text-sm font-medium">Enter OTP</Label>
                         <div className="relative">
                           <Input
                             id="regOtp"
@@ -1034,7 +1092,7 @@ const Auth = () => {
                             placeholder="000000"
                             value={regOtp}
                             onChange={(e) => setRegOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="text-center text-2xl tracking-[0.5em] font-mono"
+                            className="text-center text-2xl tracking-[0.5em] font-mono h-14 rounded-xl border-2 focus:border-primary/50"
                             maxLength={6}
                           />
                           <Shield className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1042,7 +1100,7 @@ const Auth = () => {
                       </div>
 
                       <Button 
-                        className="w-full gradient-maroon text-primary-foreground"
+                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                         onClick={handleRegisterVerifyOtp}
                         disabled={isLoading || regOtp.length !== 6}
                       >
@@ -1052,8 +1110,8 @@ const Auth = () => {
 
                       <div className="text-center space-y-2">
                         <Button 
-                          variant="link" 
-                          className="text-sm text-muted-foreground"
+                          variant="ghost" 
+                          className="text-sm text-muted-foreground hover:text-foreground"
                           onClick={resetRegistration}
                         >
                           Back to form
@@ -1062,8 +1120,8 @@ const Auth = () => {
                           <p className="text-sm text-muted-foreground">Resend OTP in {resendTimer}s</p>
                         ) : (
                           <Button 
-                            variant="link" 
-                            className="text-sm text-primary"
+                            variant="ghost" 
+                            className="text-sm text-primary hover:text-primary/80"
                             onClick={() => handleResendOtp(regPhone)}
                             disabled={isLoading}
                           >
@@ -1079,9 +1137,17 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6 max-w-md mx-auto">
-          By continuing, you agree to our Terms of Service and Privacy Policy
-        </p>
+        {/* Footer */}
+        <div className="mt-6 text-center space-y-3 max-w-md mx-auto">
+          <div className="flex items-center justify-center gap-2 text-secondary/80">
+            <span className="text-sm">🌾</span>
+            <span className="text-xs font-medium">Nuakhai Juhar</span>
+            <span className="text-sm">🌾</span>
+          </div>
+          <p className="text-xs text-muted-foreground px-4">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </div>
       </div>
     </div>
   );
