@@ -29,6 +29,16 @@ interface RazorpayOptions {
   theme: {
     color: string;
   };
+  modal?: {
+    confirm_close?: boolean;
+    escape?: boolean;
+    backdropclose?: boolean;
+  };
+  readonly?: {
+    contact?: boolean;
+    email?: boolean;
+    name?: boolean;
+  };
 }
 
 interface RazorpayInstance {
@@ -157,6 +167,15 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
         },
         theme: {
           color: '#7c1d1d'
+        },
+        modal: {
+          confirm_close: true,
+          escape: false,
+          backdropclose: false
+        },
+        readonly: {
+          contact: true,
+          name: true
         }
       };
 
