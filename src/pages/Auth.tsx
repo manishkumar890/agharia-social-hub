@@ -579,40 +579,22 @@ const Auth = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/80 via-primary/60 to-transparent" />
         
         {/* Content */}
-        <div className="relative z-10 px-6 pt-8 pb-16 text-center">
-          {/* Namaskar Hands Icon */}
-          <div className="mb-4 inline-flex items-center justify-center">
-            <div className="relative">
-              <span className="text-5xl">🙏</span>
-              <div className="absolute -inset-2 bg-secondary/30 rounded-full blur-xl animate-pulse" />
-            </div>
-          </div>
-          
-          {/* Namaskar Greeting */}
-          <div className="space-y-1 mb-4">
-            <p className="text-secondary font-medium text-lg tracking-wide">
-              नमस्कार
-            </p>
-            <p className="text-primary-foreground/80 text-sm">
-              ନମସ୍କାର | Namaskar
-            </p>
-          </div>
-          
-          {/* App Name */}
-          <h1 className="text-3xl font-bold text-primary-foreground drop-shadow-lg tracking-wide mb-1">
-            Agharia Samaj
+        <div className="relative z-10 px-6 pt-10 pb-16 text-center">
+          {/* App Name - Beautiful Theme Heading */}
+          <h1 className="text-4xl font-bold tracking-wide mb-2">
+            <span className="bg-gradient-to-r from-secondary via-yellow-300 to-secondary bg-clip-text text-transparent drop-shadow-lg">
+              Agharia Samaj
+            </span>
           </h1>
-          <p className="text-secondary/90 text-sm font-medium">
+          <p className="text-primary-foreground/90 text-sm font-medium mb-4">
             अघरिया समाज • ଅଘରିଆ ସମାଜ
           </p>
           
-          {/* Nuakhai Tagline */}
-          <div className="mt-4 inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm px-4 py-2 rounded-full border border-secondary/30">
-            <span className="text-sm">🌾</span>
+          {/* Tagline */}
+          <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm px-4 py-2 rounded-full border border-secondary/30">
             <span className="text-primary-foreground/90 text-xs font-medium">
               Celebrating Our Culture & Heritage
             </span>
-            <span className="text-sm">🌾</span>
           </div>
         </div>
         
@@ -1138,12 +1120,7 @@ const Auth = () => {
         </Card>
 
         {/* Footer */}
-        <div className="mt-6 text-center space-y-3 max-w-md mx-auto">
-          <div className="flex items-center justify-center gap-2 text-secondary/80">
-            <span className="text-sm">🌾</span>
-            <span className="text-xs font-medium">Nuakhai Juhar</span>
-            <span className="text-sm">🌾</span>
-          </div>
+        <div className="mt-6 text-center max-w-md mx-auto">
           <p className="text-xs text-muted-foreground px-4">
             By continuing, you agree to our Terms of Service and Privacy Policy
           </p>
