@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, Bookmark, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -20,22 +20,39 @@ const TITLES = [
   { text: 'Agharia Samaj', lang: 'English' },
 ];
 
+// Module-level state to persist across route changes
+let globalTitleIndex = 0;
+let globalIntervalId: ReturnType<typeof setInterval> | null = null;
+
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { isPremium } = useSubscription();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [titleIndex, setTitleIndex] = useState(0);
+  const [titleIndex, setTitleIndex] = useState(globalTitleIndex);
 
   const isAuthPage = location.pathname === '/auth';
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTitleIndex((prev) => (prev + 1) % TITLES.length);
-    }, 15000);
+    // Sync with global state on mount
+    setTitleIndex(globalTitleIndex);
 
-    return () => clearInterval(interval);
+    // Only start one global interval (singleton pattern)
+    if (!globalIntervalId) {
+      globalIntervalId = setInterval(() => {
+        globalTitleIndex = (globalTitleIndex + 1) % TITLES.length;
+      }, 15000);
+    }
+
+    // Set up a local sync interval to update component state from global
+    const syncInterval = setInterval(() => {
+      setTitleIndex(globalTitleIndex);
+    }, 100);
+
+    return () => {
+      clearInterval(syncInterval);
+    };
   }, []);
 
   const handleSignOut = async () => {
