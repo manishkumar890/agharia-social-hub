@@ -98,6 +98,7 @@ const CATEGORIES = [
   { id: 'movie', name: 'Movie', icon: '🎬' },
   { id: 'festival', name: 'Festival', icon: '🎉' },
   { id: 'education', name: 'Education', icon: '📚' },
+  { id: 'videos', name: 'Videos', icon: '🎥' },
 ];
 
 const MAX_BANNER_SIZE = 3 * 1024 * 1024; // 3MB

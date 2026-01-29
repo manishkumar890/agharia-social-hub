@@ -6,7 +6,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import MobileNav from '@/components/MobileNav';
 import { supabase } from '@/integrations/supabase/client';
 
-const categoryInfo: Record<string, { title: string; description: string; icon: string; comingSoon?: boolean }> = {
+const categoryInfo: Record<string, { title: string; description: string; icon: string; comingSoon?: boolean; special?: boolean }> = {
   apps: {
     title: 'Apps',
     description: 'Exciting apps coming soon for Agharia Samaj',
@@ -37,6 +37,12 @@ const categoryInfo: Record<string, { title: string; description: string; icon: s
     title: 'Education',
     description: 'Educational and learning resources',
     icon: '📚',
+    special: true,
+  },
+  videos: {
+    title: 'Videos',
+    description: 'Video content from Agharia Samaj',
+    icon: '🎥',
   },
 };
 
@@ -123,6 +129,31 @@ const Category = () => {
             <p className="text-sm text-muted-foreground/80">
               Stay tuned for updates!
             </p>
+          </div>
+        ) : category.special ? (
+          <div className="bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-background rounded-2xl border border-blue-500/20 p-8 text-center">
+            <div className="w-20 h-20 mx-auto mb-4 bg-blue-500/10 rounded-full flex items-center justify-center">
+              <span className="text-4xl">{category.icon}</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-3 bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+              {category.title}
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              {category.description}
+            </p>
+            <Button 
+              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg"
+              onClick={() => window.open(setting?.video_url || '#', '_blank')}
+              disabled={!setting?.video_url}
+            >
+              <Play className="w-5 h-5 mr-2" />
+              Watch Now
+            </Button>
+            {!setting?.video_url && (
+              <p className="text-sm text-muted-foreground/60 mt-3">
+                Video coming soon
+              </p>
+            )}
           </div>
         ) : (
           <>

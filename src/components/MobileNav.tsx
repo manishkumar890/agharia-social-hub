@@ -17,7 +17,8 @@ const categories = [
   { id: 'devotional', name: 'Devotional', icon: '🙏' },
   { id: 'movie', name: 'Movie', icon: '🎬' },
   { id: 'festival', name: 'Festival', icon: '🎉' },
-  { id: 'education', name: 'Education', icon: '📚' },
+  { id: 'education', name: 'Education', icon: '📚', special: true },
+  { id: 'videos', name: 'Videos', icon: '🎥' },
 ];
 
 const MobileNav = () => {
