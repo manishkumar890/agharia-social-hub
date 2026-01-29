@@ -78,8 +78,8 @@ const Category = () => {
 
   if (!category) {
     return (
-      <div className="min-h-screen bg-background pt-14 pb-20">
-        <div className="max-w-lg mx-auto px-4">
+      <div className="min-h-screen bg-background pb-20">
+        <div className="max-w-lg mx-auto px-4 pt-4">
           <div className="text-center py-12">
             <p className="text-muted-foreground">Category not found</p>
             <Button onClick={() => navigate('/')} className="mt-4">
@@ -93,8 +93,8 @@ const Category = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-14 pb-20">
-      <div className="max-w-lg mx-auto px-4">
+    <div className="min-h-screen bg-background pb-20">
+      <div className="max-w-lg mx-auto px-4 pt-4">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <Button
