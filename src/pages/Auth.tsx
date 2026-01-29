@@ -593,15 +593,15 @@ const Auth = () => {
         
         {/* Decorative Wave Border */}
         <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-8">
-            <path d="M0 60L60 50C120 40 240 20 360 15C480 10 600 20 720 25C840 30 960 30 1080 25C1200 20 1320 10 1380 5L1440 0V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="hsl(var(--card))"/>
-          </svg>
-        </div>
+        <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-8">
+          <path d="M0 60L60 50C120 40 240 20 360 15C480 10 600 20 720 25C840 30 960 30 1080 25C1200 20 1320 10 1380 5L1440 0V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="transparent"/>
+        </svg>
       </div>
+    </div>
 
-      {/* Auth Form */}
-      <div className="px-4 -mt-4 pb-8">
-        <Card className="max-w-md mx-auto shadow-lg border-2 border-primary/10 bg-card/80 backdrop-blur-md">
+    {/* Auth Form */}
+    <div className="px-4 -mt-4 pb-8">
+      <Card className="max-w-md mx-auto shadow-lg border-2 border-primary/10 bg-transparent backdrop-blur-md">
           {/* Decorative Top Border */}
           <div className="h-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-t-lg" />
           
