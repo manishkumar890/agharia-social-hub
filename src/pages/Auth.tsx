@@ -562,16 +562,24 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen relative" style={{ backgroundImage: `url(${sambalpuriPattern})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      {/* Full page overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/40 to-primary/60" />
-      {/* Header Section */}
-      <div className="relative z-10 overflow-hidden">
-        {/* Darker overlay for header area */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 to-transparent" />
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-secondary/5">
+      {/* Nuakhai Sambalpuri Header with Namaskar */}
+      <div className="relative overflow-hidden">
+        {/* Decorative Pattern Background */}
+        <div 
+          className="absolute inset-0 opacity-60"
+          style={{ 
+            backgroundImage: `url(${sambalpuriPattern})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/50 to-primary/30" />
         
         {/* Content */}
-        <div className="relative z-10 px-6 pt-10 pb-12 text-center">
+        <div className="relative z-10 px-6 pt-10 pb-16 text-center">
           {/* App Name - Beautiful Theme Heading */}
           <h1 className="text-4xl font-bold tracking-wide mb-2">
             <span className="bg-gradient-to-r from-secondary via-yellow-300 to-secondary bg-clip-text text-transparent drop-shadow-lg">
@@ -582,11 +590,18 @@ const Auth = () => {
             अघरिया समाज • ଅଘରିଆ ସମାଜ
           </p>
         </div>
+        
+        {/* Decorative Wave Border */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-8">
+            <path d="M0 60L60 50C120 40 240 20 360 15C480 10 600 20 720 25C840 30 960 30 1080 25C1200 20 1320 10 1380 5L1440 0V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="hsl(var(--card))"/>
+          </svg>
+        </div>
       </div>
 
       {/* Auth Form */}
-      <div className="relative z-10 px-4 pb-8">
-        <Card className="max-w-md mx-auto shadow-2xl border-2 border-secondary/30 bg-card/90 backdrop-blur-xl">
+      <div className="px-4 -mt-4 pb-8">
+        <Card className="max-w-md mx-auto shadow-lg border-2 border-primary/10 bg-card/80 backdrop-blur-md">
           {/* Decorative Top Border */}
           <div className="h-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-t-lg" />
           
