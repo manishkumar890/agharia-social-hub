@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Crown, Check, Loader2, BadgeCheck, Clock, Video, Sparkles, Shield, Star, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -83,21 +83,21 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
   const { user, profile } = useAuth();
   const { refreshSubscription } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
 
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-
+  // Preload Razorpay script when dialog opens
+  useEffect(() => {
+    if (open && !window.Razorpay) {
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.async = true;
+      script.onload = () => setIsScriptLoaded(true);
+      script.onerror = () => setIsScriptLoaded(false);
       document.body.appendChild(script);
-    });
-  };
+    } else if (window.Razorpay) {
+      setIsScriptLoaded(true);
+    }
+  }, [open]);
 
   const handlePayment = async () => {
     if (!user) {
@@ -105,15 +105,14 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
       return;
     }
 
+    if (!isScriptLoaded && !window.Razorpay) {
+      toast.error('Payment gateway is loading, please try again');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const loaded = await loadRazorpayScript();
-      if (!loaded) {
-        toast.error('Failed to load payment gateway');
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: { amount: 29900 }
       });
