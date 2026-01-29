@@ -6,7 +6,13 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import MobileNav from '@/components/MobileNav';
 import { supabase } from '@/integrations/supabase/client';
 
-const categoryInfo: Record<string, { title: string; description: string; icon: string }> = {
+const categoryInfo: Record<string, { title: string; description: string; icon: string; comingSoon?: boolean }> = {
+  apps: {
+    title: 'Apps',
+    description: 'Exciting apps coming soon for Agharia Samaj',
+    icon: '📱',
+    comingSoon: true,
+  },
   news: {
     title: 'News',
     description: 'Latest news and updates from Agharia Samaj',
@@ -127,56 +133,76 @@ const Category = () => {
           </div>
         </div>
 
-        {/* Banner Image */}
-        {setting?.banner_url && (
-          <div className="mb-6 rounded-xl overflow-hidden border border-border">
-            <AspectRatio ratio={16 / 9}>
-              <img 
-                src={setting.banner_url} 
-                alt={`${category.title} banner`}
-                className="w-full h-full object-cover"
-              />
-            </AspectRatio>
-          </div>
-        )}
-
-        {/* Video Link */}
-        {setting?.video_url && (
-          <div className="mb-6">
-            <a 
-              href={setting.video_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:bg-muted/50 transition-colors"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Play className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm sm:text-base">Watch {category.title} Video</p>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                  Open in Google Drive
-                </p>
-              </div>
-              <ExternalLink className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-            </a>
-          </div>
-        )}
-
-        {/* Content placeholder */}
-        {loading ? (
-          <div className="bg-card rounded-xl border border-border p-8 text-center">
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        ) : !setting?.banner_url && !setting?.video_url ? (
-          <div className="bg-card rounded-xl border border-border p-8 text-center">
-            <div className="text-6xl mb-4">{category.icon}</div>
-            <h2 className="text-lg font-semibold mb-2">{category.title} Posts</h2>
-            <p className="text-muted-foreground text-sm">
-              Content for {category.title.toLowerCase()} category will appear here.
+        {/* Coming Soon for Apps */}
+        {category.comingSoon ? (
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background rounded-2xl border border-primary/20 p-8 text-center">
+            <div className="w-20 h-20 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+              <span className="text-4xl">🚀</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Coming Soon!
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              We're working hard to bring you amazing apps for Agharia Samaj.
+            </p>
+            <p className="text-sm text-muted-foreground/80">
+              Stay tuned for updates!
             </p>
           </div>
-        ) : null}
+        ) : (
+          <>
+            {/* Banner Image */}
+            {setting?.banner_url && (
+              <div className="mb-6 rounded-xl overflow-hidden border border-border">
+                <AspectRatio ratio={16 / 9}>
+                  <img 
+                    src={setting.banner_url} 
+                    alt={`${category.title} banner`}
+                    className="w-full h-full object-cover"
+                  />
+                </AspectRatio>
+              </div>
+            )}
+
+            {/* Video Link */}
+            {setting?.video_url && (
+              <div className="mb-6">
+                <a 
+                  href={setting.video_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Play className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm sm:text-base">Watch {category.title} Video</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                      Open in Google Drive
+                    </p>
+                  </div>
+                  <ExternalLink className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                </a>
+              </div>
+            )}
+
+            {/* Content placeholder */}
+            {loading ? (
+              <div className="bg-card rounded-xl border border-border p-8 text-center">
+                <p className="text-muted-foreground">Loading...</p>
+              </div>
+            ) : !setting?.banner_url && !setting?.video_url ? (
+              <div className="bg-card rounded-xl border border-border p-8 text-center">
+                <div className="text-6xl mb-4">{category.icon}</div>
+                <h2 className="text-lg font-semibold mb-2">{category.title} Posts</h2>
+                <p className="text-muted-foreground text-sm">
+                  Content for {category.title.toLowerCase()} category will appear here.
+                </p>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
       <MobileNav />
     </div>
