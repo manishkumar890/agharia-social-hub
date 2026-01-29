@@ -28,40 +28,15 @@ const categoryInfo: Record<string, { title: string; description: string; icon: s
     description: 'Movies and entertainment content',
     icon: '🎬',
   },
-  songs: {
-    title: 'Songs',
-    description: 'Music and songs from Agharia Samaj',
-    icon: '🎵',
-  },
-  sports: {
-    title: 'Sports',
-    description: 'Sports and athletic content',
-    icon: '⚽',
-  },
   festival: {
     title: 'Festival',
     description: 'Festival celebrations and cultural events',
     icon: '🎉',
   },
-  nature: {
-    title: 'Nature',
-    description: 'Beautiful nature and landscape content',
-    icon: '🌿',
-  },
   education: {
     title: 'Education',
     description: 'Educational and learning resources',
     icon: '📚',
-  },
-  knowledge: {
-    title: 'Knowledge',
-    description: 'Knowledge sharing and informative content',
-    icon: '💡',
-  },
-  history: {
-    title: 'History',
-    description: 'Historical content and heritage stories',
-    icon: '📜',
   },
 };
 
