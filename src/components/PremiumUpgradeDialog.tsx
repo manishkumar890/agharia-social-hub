@@ -60,17 +60,17 @@ const premiumBenefits = [
   {
     icon: BadgeCheck,
     title: 'Verified Badge',
-    description: 'Gold verification tick on your profile'
+    description: 'Verification tick on your profile'
   },
   {
     icon: Clock,
     title: '60s Stories',
-    description: 'Double the story duration (vs 30s)'
+    description: 'Double the story duration with 48h visibility'
   },
   {
     icon: Sparkles,
-    title: '48h Visibility',
-    description: 'Stories visible for 2 days (vs 24h)'
+    title: 'AI Access',
+    description: 'Chat with AI assistant anytime'
   },
   {
     icon: Video,
@@ -124,7 +124,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
 
     try {
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-        body: { amount: 29900 }
+        body: { amount: 9900 }
       });
 
       if (error || !data?.order_id) {
@@ -233,8 +233,8 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                   
                   {/* Price badge */}
                   <div className="mt-4 flex items-end gap-2 flex-wrap">
-                    <span className="text-4xl font-display font-bold drop-shadow-sm">₹299</span>
-                    <span className="text-lg line-through opacity-60 mb-1">₹999</span>
+                    <span className="text-4xl font-display font-bold drop-shadow-sm">₹99</span>
+                    <span className="text-lg line-through opacity-60 mb-1">₹299</span>
                     <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-primary px-3 py-1 rounded-full text-xs font-bold mb-1 shadow-md">
                       70% OFF
                     </span>
@@ -281,7 +281,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                   ) : (
                     <>
                       <Crown className="w-5 h-5 mr-2" />
-                      Get Verified Now - ₹299
+                      Get Verified Now - ₹99
                     </>
                   )}
                 </Button>
