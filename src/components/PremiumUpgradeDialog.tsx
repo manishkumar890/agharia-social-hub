@@ -239,7 +239,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                   {/* Price badge */}
                   <div className="mt-4 flex items-end gap-2 flex-wrap">
                     <span className="text-4xl font-display font-bold drop-shadow-sm">₹99</span>
-                    <span className="text-lg line-through opacity-60 mb-1">₹299</span>
+                    <span className="text-lg line-through opacity-60 mb-1">₹329</span>
                     <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-primary px-3 py-1 rounded-full text-xs font-bold mb-1 shadow-md">
                       70% OFF
                     </span>
