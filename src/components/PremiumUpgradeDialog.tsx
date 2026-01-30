@@ -147,7 +147,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 user_id: user.id,
-                amount: 299
+                 amount: 99
               }
             });
 
@@ -178,6 +178,11 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
           name: true
         }
       };
+
+      // Important: Radix Dialog (modal) disables pointer-events outside the dialog.
+      // Razorpay injects its checkout UI into <body>, so we must close this dialog
+      // before opening Razorpay; otherwise payment method clicks may be blocked.
+      onOpenChange(false);
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
