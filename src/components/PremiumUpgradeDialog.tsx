@@ -174,7 +174,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
           backdropclose: false
         },
         readonly: {
-          contact: false,
+          contact: true,
           name: true
         }
       };
