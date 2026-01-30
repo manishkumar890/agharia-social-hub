@@ -166,7 +166,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
           contact: profile?.phone || ''
         },
         theme: {
-          color: '#7c1d1d'
+          color: '#d97706'
         },
         modal: {
           confirm_close: true,
