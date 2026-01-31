@@ -7,7 +7,7 @@ import MobileNav from '@/components/MobileNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, MessageCircle, Share2, Bookmark, ArrowLeft, MoreHorizontal, Send, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, ArrowLeft, MoreHorizontal, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import ImageCarousel from '@/components/posts/ImageCarousel';
+import SendPostDialog from '@/components/SendPostDialog';
 
 interface Post {
   id: string;
@@ -60,6 +61,7 @@ const PostDetail = () => {
   const [likesCount, setLikesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -390,8 +392,8 @@ const PostDetail = () => {
                     <Button variant="ghost" size="icon">
                       <MessageCircle className="w-6 h-6" />
                     </Button>
-                    <Button variant="ghost" size="icon">
-                      <Share2 className="w-6 h-6" />
+                    <Button variant="ghost" size="icon" onClick={() => setSendDialogOpen(true)}>
+                      <Send className="w-6 h-6" />
                     </Button>
                   </div>
                   <Button variant="ghost" size="icon">
@@ -428,6 +430,18 @@ const PostDetail = () => {
           </div>
         </div>
       </main>
+
+      <SendPostDialog
+        open={sendDialogOpen}
+        onOpenChange={setSendDialogOpen}
+        postId={post.id}
+        postUrl={`${window.location.origin}/post/${post.id}`}
+        mediaUrl={post.image_url}
+        mediaType={post.media_type || 'image'}
+        postAuthorId={post.user_id}
+        postAuthorUsername={post.profiles?.username || post.profiles?.full_name || null}
+        postAuthorAvatar={post.profiles?.avatar_url || null}
+      />
 
       <MobileNav />
     </div>
