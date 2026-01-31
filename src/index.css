@@ -256,6 +256,20 @@
   animation: premium-glow 2s ease-in-out infinite;
 }
 
+/* Airplane animation for premium dialog */
+@keyframes airplane-fly {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(calc(100vw + 100%));
+  }
+}
+
+.animate-airplane {
+  animation: airplane-fly 4s linear infinite;
+}
+
 .perspective-1000 {
   perspective: 1000px;
 }
