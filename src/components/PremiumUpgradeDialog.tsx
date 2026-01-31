@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Crown, Check, Loader2, BadgeCheck, Clock, Video, Sparkles, Shield, Star, X } from 'lucide-react';
+import { Crown, Check, Loader2, BadgeCheck, Clock, Video, Sparkles, Shield, Star, X, Plane } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -216,6 +216,32 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
             
             {/* Inner content with gap for border visibility */}
             <div className="relative m-[2px] rounded-[22px] overflow-hidden bg-card">
+              {/* Airplane Animation Banner */}
+              <div className="relative h-8 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 overflow-hidden">
+                {/* Sambalpuri pattern overlay */}
+                <div className="absolute inset-0 bg-[url('/sambalpuri-pattern.jpg')] opacity-20 mix-blend-overlay" />
+                
+                {/* Animated airplane */}
+                <div className="absolute inset-0 flex items-center">
+                  <div className="animate-airplane flex items-center gap-1">
+                    <Plane className="w-5 h-5 text-primary rotate-0" />
+                    {/* Trail effect */}
+                    <div className="flex gap-0.5">
+                      <div className="w-3 h-0.5 bg-primary/60 rounded-full" />
+                      <div className="w-2 h-0.5 bg-primary/40 rounded-full" />
+                      <div className="w-1.5 h-0.5 bg-primary/20 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Decorative dots pattern */}
+                <div className="absolute inset-0 flex items-center justify-around pointer-events-none opacity-30">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="w-1 h-1 bg-primary rounded-full" />
+                  ))}
+                </div>
+              </div>
+
               {/* Premium Header with gradient */}
               <div className="relative bg-gradient-to-br from-primary via-primary/90 to-amber-700 p-5 sm:p-6 text-primary-foreground">
                 <div className="absolute inset-0 bg-[url('/sambalpuri-pattern.jpg')] opacity-10 mix-blend-overlay" />
