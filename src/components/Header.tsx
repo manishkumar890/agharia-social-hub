@@ -74,7 +74,7 @@ const Header = () => {
         >
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/60" />
           <div className="relative z-10 h-full flex items-center justify-center">
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-gold drop-shadow-lg tracking-wide">
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-secondary tracking-wide">
               Agharia Samaj
             </h1>
           </div>
