@@ -213,7 +213,7 @@ const PostDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="pt-[calc(4rem+3.5rem)] flex items-center justify-center">
+        <div className="pt-14 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
         <MobileNav />
@@ -225,7 +225,7 @@ const PostDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="pt-[calc(4rem+3.5rem)] text-center py-12">
+        <div className="pt-14 text-center py-12">
           <p className="text-muted-foreground">Post not found</p>
           <Button variant="link" onClick={() => navigate('/')}>
             Go back home
@@ -242,7 +242,7 @@ const PostDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-[calc(4rem+3.5rem)] pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-4xl mx-auto">
           {/* Mobile Back Button */}
           <div className="md:hidden px-4 py-3 flex items-center gap-4 border-b border-border">
