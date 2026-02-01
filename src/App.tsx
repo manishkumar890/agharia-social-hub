@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import PremiumPopup from "@/components/PremiumPopup";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -104,10 +105,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <SubscriptionProvider>
-              <PremiumPopup />
-              <AppRoutes />
-            </SubscriptionProvider>
+            <NotificationProvider>
+              <SubscriptionProvider>
+                <PremiumPopup />
+                <AppRoutes />
+              </SubscriptionProvider>
+            </NotificationProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
