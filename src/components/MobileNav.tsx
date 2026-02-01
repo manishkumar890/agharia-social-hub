@@ -42,8 +42,8 @@ const MobileNav = () => {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden">
-        <div className="flex items-center justify-around py-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+        <div className="max-w-4xl mx-auto flex items-center justify-around py-2">
           {navItems.map((item) => (
             <Link
               key={item.path}
