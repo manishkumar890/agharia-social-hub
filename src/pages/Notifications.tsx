@@ -43,6 +43,44 @@ const Notifications = () => {
     }
   }, [user]);
 
+  // Real-time subscriptions for live updates
+  useEffect(() => {
+    if (!user) return;
+
+    const likesChannel = supabase
+      .channel('activity-likes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'likes' },
+        () => fetchActivities()
+      )
+      .subscribe();
+
+    const commentsChannel = supabase
+      .channel('activity-comments')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'comments' },
+        () => fetchActivities()
+      )
+      .subscribe();
+
+    const followersChannel = supabase
+      .channel('activity-followers')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'followers', filter: `following_id=eq.${user.id}` },
+        () => fetchActivities()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(followersChannel);
+    };
+  }, [user]);
+
   const fetchActivities = async () => {
     if (!user) return;
 
