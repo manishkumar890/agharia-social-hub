@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,8 +28,14 @@ interface Activity {
 
 const Notifications = () => {
   const { user } = useAuth();
+  const { markAsRead } = useNotifications();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Mark notifications as read when page is visited
+  useEffect(() => {
+    markAsRead();
+  }, [markAsRead]);
 
   useEffect(() => {
     if (user) {

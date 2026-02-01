@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, PlusSquare, Heart, Menu, X } from 'lucide-react';
+import { Home, Search, PlusSquare, Heart, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -25,12 +26,13 @@ const MobileNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const navItems = [
-    { icon: Home, path: '/', label: 'Home' },
-    { icon: Search, path: '/search', label: 'Search' },
-    { icon: PlusSquare, path: '/create', label: 'Create' },
-    { icon: Heart, path: '/notifications', label: 'Activity' },
+    { icon: Home, path: '/', label: 'Home', showBadge: false },
+    { icon: Search, path: '/search', label: 'Search', showBadge: false },
+    { icon: PlusSquare, path: '/create', label: 'Create', showBadge: false },
+    { icon: Heart, path: '/notifications', label: 'Activity', showBadge: true },
   ];
 
   const handleCategoryClick = (categoryId: string) => {
@@ -47,13 +49,23 @@ const MobileNav = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1 transition-colors",
+                "flex flex-col items-center gap-0.5 px-3 py-1 transition-colors relative",
                 location.pathname === item.path 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon className="w-6 h-6" />
+              <div className="relative">
+                <item.icon className="w-6 h-6" />
+                {item.showBadge && unreadCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                )}
+              </div>
               <span className="text-[10px]">{item.label}</span>
             </Link>
           ))}
