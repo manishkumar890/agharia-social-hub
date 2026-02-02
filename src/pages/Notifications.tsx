@@ -89,14 +89,17 @@ const Notifications = () => {
         .select(`
           id,
           created_at,
-          posts!inner (id, image_url, user_id),
-          profiles:user_id (id, full_name, username, avatar_url)
+          user_id,
+          posts!inner (id, image_url, user_id)
         `)
         .eq('posts.user_id', user.id)
         .neq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
+      // Get unique user IDs from likes
+      const likeUserIds = likesData?.map((l: any) => l.user_id) || [];
+      
       // Fetch comments on user's posts
       const { data: commentsData } = await supabase
         .from('comments')
@@ -104,13 +107,16 @@ const Notifications = () => {
           id,
           content,
           created_at,
-          posts!inner (id, image_url, user_id),
-          profiles:user_id (id, full_name, username, avatar_url)
+          user_id,
+          posts!inner (id, image_url, user_id)
         `)
         .eq('posts.user_id', user.id)
         .neq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
+
+      // Get unique user IDs from comments
+      const commentUserIds = commentsData?.map((c: any) => c.user_id) || [];
 
       // Fetch followers
       const { data: followersData } = await supabase
@@ -118,25 +124,44 @@ const Notifications = () => {
         .select(`
           id,
           created_at,
-          profiles:follower_id (id, full_name, username, avatar_url)
+          follower_id
         `)
         .eq('following_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
+      // Get unique follower IDs
+      const followerUserIds = followersData?.map((f: any) => f.follower_id) || [];
+
+      // Get all unique user IDs and fetch their profiles
+      const allUserIds = [...new Set([...likeUserIds, ...commentUserIds, ...followerUserIds])];
+      
+      let profilesMap: Record<string, any> = {};
+      if (allUserIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, username, avatar_url')
+          .in('user_id', allUserIds);
+        
+        profilesData?.forEach((p: any) => {
+          profilesMap[p.user_id] = p;
+        });
+      }
+
       // Combine and format activities
       const allActivities: Activity[] = [];
 
       likesData?.forEach((like: any) => {
-        if (like.profiles) {
+        const profile = profilesMap[like.user_id];
+        if (profile) {
           allActivities.push({
             id: like.id,
             type: 'like',
             user: {
-              id: like.profiles.id,
-              full_name: like.profiles.full_name,
-              username: like.profiles.username,
-              avatar_url: like.profiles.avatar_url,
+              id: profile.user_id,
+              full_name: profile.full_name,
+              username: profile.username,
+              avatar_url: profile.avatar_url,
             },
             post: {
               id: like.posts.id,
@@ -148,15 +173,16 @@ const Notifications = () => {
       });
 
       commentsData?.forEach((comment: any) => {
-        if (comment.profiles) {
+        const profile = profilesMap[comment.user_id];
+        if (profile) {
           allActivities.push({
             id: comment.id,
             type: 'comment',
             user: {
-              id: comment.profiles.id,
-              full_name: comment.profiles.full_name,
-              username: comment.profiles.username,
-              avatar_url: comment.profiles.avatar_url,
+              id: profile.user_id,
+              full_name: profile.full_name,
+              username: profile.username,
+              avatar_url: profile.avatar_url,
             },
             post: {
               id: comment.posts.id,
@@ -169,15 +195,16 @@ const Notifications = () => {
       });
 
       followersData?.forEach((follower: any) => {
-        if (follower.profiles) {
+        const profile = profilesMap[follower.follower_id];
+        if (profile) {
           allActivities.push({
             id: follower.id,
             type: 'follow',
             user: {
-              id: follower.profiles.id,
-              full_name: follower.profiles.full_name,
-              username: follower.profiles.username,
-              avatar_url: follower.profiles.avatar_url,
+              id: profile.user_id,
+              full_name: profile.full_name,
+              username: profile.username,
+              avatar_url: profile.avatar_url,
             },
             created_at: follower.created_at,
           });
