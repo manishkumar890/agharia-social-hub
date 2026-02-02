@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Heart, MessageCircle, UserPlus } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import ActivityItem from '@/components/notifications/ActivityItem';
+import { Heart } from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -199,32 +197,6 @@ const Notifications = () => {
     }
   };
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'like':
-        return <Heart className="w-4 h-4 text-primary fill-primary" />;
-      case 'comment':
-        return <MessageCircle className="w-4 h-4 text-secondary" />;
-      case 'follow':
-        return <UserPlus className="w-4 h-4 text-accent" />;
-      default:
-        return null;
-    }
-  };
-
-  const getActivityText = (activity: Activity) => {
-    switch (activity.type) {
-      case 'like':
-        return 'liked your post';
-      case 'comment':
-        return `commented: "${activity.content?.substring(0, 30)}${(activity.content?.length || 0) > 30 ? '...' : ''}"`;
-      case 'follow':
-        return 'started following you';
-      default:
-        return '';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -234,7 +206,17 @@ const Notifications = () => {
           <h2 className="text-lg font-display font-semibold mb-4">Activity</h2>
 
           {loading ? (
-            <p className="text-muted-foreground text-center py-8">Loading...</p>
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                  <div className="w-11 h-11 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-3 bg-muted rounded w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : activities.length === 0 ? (
             <div className="text-center py-12">
               <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -246,48 +228,10 @@ const Notifications = () => {
           ) : (
             <div className="space-y-1">
               {activities.map((activity) => (
-                <div
-                  key={`${activity.type}-${activity.id}`}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <Link to={`/user/${activity.user.id}`}>
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={activity.user.avatar_url || undefined} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {activity.user.full_name?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <Link 
-                        to={`/user/${activity.user.id}`}
-                        className="font-semibold hover:underline"
-                      >
-                        {activity.user.full_name || activity.user.username || 'User'}
-                      </Link>
-                      {' '}
-                      <span className="text-muted-foreground">{getActivityText(activity)}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {getActivityIcon(activity.type)}
-                    {activity.post && (
-                      <Link to={`/post/${activity.post.id}`}>
-                        <img
-                          src={activity.post.image_url}
-                          alt=""
-                          className="w-10 h-10 rounded object-cover"
-                        />
-                      </Link>
-                    )}
-                  </div>
-                </div>
+                <ActivityItem 
+                  key={`${activity.type}-${activity.id}`} 
+                  activity={activity} 
+                />
               ))}
             </div>
           )}
