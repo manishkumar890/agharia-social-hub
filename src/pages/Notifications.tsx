@@ -5,7 +5,9 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import ActivityItem from '@/components/notifications/ActivityItem';
-import { Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Heart, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Activity {
   id: string;
@@ -19,6 +21,8 @@ interface Activity {
   post?: {
     id: string;
     image_url: string;
+    thumbnail_url?: string;
+    media_type?: string;
   };
   content?: string;
   created_at: string;
@@ -90,7 +94,7 @@ const Notifications = () => {
           id,
           created_at,
           user_id,
-          posts!inner (id, image_url, user_id)
+          posts!inner (id, image_url, thumbnail_url, media_type, user_id)
         `)
         .eq('posts.user_id', user.id)
         .neq('user_id', user.id)
@@ -108,7 +112,7 @@ const Notifications = () => {
           content,
           created_at,
           user_id,
-          posts!inner (id, image_url, user_id)
+          posts!inner (id, image_url, thumbnail_url, media_type, user_id)
         `)
         .eq('posts.user_id', user.id)
         .neq('user_id', user.id)
@@ -166,6 +170,8 @@ const Notifications = () => {
             post: {
               id: like.posts.id,
               image_url: like.posts.image_url,
+              thumbnail_url: like.posts.thumbnail_url,
+              media_type: like.posts.media_type,
             },
             created_at: like.created_at,
           });
@@ -187,6 +193,8 @@ const Notifications = () => {
             post: {
               id: comment.posts.id,
               image_url: comment.posts.image_url,
+              thumbnail_url: comment.posts.thumbnail_url,
+              media_type: comment.posts.media_type,
             },
             content: comment.content,
             created_at: comment.created_at,
@@ -224,13 +232,31 @@ const Notifications = () => {
     }
   };
 
+  const clearActivity = () => {
+    setActivities([]);
+    toast.success('Activity cleared');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <h2 className="text-lg font-display font-semibold mb-4">Activity</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-display font-semibold">Activity</h2>
+            {activities.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearActivity}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
 
           {loading ? (
             <div className="space-y-3">

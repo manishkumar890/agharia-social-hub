@@ -20,6 +20,8 @@ interface User {
 interface Post {
   id: string;
   image_url: string;
+  thumbnail_url: string | null;
+  media_type: string;
 }
 
 const Search = () => {
@@ -43,7 +45,7 @@ const Search = () => {
   const fetchExplorePosts = async () => {
     const { data } = await supabase
       .from('posts')
-      .select('id, image_url')
+      .select('id, image_url, thumbnail_url, media_type')
       .order('created_at', { ascending: false })
       .limit(30);
     
@@ -164,13 +166,20 @@ const Search = () => {
                     <Link
                       key={post.id}
                       to={`/post/${post.id}`}
-                      className="aspect-square bg-muted overflow-hidden"
+                      className="aspect-square bg-muted overflow-hidden relative"
                     >
                       <img
-                        src={post.image_url}
+                        src={post.media_type === 'video' && post.thumbnail_url 
+                          ? post.thumbnail_url 
+                          : post.image_url}
                         alt=""
                         className="w-full h-full object-cover hover:opacity-80 transition-opacity"
                       />
+                      {post.media_type === 'video' && (
+                        <div className="absolute top-1 right-1 bg-black/60 rounded px-1">
+                          <span className="text-white text-xs">▶</span>
+                        </div>
+                      )}
                     </Link>
                   ))}
                 </div>

@@ -19,6 +19,8 @@ interface Activity {
   post?: {
     id: string;
     image_url: string;
+    thumbnail_url?: string;
+    media_type?: string;
   };
   content?: string;
   created_at: string;
@@ -162,10 +164,12 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
         >
           {isFollowing ? 'Following' : 'Follow'}
         </Button>
-      ) : activity.post?.image_url ? (
+      ) : activity.post ? (
         <div className="w-11 h-11 rounded overflow-hidden flex-shrink-0">
           <img
-            src={activity.post.image_url}
+            src={activity.post.media_type === 'video' && activity.post.thumbnail_url 
+              ? activity.post.thumbnail_url 
+              : activity.post.image_url}
             alt=""
             className="w-full h-full object-cover"
           />
