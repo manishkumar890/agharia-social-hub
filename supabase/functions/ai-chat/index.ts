@@ -9,9 +9,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, userName } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const userGreeting = userName ? `The user's name is ${userName}. Address them by name when appropriate.` : "";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -24,7 +26,7 @@ serve(async (req) => {
         messages: [
           { 
             role: "system", 
-            content: "You are a helpful AI assistant for the Agharia Samaj community app. Keep answers clear, concise, and helpful. You can answer questions about the app features, help with general queries, and provide assistance to community members." 
+            content: `You are a helpful AI assistant for the Agharia Samaj community app. ${userGreeting} Keep answers clear, concise, and helpful. You can answer questions about the app features, help with general queries, and provide assistance to community members.` 
           },
           ...messages,
         ],
