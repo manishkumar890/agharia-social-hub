@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BadgeCheck, Crown, Globe, Calendar, Hash, Download, Share2 } from 'lucide-react';
+import { BadgeCheck, Crown, Hash, Download, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,20 +10,13 @@ interface VIPCardProps {
   fullName: string;
   username: string;
   avatarUrl?: string | null;
-  dob?: string | null;
   registerNo?: string | null;
   isOwner?: boolean;
 }
 
-const VIPCard = ({ fullName, username, avatarUrl, dob, registerNo, isOwner = false }: VIPCardProps) => {
+const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }: VIPCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-
-  const formattedDob = dob ? new Date(dob).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  }) : 'Not set';
 
   const handleDownload = async () => {
     if (!cardRef.current) return;
@@ -41,23 +34,6 @@ const VIPCard = ({ fullName, username, avatarUrl, dob, registerNo, isOwner = fal
       toast.success('Card downloaded!');
     } catch (error) {
       toast.error('Failed to download card');
-    }
-  };
-
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Agharia Samaj VIP Card',
-          text: `Check out my VIP membership card from Agharia Samaj!`,
-          url: window.location.origin + `/user/${username}`,
-        });
-      } else {
-        await navigator.clipboard.writeText(window.location.origin + `/user/${username}`);
-        toast.success('Link copied to clipboard!');
-      }
-    } catch (error) {
-      console.error('Share failed:', error);
     }
   };
 
@@ -133,11 +109,7 @@ const VIPCard = ({ fullName, username, avatarUrl, dob, registerNo, isOwner = fal
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-yellow-200/70">
-                  <div className="flex items-center gap-1">
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>agharia-social-hub.lovable.app</span>
-                  </div>
+                <div className="flex items-center justify-end text-xs text-yellow-200/70">
                   <div className="flex items-center gap-1">
                     <Hash className="w-3.5 h-3.5" />
                     <span>{registerNo || 'AS00000'}</span>
@@ -186,13 +158,13 @@ const VIPCard = ({ fullName, username, avatarUrl, dob, registerNo, isOwner = fal
                     <BadgeCheck className="w-4 h-4 text-yellow-400" />
                     <span>100MB Video Uploads</span>
                   </div>
+                  <div className="flex items-center gap-2 text-yellow-200">
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                    <span>Personal AI Assistant</span>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-yellow-200/70">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>DOB: {formattedDob}</span>
-                  </div>
+                <div className="flex items-center justify-end text-xs text-yellow-200/70">
                   <span>Lifetime Member</span>
                 </div>
               </div>
@@ -203,26 +175,15 @@ const VIPCard = ({ fullName, username, avatarUrl, dob, registerNo, isOwner = fal
 
       {/* Actions */}
       {isOwner && (
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDownload}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleShare}
-            className="gap-2"
-          >
-            <Share2 className="w-4 h-4" />
-            Share
-          </Button>
-        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleDownload}
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Download
+        </Button>
       )}
 
       <p className="text-xs text-muted-foreground">
