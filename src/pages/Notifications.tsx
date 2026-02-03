@@ -5,9 +5,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import ActivityItem from '@/components/notifications/ActivityItem';
-import { Button } from '@/components/ui/button';
-import { Heart, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Heart } from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -232,31 +230,13 @@ const Notifications = () => {
     }
   };
 
-  const clearActivity = () => {
-    setActivities([]);
-    toast.success('Activity cleared');
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-semibold">Activity</h2>
-            {activities.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearActivity}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Clear
-              </Button>
-            )}
-          </div>
+          <h2 className="text-lg font-display font-semibold mb-4">Activity</h2>
 
           {loading ? (
             <div className="space-y-3">
