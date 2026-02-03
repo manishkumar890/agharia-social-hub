@@ -355,12 +355,11 @@ const UserProfile = () => {
                         VIP Card
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none">
+                    <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none [&>button]:bg-white [&>button]:rounded-full [&>button]:p-1 [&>button]:shadow-lg">
                       <VIPCard
                         fullName={profile.full_name || ''}
                         username={profile.username || ''}
                         avatarUrl={profile.avatar_url}
-                        dob={profile.dob}
                         registerNo={profile.register_no}
                         isOwner={isOwnProfile}
                       />
