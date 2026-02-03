@@ -20,12 +20,14 @@ const AIChat = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleClearChat = () => {
@@ -174,7 +176,7 @@ const AIChat = () => {
       </div>
 
       {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center text-muted-foreground">
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -224,6 +226,7 @@ const AIChat = () => {
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         )}
       </ScrollArea>
