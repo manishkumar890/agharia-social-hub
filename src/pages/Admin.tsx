@@ -385,6 +385,48 @@ const Admin = () => {
     }
   };
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm('Are you sure you want to delete this category\'s video and banner permanently?')) return;
+
+    try {
+      const setting = categorySettings.find(cs => cs.category_id === categoryId);
+      
+      if (!setting) {
+        toast.error('No settings found for this category');
+        return;
+      }
+
+      // Delete banner from storage if exists
+      if (setting.banner_url) {
+        const fileName = setting.banner_url.split('/').pop();
+        if (fileName) {
+          await supabase.storage.from('category-banners').remove([fileName]);
+        }
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from('category_settings')
+        .delete()
+        .eq('category_id', categoryId);
+
+      if (error) throw error;
+
+      // Update local state
+      setCategorySettings(prev => prev.filter(cs => cs.category_id !== categoryId));
+      setCategoryVideoUrls(prev => {
+        const updated = { ...prev };
+        delete updated[categoryId];
+        return updated;
+      });
+
+      toast.success('Category settings deleted');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category settings');
+    }
+  };
+
   const getCategorySetting = (categoryId: string) => {
     return categorySettings.find(cs => cs.category_id === categoryId);
   };
@@ -740,9 +782,21 @@ const Admin = () => {
                           key={category.id}
                           className="p-4 rounded-lg border border-border"
                         >
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className="text-2xl">{category.icon}</span>
-                            <h3 className="font-semibold text-lg">{category.name}</h3>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">{category.icon}</span>
+                              <h3 className="font-semibold text-lg">{category.name}</h3>
+                            </div>
+                            {setting && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteCategory(category.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                           
                           {/* Video URL Input */}
