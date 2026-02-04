@@ -92,6 +92,13 @@ interface CategorySetting {
   banner_url: string | null;
 }
 
+interface CategoryVideo {
+  id: string;
+  category_id: string;
+  video_url: string;
+  created_at: string;
+}
+
 const CATEGORIES = [
   { id: 'news', name: 'News', icon: '📰' },
   { id: 'devotional', name: 'Devotional', icon: '🙏' },
@@ -111,8 +118,10 @@ const Admin = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [categorySettings, setCategorySettings] = useState<CategorySetting[]>([]);
+  const [categoryVideos, setCategoryVideos] = useState<CategoryVideo[]>([]);
   const [categoryVideoUrls, setCategoryVideoUrls] = useState<Record<string, string>>({});
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
+  const [deletingVideo, setDeletingVideo] = useState<string | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -214,10 +223,18 @@ const Admin = () => {
       
       setCategorySettings(catSettings || []);
       
-      // Initialize video URLs from settings
+      // Fetch category videos
+      const { data: catVideos } = await supabase
+        .from('category_videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      setCategoryVideos(catVideos || []);
+      
+      // Initialize empty video URLs (for input fields)
       const videoUrls: Record<string, string> = {};
-      (catSettings || []).forEach(cs => {
-        videoUrls[cs.category_id] = cs.video_url || '';
+      CATEGORIES.forEach(cat => {
+        videoUrls[cat.id] = '';
       });
       setCategoryVideoUrls(videoUrls);
     } catch (error) {
@@ -288,41 +305,70 @@ const Admin = () => {
   };
 
   const handleSaveCategoryVideo = async (categoryId: string) => {
+    const videoUrl = categoryVideoUrls[categoryId]?.trim();
+    
+    if (!videoUrl) {
+      toast.error('Please enter a video URL');
+      return;
+    }
+    
     setSavingCategory(categoryId);
-    const videoUrl = categoryVideoUrls[categoryId] || '';
     
     try {
-      const existingSetting = categorySettings.find(cs => cs.category_id === categoryId);
+      // Insert into category_videos table
+      const { data, error } = await supabase
+        .from('category_videos')
+        .insert({ category_id: categoryId, video_url: videoUrl })
+        .select()
+        .single();
       
-      if (existingSetting) {
-        const { error } = await supabase
-          .from('category_settings')
-          .update({ video_url: videoUrl })
-          .eq('category_id', categoryId);
-        
-        if (error) throw error;
-        
-        setCategorySettings(prev => 
-          prev.map(cs => cs.category_id === categoryId ? { ...cs, video_url: videoUrl } : cs)
-        );
-      } else {
-        const { data, error } = await supabase
-          .from('category_settings')
-          .insert({ category_id: categoryId, video_url: videoUrl })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        if (data) setCategorySettings(prev => [...prev, data]);
+      if (error) throw error;
+      
+      // Add to local state
+      if (data) {
+        setCategoryVideos(prev => [data, ...prev]);
       }
       
-      toast.success('Video link saved');
+      // Clear the input field
+      setCategoryVideoUrls(prev => ({
+        ...prev,
+        [categoryId]: ''
+      }));
+      
+      toast.success('Video added successfully');
     } catch (error) {
       console.error('Error saving video:', error);
-      toast.error('Failed to save video link');
+      toast.error('Failed to add video');
     } finally {
       setSavingCategory(null);
     }
+  };
+
+  const handleDeleteCategoryVideo = async (videoId: string) => {
+    if (!confirm('Are you sure you want to delete this video?')) return;
+    
+    setDeletingVideo(videoId);
+    
+    try {
+      const { error } = await supabase
+        .from('category_videos')
+        .delete()
+        .eq('id', videoId);
+      
+      if (error) throw error;
+      
+      setCategoryVideos(prev => prev.filter(v => v.id !== videoId));
+      toast.success('Video deleted');
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      toast.error('Failed to delete video');
+    } finally {
+      setDeletingVideo(null);
+    }
+  };
+
+  const getCategoryVideos = (categoryId: string) => {
+    return categoryVideos.filter(v => v.category_id === categoryId);
   };
 
   const handleBannerUpload = async (categoryId: string, file: File) => {
@@ -800,10 +846,10 @@ const Admin = () => {
                           </div>
                           
                           {/* Video URL Input */}
-                          <div className="space-y-2 mb-4">
+                          <div className="space-y-3 mb-4">
                             <Label className="flex items-center gap-2 text-sm">
                               <Video className="w-4 h-4" />
-                              Video Link (Google Drive)
+                              Add Video Link (Google Drive)
                             </Label>
                             <div className="flex gap-2">
                               <Input
@@ -818,15 +864,56 @@ const Admin = () => {
                               <Button
                                 size="sm"
                                 onClick={() => handleSaveCategoryVideo(category.id)}
-                                disabled={savingCategory === category.id}
+                                disabled={savingCategory === category.id || !categoryVideoUrls[category.id]?.trim()}
                               >
                                 {savingCategory === category.id ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <Save className="w-4 h-4" />
+                                  <>
+                                    <Save className="w-4 h-4 mr-1" />
+                                    Add
+                                  </>
                                 )}
                               </Button>
                             </div>
+                            
+                            {/* Previously Added Videos */}
+                            {getCategoryVideos(category.id).length > 0 && (
+                              <div className="mt-3 space-y-2">
+                                <p className="text-xs text-muted-foreground font-medium">Previously Added Videos:</p>
+                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                  {getCategoryVideos(category.id).map((video) => (
+                                    <div 
+                                      key={video.id}
+                                      className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border"
+                                    >
+                                      <Video className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                      <a 
+                                        href={video.video_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-primary truncate flex-1 hover:underline"
+                                      >
+                                        {video.video_url}
+                                      </a>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                                        onClick={() => handleDeleteCategoryVideo(video.id)}
+                                        disabled={deletingVideo === video.id}
+                                      >
+                                        {deletingVideo === video.id ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           
                           {/* Banner Image Upload */}
