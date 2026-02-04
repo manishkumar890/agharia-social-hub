@@ -51,29 +51,48 @@ interface CategorySetting {
   banner_url: string | null;
 }
 
+interface CategoryVideo {
+  id: string;
+  category_id: string;
+  video_url: string;
+  thumbnail_url: string;
+  created_at: string;
+}
+
 const Category = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
   const [setting, setSetting] = useState<CategorySetting | null>(null);
+  const [videos, setVideos] = useState<CategoryVideo[]>([]);
   const [loading, setLoading] = useState(true);
   
   const category = categoryId ? categoryInfo[categoryId] : null;
 
   useEffect(() => {
-    const fetchCategorySetting = async () => {
+    const fetchCategoryData = async () => {
       if (!categoryId) return;
       
-      const { data } = await supabase
+      // Fetch category settings
+      const { data: settingData } = await supabase
         .from('category_settings')
         .select('video_url, banner_url')
         .eq('category_id', categoryId)
         .maybeSingle();
       
-      setSetting(data);
+      setSetting(settingData);
+      
+      // Fetch category videos
+      const { data: videosData } = await supabase
+        .from('category_videos')
+        .select('*')
+        .eq('category_id', categoryId)
+        .order('created_at', { ascending: false });
+      
+      setVideos(videosData || []);
       setLoading(false);
     };
 
-    fetchCategorySetting();
+    fetchCategoryData();
   }, [categoryId]);
 
   if (!category) {
@@ -143,13 +162,16 @@ const Category = () => {
             </p>
             <Button 
               className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg"
-              onClick={() => window.open(setting?.video_url || '#', '_blank')}
-              disabled={!setting?.video_url}
+              onClick={() => {
+                const firstVideo = videos[0];
+                if (firstVideo) window.open(firstVideo.video_url, '_blank');
+              }}
+              disabled={videos.length === 0}
             >
               <Play className="w-5 h-5 mr-2" />
               Watch Now
             </Button>
-            {!setting?.video_url && (
+            {videos.length === 0 && (
               <p className="text-sm text-muted-foreground/60 mt-3">
                 Video coming soon
               </p>
@@ -170,26 +192,43 @@ const Category = () => {
               </div>
             )}
 
-            {/* Video Link */}
-            {setting?.video_url && (
-              <div className="mb-6">
-                <a 
-                  href={setting.video_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Play className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm sm:text-base">Watch {category.title} Video</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                      Open in Google Drive
-                    </p>
-                  </div>
-                  <ExternalLink className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                </a>
+            {/* Video Grid with YouTube-style Thumbnails */}
+            {videos.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">{category.title} Videos</h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {videos.map((video) => (
+                    <a
+                      key={video.id}
+                      href={video.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group"
+                    >
+                      <div className="relative rounded-xl overflow-hidden border border-border">
+                        <AspectRatio ratio={16 / 9}>
+                          <img 
+                            src={video.thumbnail_url} 
+                            alt="Video thumbnail"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          {/* Play button overlay */}
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center">
+                              <Play className="w-8 h-8 text-primary-foreground ml-1" />
+                            </div>
+                          </div>
+                          {/* Center play icon (always visible) */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center group-hover:bg-primary/90 transition-colors">
+                              <Play className="w-7 h-7 text-white ml-1" />
+                            </div>
+                          </div>
+                        </AspectRatio>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -198,7 +237,7 @@ const Category = () => {
               <div className="bg-card rounded-xl border border-border p-8 text-center">
                 <p className="text-muted-foreground">Loading...</p>
               </div>
-            ) : !setting?.banner_url && !setting?.video_url ? (
+            ) : !setting?.banner_url && videos.length === 0 ? (
               <div className="bg-card rounded-xl border border-border p-8 text-center">
                 <div className="text-6xl mb-4">{category.icon}</div>
                 <h2 className="text-lg font-semibold mb-2">{category.title} Posts</h2>
