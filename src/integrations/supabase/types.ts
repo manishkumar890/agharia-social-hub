@@ -41,6 +41,27 @@ export type Database = {
         }
         Relationships: []
       }
+      category_videos: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          video_url: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          video_url: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           content: string
