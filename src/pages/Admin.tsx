@@ -96,6 +96,7 @@ interface CategoryVideo {
   id: string;
   category_id: string;
   video_url: string;
+  thumbnail_url: string;
   created_at: string;
 }
 
@@ -120,10 +121,13 @@ const Admin = () => {
   const [categorySettings, setCategorySettings] = useState<CategorySetting[]>([]);
   const [categoryVideos, setCategoryVideos] = useState<CategoryVideo[]>([]);
   const [categoryVideoUrls, setCategoryVideoUrls] = useState<Record<string, string>>({});
+  const [categoryThumbnails, setCategoryThumbnails] = useState<Record<string, File | null>>({});
+  const [categoryThumbnailPreviews, setCategoryThumbnailPreviews] = useState<Record<string, string>>({});
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
   const [deletingVideo, setDeletingVideo] = useState<string | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState<string | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const thumbnailInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
@@ -304,21 +308,61 @@ const Admin = () => {
     }
   };
 
+  const handleThumbnailSelect = (categoryId: string, file: File) => {
+    if (file.size > MAX_BANNER_SIZE) {
+      toast.error('Thumbnail must be less than 3MB');
+      return;
+    }
+    
+    setCategoryThumbnails(prev => ({ ...prev, [categoryId]: file }));
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setCategoryThumbnailPreviews(prev => ({ ...prev, [categoryId]: previewUrl }));
+  };
+
   const handleSaveCategoryVideo = async (categoryId: string) => {
     const videoUrl = categoryVideoUrls[categoryId]?.trim();
+    const thumbnailFile = categoryThumbnails[categoryId];
     
     if (!videoUrl) {
       toast.error('Please enter a video URL');
       return;
     }
     
+    if (!thumbnailFile) {
+      toast.error('Please select a thumbnail image');
+      return;
+    }
+    
     setSavingCategory(categoryId);
     
     try {
-      // Insert into category_videos table
+      // Upload thumbnail to storage
+      const fileExt = thumbnailFile.name.split('.').pop();
+      const fileName = `${categoryId}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('category-banners')
+        .upload(`thumbnails/${fileName}`, thumbnailFile, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL for thumbnail
+      const { data: urlData } = supabase.storage
+        .from('category-banners')
+        .getPublicUrl(`thumbnails/${fileName}`);
+      
+      const thumbnailUrl = urlData.publicUrl;
+      
+      // Insert into category_videos table with thumbnail
       const { data, error } = await supabase
         .from('category_videos')
-        .insert({ category_id: categoryId, video_url: videoUrl })
+        .insert({ 
+          category_id: categoryId, 
+          video_url: videoUrl,
+          thumbnail_url: thumbnailUrl
+        })
         .select()
         .single();
       
@@ -329,11 +373,10 @@ const Admin = () => {
         setCategoryVideos(prev => [data, ...prev]);
       }
       
-      // Clear the input field
-      setCategoryVideoUrls(prev => ({
-        ...prev,
-        [categoryId]: ''
-      }));
+      // Clear the input fields
+      setCategoryVideoUrls(prev => ({ ...prev, [categoryId]: '' }));
+      setCategoryThumbnails(prev => ({ ...prev, [categoryId]: null }));
+      setCategoryThumbnailPreviews(prev => ({ ...prev, [categoryId]: '' }));
       
       toast.success('Video added successfully');
     } catch (error) {
@@ -344,12 +387,20 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteCategoryVideo = async (videoId: string) => {
+  const handleDeleteCategoryVideo = async (videoId: string, thumbnailUrl: string) => {
     if (!confirm('Are you sure you want to delete this video?')) return;
     
     setDeletingVideo(videoId);
     
     try {
+      // Delete thumbnail from storage
+      if (thumbnailUrl) {
+        const fileName = thumbnailUrl.split('/').pop();
+        if (fileName) {
+          await supabase.storage.from('category-banners').remove([`thumbnails/${fileName}`]);
+        }
+      }
+      
       const { error } = await supabase
         .from('category_videos')
         .delete()
@@ -849,8 +900,43 @@ const Admin = () => {
                           <div className="space-y-3 mb-4">
                             <Label className="flex items-center gap-2 text-sm">
                               <Video className="w-4 h-4" />
-                              Add Video Link (Google Drive)
+                              Add Video (URL + Thumbnail Required)
                             </Label>
+                            
+                            {/* Thumbnail Upload */}
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                ref={(el) => { thumbnailInputRefs.current[category.id] = el; }}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleThumbnailSelect(category.id, file);
+                                }}
+                              />
+                              {categoryThumbnailPreviews[category.id] ? (
+                                <img 
+                                  src={categoryThumbnailPreviews[category.id]} 
+                                  alt="Thumbnail preview"
+                                  className="w-20 h-12 object-cover rounded border"
+                                />
+                              ) : (
+                                <div className="w-20 h-12 bg-muted rounded border flex items-center justify-center">
+                                  <Image className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                              )}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => thumbnailInputRefs.current[category.id]?.click()}
+                              >
+                                <Image className="w-4 h-4 mr-1" />
+                                {categoryThumbnails[category.id] ? 'Change' : 'Thumbnail'}
+                              </Button>
+                            </div>
+                            
                             <div className="flex gap-2">
                               <Input
                                 placeholder="https://drive.google.com/..."
@@ -864,7 +950,7 @@ const Admin = () => {
                               <Button
                                 size="sm"
                                 onClick={() => handleSaveCategoryVideo(category.id)}
-                                disabled={savingCategory === category.id || !categoryVideoUrls[category.id]?.trim()}
+                                disabled={savingCategory === category.id || !categoryVideoUrls[category.id]?.trim() || !categoryThumbnails[category.id]}
                               >
                                 {savingCategory === category.id ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -881,13 +967,26 @@ const Admin = () => {
                             {getCategoryVideos(category.id).length > 0 && (
                               <div className="mt-3 space-y-2">
                                 <p className="text-xs text-muted-foreground font-medium">Previously Added Videos:</p>
-                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
                                   {getCategoryVideos(category.id).map((video) => (
                                     <div 
                                       key={video.id}
-                                      className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border"
+                                      className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg border"
                                     >
-                                      <Video className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                      {/* Thumbnail Preview */}
+                                      <div className="w-16 h-10 rounded overflow-hidden flex-shrink-0 bg-muted">
+                                        {video.thumbnail_url ? (
+                                          <img 
+                                            src={video.thumbnail_url} 
+                                            alt="Thumbnail" 
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center">
+                                            <Video className="w-4 h-4 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
                                       <a 
                                         href={video.video_url}
                                         target="_blank"
@@ -900,7 +999,7 @@ const Admin = () => {
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                                        onClick={() => handleDeleteCategoryVideo(video.id)}
+                                        onClick={() => handleDeleteCategoryVideo(video.id, video.thumbnail_url)}
                                         disabled={deletingVideo === video.id}
                                       >
                                         {deletingVideo === video.id ? (
