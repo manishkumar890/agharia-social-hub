@@ -46,7 +46,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
       >
         <div 
           className={cn(
-            "relative w-[340px] h-[200px] transition-all duration-700 transform-style-3d",
+            "relative w-[300px] h-[180px] sm:w-[320px] sm:h-[190px] transition-all duration-700 transform-style-3d",
             isFlipped && "rotate-y-180"
           )}
           style={{
@@ -71,27 +71,27 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
               <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI2ZmZiIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgZmlsbD0idXJsKCNhKSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPg==')]" />
               
               {/* Content */}
-              <div className="relative z-10 p-5 h-full flex flex-col justify-between text-white">
+              <div className="relative z-10 p-4 h-full flex flex-col justify-between text-white">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Crown className="w-6 h-6 text-yellow-300 animate-pulse" />
-                    <span className="font-display font-bold text-lg tracking-wide">
+                    <Crown className="w-5 h-5 text-yellow-300 animate-pulse" />
+                    <span className="font-display font-bold text-sm sm:text-base tracking-wide">
                       AGHARIA SAMAJ
                     </span>
                   </div>
-                  <div className="px-2 py-0.5 bg-yellow-500/30 rounded text-xs font-semibold backdrop-blur-sm border border-yellow-400/30">
+                  <div className="px-1.5 py-0.5 bg-yellow-500/30 rounded text-[10px] sm:text-xs font-semibold backdrop-blur-sm border border-yellow-400/30">
                     VIP MEMBER
                   </div>
                 </div>
 
                 {/* Main Content */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse opacity-75" />
-                    <Avatar className="w-16 h-16 border-2 border-yellow-400 relative">
+                    <Avatar className="w-12 h-12 sm:w-14 sm:h-14 border-2 border-yellow-400 relative">
                       <AvatarImage src={avatarUrl || ''} alt={fullName} />
-                      <AvatarFallback className="bg-gradient-to-br from-amber-700 to-amber-900 text-white font-bold text-xl">
+                      <AvatarFallback className="bg-gradient-to-br from-amber-700 to-amber-900 text-white font-bold text-lg">
                         {fullName?.charAt(0) || 'A'}
                       </AvatarFallback>
                     </Avatar>
@@ -99,17 +99,17 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5">
-                      <h3 className="font-display font-bold text-xl truncate max-w-[180px]">
+                      <h3 className="font-display font-bold text-base sm:text-lg truncate max-w-[150px] sm:max-w-[170px]">
                         {fullName || 'Member'}
                       </h3>
-                      <BadgeCheck className="w-5 h-5 text-yellow-300 flex-shrink-0" />
+                      <BadgeCheck className="w-4 h-4 text-yellow-300 flex-shrink-0" />
                     </div>
-                    <p className="text-yellow-200/80 text-sm">@{username || 'user'}</p>
+                    <p className="text-yellow-200/80 text-xs sm:text-sm">@{username || 'user'}</p>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end text-xs text-yellow-200/70">
+                <div className="flex items-center justify-end text-[10px] sm:text-xs text-yellow-200/70">
                   <div className="flex items-center gap-1">
                     <Hash className="w-3.5 h-3.5" />
                     <span>{registerNo || 'AS00000'}</span>
@@ -135,33 +135,24 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
               <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-amber-900 to-yellow-900" />
               
               {/* Content */}
-              <div className="relative z-10 p-5 h-full flex flex-col justify-between text-white">
-                <div className="text-center">
-                  <Crown className="w-8 h-8 text-yellow-300 mx-auto mb-1" />
-                  <h4 className="font-display font-bold text-sm">Premium Benefits</h4>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-5 h-5 text-yellow-400 mb-1" />
-                    <span className="text-[10px] text-yellow-200 text-center leading-tight">Verified Badge</span>
+              <div className="relative z-10 p-3 sm:p-4 h-full flex flex-col justify-center text-white">
+                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">Verified Badge</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-5 h-5 text-yellow-400 mb-1" />
-                    <span className="text-[10px] text-yellow-200 text-center leading-tight">60s Stories</span>
+                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">60s Stories</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-5 h-5 text-yellow-400 mb-1" />
-                    <span className="text-[10px] text-yellow-200 text-center leading-tight">48h Visibility</span>
+                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">48h Visibility</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Sparkles className="w-5 h-5 text-yellow-400 mb-1" />
-                    <span className="text-[10px] text-yellow-200 text-center leading-tight">AI Assistant</span>
+                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">AI Assistant</span>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-end text-xs text-yellow-200/70">
-                  <span>Lifetime Member</span>
                 </div>
               </div>
             </div>
