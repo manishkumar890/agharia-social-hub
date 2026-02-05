@@ -273,7 +273,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-9 w-9"
+              className="h-9 w-9 hover:bg-transparent active:bg-transparent"
               onClick={handleLike}
             >
               <Heart className={cn(
@@ -281,16 +281,16 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
                 liked ? "text-primary fill-primary" : "text-foreground"
               )} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" asChild>
               <Link to={`/post/${post.id}`}>
                 <MessageCircle className="w-6 h-6" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSend}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" onClick={handleSend}>
               <Send className="w-6 h-6" />
             </Button>
           </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSave}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" onClick={handleSave}>
             <Bookmark className={cn(
               "w-6 h-6 transition-colors",
               saved ? "text-primary fill-primary" : "text-foreground"
