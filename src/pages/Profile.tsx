@@ -237,7 +237,7 @@ const Profile = () => {
                           VIP Card
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none [&>button]:bg-white [&>button]:rounded-full [&>button]:p-1 [&>button]:shadow-lg">
+                      <DialogContent className="sm:max-w-md bg-transparent border-none shadow-none overflow-visible [&>button]:absolute [&>button]:-top-3 [&>button]:-right-3 [&>button]:bg-white [&>button]:rounded-full [&>button]:p-1.5 [&>button]:shadow-lg [&>button]:z-50 [&>button]:border [&>button]:border-border/30">
                         <VIPCard
                           fullName={profile.full_name || ''}
                           username={profile.username || ''}

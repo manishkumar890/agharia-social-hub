@@ -182,7 +182,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
         </Button>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-foreground/80 bg-muted/80 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-border/50">
         Tap card to flip
       </p>
     </div>
