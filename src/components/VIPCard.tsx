@@ -136,6 +136,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
               
               {/* Content */}
               <div className="relative z-10 p-3 sm:p-4 h-full flex flex-col justify-center text-white">
+                <h4 className="text-[10px] sm:text-xs font-bold text-yellow-300 tracking-wider text-center mb-1.5 uppercase">Premium Benefits</h4>
                 <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
                   <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
                     <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
