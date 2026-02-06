@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BadgeCheck, Crown, Hash, Download, Sparkles } from 'lucide-react';
+import { BadgeCheck, Crown, Hash, Download, Sparkles, Clock, Eye, Upload, Headset } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -135,32 +135,32 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
               <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-amber-900 to-yellow-900" />
               
               {/* Content */}
-              <div className="relative z-10 p-3 sm:p-4 h-full flex flex-col justify-center text-white">
+              <div className="relative z-10 p-2.5 sm:p-3 h-full flex flex-col justify-center text-white">
                 <h4 className="text-[10px] sm:text-xs font-bold text-yellow-300 tracking-wider text-center mb-1.5 uppercase">Premium Benefits</h4>
-                <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
-                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">Verified Badge</span>
+                <div className="grid grid-cols-2 gap-1 sm:gap-1.5 flex-1">
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">Verified Badge</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">60s Stories</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Clock className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">60s Stories</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">48h Visibility</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Eye className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">48h Visibility</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">100 MB Uploads</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Upload className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">100 MB Uploads</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">Priority Support</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Headset className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">Priority Support</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Sparkles className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">AI Assistant</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">AI Assistant</span>
                   </div>
                 </div>
               </div>
