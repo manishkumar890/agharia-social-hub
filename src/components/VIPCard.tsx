@@ -136,22 +136,30 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
               
               {/* Content */}
               <div className="relative z-10 p-3 sm:p-4 h-full flex flex-col justify-center text-white">
-                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">Verified Badge</span>
+                <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">Verified Badge</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">60s Stories</span>
+                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">60s Stories</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">48h Visibility</span>
+                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">48h Visibility</span>
                   </div>
-                  <div className="flex items-center gap-1.5 p-2 sm:p-2.5 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[9px] sm:text-[10px] text-yellow-200 leading-tight">AI Assistant</span>
+                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">100 MB Uploads</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <BadgeCheck className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">Priority Support</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 p-1.5 sm:p-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] text-yellow-200 leading-tight">AI Assistant</span>
                   </div>
                 </div>
               </div>
