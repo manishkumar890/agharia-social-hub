@@ -941,7 +941,7 @@ const Auth = () => {
                         </div>
                       </div>
                       <p className="text-center text-xs text-muted-foreground">
-                        Profile picture required * (auto-compressed)
+                        Upload Profile Picture *
                       </p>
 
                       {/* Avatar Crop Dialog */}
