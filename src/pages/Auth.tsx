@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Phone, Shield, ArrowRight, Loader2, Mail, Lock, User, Camera, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import AvatarCropDialog from '@/components/AvatarCropDialog';
 
 // Validation schemas
 const phoneSchema = z.string()
@@ -51,6 +52,8 @@ const Auth = () => {
   const [regFullName, setRegFullName] = useState('');
   const [regAvatar, setRegAvatar] = useState<File | null>(null);
   const [regAvatarPreview, setRegAvatarPreview] = useState<string | null>(null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [regOtp, setRegOtp] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
@@ -92,16 +95,26 @@ const Auth = () => {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('Avatar image must be less than 2MB');
-        return;
-      }
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file');
         return;
       }
-      setRegAvatar(file);
-      setRegAvatarPreview(URL.createObjectURL(file));
+      // No size limit - will be auto-compressed by crop tool
+      const objectUrl = URL.createObjectURL(file);
+      setCropImageSrc(objectUrl);
+      setCropDialogOpen(true);
+    }
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setRegAvatar(croppedFile);
+    setRegAvatarPreview(URL.createObjectURL(croppedFile));
+    setCropDialogOpen(false);
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
     }
   };
 
@@ -928,8 +941,24 @@ const Auth = () => {
                         </div>
                       </div>
                       <p className="text-center text-xs text-muted-foreground">
-                        Profile picture required * (max 2MB)
+                        Profile picture required * (auto-compressed)
                       </p>
+
+                      {/* Avatar Crop Dialog */}
+                      {cropImageSrc && (
+                        <AvatarCropDialog
+                          open={cropDialogOpen}
+                          onClose={() => {
+                            setCropDialogOpen(false);
+                            if (cropImageSrc) {
+                              URL.revokeObjectURL(cropImageSrc);
+                              setCropImageSrc(null);
+                            }
+                          }}
+                          imageSrc={cropImageSrc}
+                          onCropComplete={handleCropComplete}
+                        />
+                      )}
 
                       <div className="space-y-2">
                         <Label htmlFor="regFullName" className="text-sm font-medium">Full Name *</Label>
