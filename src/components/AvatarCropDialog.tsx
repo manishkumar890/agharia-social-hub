@@ -11,8 +11,8 @@ interface AvatarCropDialogProps {
   onCropComplete: (croppedFile: File) => void;
 }
 
-const CROP_SIZE = 280; // Circle diameter in pixels
-const OUTPUT_SIZE = 512; // Output image size in pixels
+const CROP_SIZE = 280; // Circle diameter in pixels (preview)
+const OUTPUT_SIZE = 1024; // Output image size in pixels (HD quality)
 
 const AvatarCropDialog = ({ open, onClose, imageSrc, onCropComplete }: AvatarCropDialogProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -165,7 +165,7 @@ const AvatarCropDialog = ({ open, onClose, imageSrc, onCropComplete }: AvatarCro
         }
       },
       'image/jpeg',
-      0.85
+      0.95
     );
   };
 
