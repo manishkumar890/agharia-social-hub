@@ -73,11 +73,11 @@ serve(async (req) => {
       );
     }
 
-    // 2Factor API - Send SMS OTP using AUTOGEN with OTP1 template
-    // API Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/AUTOGEN/OTP1
-    const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/AUTOGEN/OTP1`;
+    // 2Factor API - Send our own OTP using the template
+    // API Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp}/{template_name}
+    const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/${otp}/OTP1`;
     
-    console.log('Sending SMS OTP to:', phone);
+    console.log('Sending SMS OTP to:', phone, 'OTP:', otp);
     
     const smsResponse = await fetch(smsUrl, {
       method: 'GET',
@@ -85,16 +85,6 @@ serve(async (req) => {
 
     const smsResult = await smsResponse.json();
     console.log('2Factor SMS Response:', smsResult);
-    
-    // When using AUTOGEN, 2Factor generates the OTP - we need to get it from response
-    // and update our database with the actual OTP sent
-    if (smsResult.Status === 'Success' && smsResult.Details) {
-      // Update the stored OTP with the session ID for verification
-      await supabaseAdmin
-        .from('phone_otps')
-        .update({ otp_code: smsResult.Details })
-        .eq('phone', phone);
-    }
 
     if (smsResult.Status !== 'Success') {
       console.error('SMS sending failed:', smsResult);
