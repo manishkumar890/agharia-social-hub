@@ -124,7 +124,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
 
     try {
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-        body: { amount: 9900 }
+        body: { amount: 19900 }
       });
 
       if (error || !data?.order_id) {
@@ -147,7 +147,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 user_id: user.id,
-                 amount: 99
+                 amount: 199
               }
             });
 
@@ -264,10 +264,10 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                   
                   {/* Price badge */}
                   <div className="mt-4 flex items-end gap-2 flex-wrap">
-                    <span className="text-4xl font-display font-bold drop-shadow-sm">₹99</span>
-                    <span className="text-lg line-through opacity-60 mb-1">₹329</span>
+                    <span className="text-4xl font-display font-bold drop-shadow-sm">₹199</span>
+                    <span className="text-lg line-through opacity-60 mb-1">₹999</span>
                     <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-primary px-3 py-1 rounded-full text-xs font-bold mb-1 shadow-md">
-                      70% OFF
+                      80% OFF
                     </span>
                   </div>
                   <p className="text-sm opacity-80 mt-1.5 flex items-center gap-1.5">
@@ -312,7 +312,7 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                   ) : (
                     <>
                       <Crown className="w-5 h-5 mr-2" />
-                      Get Verified Now - ₹99
+                      Get Verified Now - ₹199
                     </>
                   )}
                 </Button>
