@@ -283,7 +283,6 @@ const Profile = () => {
               <div>
                 <p className="font-semibold">{profile.full_name}</p>
                 {profile.bio && <p className="text-sm text-muted-foreground">{profile.bio}</p>}
-                <p className="text-sm text-muted-foreground">📱 +91 {profile.phone}</p>
               </div>
             </div>
           </div>
