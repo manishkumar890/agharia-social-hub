@@ -10,6 +10,8 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  email: string | null;
+  dob: string | null;
   is_disabled?: boolean;
 }
 

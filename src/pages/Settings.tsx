@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import DeleteAccountDialog from '@/components/DeleteAccountDialog';
+import AvatarCropDialog from '@/components/AvatarCropDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,10 +21,46 @@ const Settings = () => {
   const { profile, refreshProfile } = useAuth();
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [username, setUsername] = useState(profile?.username || '');
+  const [email, setEmail] = useState(profile?.email || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
-  const [dob, setDob] = useState((profile as any)?.dob || '');
+  const [dob, setDob] = useState(profile?.dob || '');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Avatar upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      setCropImageSrc(objectUrl);
+      setCropDialogOpen(true);
+    }
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setNewAvatarFile(croppedFile);
+    setAvatarPreview(URL.createObjectURL(croppedFile));
+    setCropDialogOpen(false);
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
+    }
+  };
 
   const handleSave = async () => {
     if (!profile) return;
@@ -38,28 +75,60 @@ const Settings = () => {
       return;
     }
 
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      let finalAvatarUrl = avatarUrl;
+
+      // Upload new avatar if selected
+      if (newAvatarFile) {
+        const fileExt = newAvatarFile.name.split('.').pop();
+        const fileName = `${profile.user_id}/avatar.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, newAvatarFile, { upsert: true });
+
+        if (uploadError) {
+          console.error('Avatar upload error:', uploadError);
+          toast.error('Failed to upload avatar');
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+        finalAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
           full_name: fullName.trim(),
           username: username.trim() || null,
+          email: email.trim() || null,
           bio: bio.trim() || null,
-          avatar_url: avatarUrl.trim() || null,
+          avatar_url: finalAvatarUrl || null,
           dob: dob || null,
         })
         .eq('id', profile.id);
 
       if (error) {
         if (error.code === '23505') {
-          toast.error('Username already taken');
+          toast.error('Username or email already taken');
           return;
         }
         throw error;
       }
 
+      setNewAvatarFile(null);
+      setAvatarPreview(null);
       await refreshProfile();
       toast.success('Profile updated successfully!');
     } catch (error: any) {
@@ -69,6 +138,8 @@ const Settings = () => {
       setIsLoading(false);
     }
   };
+
+  const displayAvatar = avatarPreview || avatarUrl;
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,24 +161,26 @@ const Settings = () => {
               <CardDescription>Update your profile details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Avatar */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
+              {/* Avatar Upload */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative cursor-pointer" onClick={handleAvatarClick}>
                   <Avatar className="w-24 h-24 border-4 border-primary/30">
-                    <AvatarImage src={avatarUrl || undefined} />
+                    <AvatarImage src={displayAvatar || undefined} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-display">
                       {fullName.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute bottom-0 right-0 p-1 bg-primary rounded-full">
+                  <div className="absolute bottom-0 right-0 p-1.5 bg-primary rounded-full shadow-md">
                     <Camera className="w-4 h-4 text-primary-foreground" />
                   </div>
                 </div>
-                <Input
-                  placeholder="Avatar URL"
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  className="text-center text-sm"
+                <p className="text-xs text-muted-foreground">Tap to change photo</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarFileChange}
                 />
               </div>
 
@@ -134,6 +207,18 @@ const Settings = () => {
                 <p className="text-xs text-muted-foreground">
                   Only letters, numbers, and underscores
                 </p>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                />
               </div>
 
               {/* Bio */}
@@ -208,6 +293,22 @@ const Settings = () => {
       </main>
 
       <MobileNav />
+
+      {/* Avatar Crop Dialog */}
+      {cropImageSrc && (
+        <AvatarCropDialog
+          open={cropDialogOpen}
+          onClose={() => {
+            setCropDialogOpen(false);
+            if (cropImageSrc) {
+              URL.revokeObjectURL(cropImageSrc);
+              setCropImageSrc(null);
+            }
+          }}
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 };
