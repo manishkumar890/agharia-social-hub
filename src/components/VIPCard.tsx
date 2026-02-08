@@ -12,9 +12,10 @@ interface VIPCardProps {
   avatarUrl?: string | null;
   registerNo?: string | null;
   isOwner?: boolean;
+  onClose?: () => void;
 }
 
-const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }: VIPCardProps) => {
+const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false, onClose }: VIPCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +40,11 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
 
   return (
     <div className="flex flex-col items-center gap-4">
+      {/* Tap instruction above card */}
+      <p className="text-xs text-foreground/80 bg-muted/80 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-border/50">
+        Tap card to flip
+      </p>
+
       {/* Card Container with 3D perspective */}
       <div 
         className="perspective-1000 cursor-pointer"
@@ -171,20 +177,28 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false }:
 
       {/* Actions */}
       {isOwner && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleDownload}
-          className="gap-2"
-        >
-          <Download className="w-4 h-4" />
-          Download
-        </Button>
+        <div className="flex flex-col items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDownload}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </Button>
+          {onClose && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onClose}
+              className="text-muted-foreground"
+            >
+              Close
+            </Button>
+          )}
+        </div>
       )}
-
-      <p className="text-xs text-foreground/80 bg-muted/80 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-border/50">
-        Tap card to flip
-      </p>
     </div>
   );
 };
