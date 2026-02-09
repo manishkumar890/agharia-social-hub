@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BadgeCheck, Crown, Hash, Download, Sparkles, Clock, Eye, Upload, Headset } from 'lucide-react';
+import { BadgeCheck, Crown, Hash, Download, Sparkles, Clock, Eye, Upload, Headset, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,12 @@ interface VIPCardProps {
   username: string;
   avatarUrl?: string | null;
   registerNo?: string | null;
+  dob?: string | null;
   isOwner?: boolean;
   onClose?: () => void;
 }
 
-const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false, onClose }: VIPCardProps) => {
+const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = false, onClose }: VIPCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -95,9 +96,9 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false, o
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse opacity-75" />
-                    <Avatar className="w-12 h-12 sm:w-14 sm:h-14 border-2 border-yellow-400 relative">
+                    <Avatar className="w-16 h-16 sm:w-[72px] sm:h-[72px] border-2 border-yellow-400 relative">
                       <AvatarImage src={avatarUrl || ''} alt={fullName} />
-                      <AvatarFallback className="bg-gradient-to-br from-amber-700 to-amber-900 text-white font-bold text-lg">
+                      <AvatarFallback className="bg-gradient-to-br from-amber-700 to-amber-900 text-white font-bold text-xl">
                         {fullName?.charAt(0) || 'A'}
                       </AvatarFallback>
                     </Avatar>
@@ -115,8 +116,14 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false, o
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end text-[10px] sm:text-xs text-yellow-200/70">
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center justify-between text-[10px] sm:text-xs text-yellow-200/70">
+                  {dob && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>{new Date(dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 ml-auto">
                     <Hash className="w-3.5 h-3.5" />
                     <span>{registerNo || 'AS00000'}</span>
                   </div>
@@ -192,7 +199,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, isOwner = false, o
               variant="ghost" 
               size="sm" 
               onClick={onClose}
-              className="text-muted-foreground"
+              className="bg-red-600 hover:bg-red-700 text-white hover:text-white"
             >
               Close
             </Button>

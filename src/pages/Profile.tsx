@@ -244,6 +244,7 @@ const Profile = () => {
                           username={profile.username || ''}
                           avatarUrl={profile.avatar_url}
                           registerNo={(profile as any).register_no}
+                          dob={(profile as any).dob}
                           isOwner={true}
                           onClose={() => setVipCardOpen(false)}
                         />
