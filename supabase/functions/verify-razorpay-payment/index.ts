@@ -72,7 +72,7 @@ serve(async (req) => {
         user_id: user.id,
         plan_type: "premium",
         payment_id: razorpay_payment_id,
-        amount: 99,
+        amount: 199,
         purchased_at: new Date().toISOString(),
         expires_at: null // Lifetime access
       }, {
