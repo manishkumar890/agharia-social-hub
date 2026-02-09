@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User, Bookmark, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
+import { User, Bookmark, UserPen, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -146,8 +146,8 @@ const Header = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
-                    <Settings className="w-4 h-4" />
-                    Settings
+                    <UserPen className="w-4 h-4" />
+                    Edit Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
