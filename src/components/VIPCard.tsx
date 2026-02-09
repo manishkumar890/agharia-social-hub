@@ -185,10 +185,22 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
       {/* Actions */}
       {isOwner && (
         <div className="flex flex-col items-center gap-2">
+          {!dob && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-800 text-center">
+              Please add your Date of Birth in Edit Profile to download the card.
+            </p>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handleDownload}
+            onClick={() => {
+              if (!dob) {
+                toast.error('Please add your Date of Birth in Edit Profile first.');
+                return;
+              }
+              handleDownload();
+            }}
+            disabled={!dob}
             className="gap-2"
           >
             <Download className="w-4 h-4" />
