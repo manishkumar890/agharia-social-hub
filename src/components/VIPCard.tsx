@@ -91,22 +91,22 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
             className="absolute inset-0 backface-hidden"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <div ref={cardRef} className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl animate-shimmer-border">
+            <div ref={cardRef} style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
               {/* Premium gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-yellow-700 to-amber-950" />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom right, #78350f, #a16207, #451a03)' }} />
               
               {/* Animated shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine" />
+              <div className="animate-shine" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)' }} />
               
               {/* Pattern overlay */}
-              <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI2ZmZiIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgZmlsbD0idXJsKCNhKSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPg==')]" />
+              <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI2ZmZiIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgZmlsbD0idXJsKCNhKSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPg==')" }} />
               
               {/* Content */}
-              <div className="relative z-10 p-4 h-full flex flex-col justify-between text-white">
-              {/* Header */}
+              <div style={{ position: 'relative', zIndex: 10, padding: '16px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: 'white', boxSizing: 'border-box' }}>
+                {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Crown className="w-5 h-5 text-yellow-300 animate-pulse" style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+                    <Crown className="animate-pulse" style={{ width: '20px', height: '20px', flexShrink: 0, color: '#fde047' }} />
                     <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '0.05em', lineHeight: '20px' }}>
                       AGHARIA SAMAJ
                     </span>
@@ -118,24 +118,25 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
 
                 {/* Main Content */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse opacity-75" />
-                    <Avatar className="border-2 border-yellow-400 relative" style={{ width: '64px', height: '64px' }}>
-                      <AvatarImage src={avatarUrl || ''} alt={fullName} />
-                      <AvatarFallback className="bg-gradient-to-br from-amber-700 to-amber-900 text-white font-bold text-xl">
-                        {fullName?.charAt(0) || 'A'}
-                      </AvatarFallback>
-                    </Avatar>
+                  <div style={{ position: 'relative', flexShrink: 0, width: '68px', height: '68px' }}>
+                    <div style={{ position: 'absolute', inset: '-4px', background: 'linear-gradient(to right, #facc15, #f59e0b)', borderRadius: '9999px', opacity: 0.75 }} />
+                    <img 
+                      src={avatarUrl || ''} 
+                      alt={fullName} 
+                      crossOrigin="anonymous"
+                      style={{ width: '64px', height: '64px', borderRadius: '9999px', border: '2px solid #facc15', objectFit: 'cover', position: 'relative', display: 'block', backgroundColor: '#78350f' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
                   </div>
                   
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3 style={{ fontWeight: 700, fontSize: '16px', lineHeight: '22px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '16px', lineHeight: '22px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px', display: 'block' }}>
                         {fullName || 'Member'}
-                      </h3>
+                      </span>
                       <BadgeCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#fde047' }} />
                     </div>
-                    <p style={{ fontSize: '12px', lineHeight: '18px', color: 'rgba(254,240,138,0.8)' }}>@{username || 'user'}</p>
+                    <span style={{ fontSize: '12px', lineHeight: '18px', color: 'rgba(254,240,138,0.8)', display: 'block' }}>@{username || 'user'}</span>
                   </div>
                 </div>
 
@@ -155,7 +156,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
               </div>
               
               {/* Holographic effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-yellow-300/5 to-transparent pointer-events-none" />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom right, transparent, rgba(253,224,71,0.05), transparent)', pointerEvents: 'none' }} />
             </div>
           </div>
 
