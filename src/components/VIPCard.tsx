@@ -24,35 +24,53 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
     if (!cardRef.current) return;
     
     try {
-      // Temporarily remove animations and ensure proper rendering
       const card = cardRef.current;
-      const originalStyle = card.style.cssText;
-      card.style.transform = 'none';
-      card.style.backfaceVisibility = 'visible';
       
-      // Force all animated elements to be static
-      const animatedElements = card.querySelectorAll('[class*="animate"]');
-      const originalClasses: string[] = [];
-      animatedElements.forEach((el, i) => {
-        originalClasses[i] = el.className;
+      // Create a clone for clean rendering
+      const clone = card.cloneNode(true) as HTMLElement;
+      clone.style.width = '320px';
+      clone.style.height = '190px';
+      clone.style.position = 'fixed';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.transform = 'none';
+      clone.style.backfaceVisibility = 'visible';
+      
+      // Remove all animations from clone
+      const animatedElements = clone.querySelectorAll('[class*="animate"]');
+      animatedElements.forEach((el) => {
         (el as HTMLElement).style.animation = 'none';
+        (el as HTMLElement).style.opacity = '1';
       });
+      
+      document.body.appendChild(clone);
+      
+      // Wait for image to load in clone
+      const img = clone.querySelector('img');
+      if (img && avatarUrl) {
+        await new Promise<void>((resolve) => {
+          const newImg = new Image();
+          newImg.crossOrigin = 'anonymous';
+          newImg.onload = () => {
+            img.src = newImg.src;
+            resolve();
+          };
+          newImg.onerror = () => resolve();
+          newImg.src = avatarUrl;
+        });
+      }
 
-      const canvas = await html2canvas(card, {
+      const canvas = await html2canvas(clone, {
         backgroundColor: null,
         scale: 3,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        width: card.offsetWidth,
-        height: card.offsetHeight,
+        width: 320,
+        height: 190,
       });
       
-      // Restore original styles
-      card.style.cssText = originalStyle;
-      animatedElements.forEach((el, i) => {
-        (el as HTMLElement).style.animation = '';
-      });
+      document.body.removeChild(clone);
       
       const link = document.createElement('a');
       link.download = `${username || 'vip'}-card.png`;
