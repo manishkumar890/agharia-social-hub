@@ -103,24 +103,24 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
               
               {/* Content */}
               <div className="relative z-10 p-4 h-full flex flex-col justify-between text-white">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-yellow-300 animate-pulse" />
-                    <span className="font-display font-bold text-sm sm:text-base tracking-wide">
+              {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Crown className="w-5 h-5 text-yellow-300 animate-pulse" style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+                    <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '0.05em', lineHeight: '20px' }}>
                       AGHARIA SAMAJ
                     </span>
                   </div>
-                  <div className="px-1.5 py-0.5 bg-yellow-500/30 rounded text-[10px] sm:text-xs font-semibold backdrop-blur-sm border border-yellow-400/30">
+                  <div style={{ padding: '2px 8px', backgroundColor: 'rgba(234,179,8,0.3)', borderRadius: '4px', fontSize: '10px', fontWeight: 600, border: '1px solid rgba(250,204,21,0.3)', lineHeight: '16px', whiteSpace: 'nowrap' }}>
                     VIP MEMBER
                   </div>
                 </div>
 
                 {/* Main Content */}
-                <div className="flex items-center gap-3">
-                  <div className="relative">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
                     <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse opacity-75" />
-                    <Avatar className="w-16 h-16 sm:w-[72px] sm:h-[72px] border-2 border-yellow-400 relative">
+                    <Avatar className="border-2 border-yellow-400 relative" style={{ width: '64px', height: '64px' }}>
                       <AvatarImage src={avatarUrl || ''} alt={fullName} />
                       <AvatarFallback className="bg-gradient-to-br from-amber-700 to-amber-900 text-white font-bold text-xl">
                         {fullName?.charAt(0) || 'A'}
@@ -128,27 +128,27 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                     </Avatar>
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="font-display font-bold text-base sm:text-lg truncate max-w-[150px] sm:max-w-[170px]">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h3 style={{ fontWeight: 700, fontSize: '16px', lineHeight: '22px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
                         {fullName || 'Member'}
                       </h3>
-                      <BadgeCheck className="w-4 h-4 text-yellow-300 flex-shrink-0" />
+                      <BadgeCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#fde047' }} />
                     </div>
-                    <p className="text-yellow-200/80 text-xs sm:text-sm">@{username || 'user'}</p>
+                    <p style={{ fontSize: '12px', lineHeight: '18px', color: 'rgba(254,240,138,0.8)' }}>@{username || 'user'}</p>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between text-[10px] sm:text-xs text-yellow-200/70">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(254,240,138,0.7)', lineHeight: '16px' }}>
                   {dob && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Calendar style={{ width: '14px', height: '14px', flexShrink: 0 }} />
                       <span>{new Date(dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Hash className="w-3.5 h-3.5" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+                    <Hash style={{ width: '14px', height: '14px', flexShrink: 0 }} />
                     <span>{registerNo || 'AS00000'}</span>
                   </div>
                 </div>
