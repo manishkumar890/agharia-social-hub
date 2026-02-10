@@ -24,9 +24,34 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
     if (!cardRef.current) return;
     
     try {
-      const canvas = await html2canvas(cardRef.current, {
+      // Temporarily remove animations and ensure proper rendering
+      const card = cardRef.current;
+      const originalStyle = card.style.cssText;
+      card.style.transform = 'none';
+      card.style.backfaceVisibility = 'visible';
+      
+      // Force all animated elements to be static
+      const animatedElements = card.querySelectorAll('[class*="animate"]');
+      const originalClasses: string[] = [];
+      animatedElements.forEach((el, i) => {
+        originalClasses[i] = el.className;
+        (el as HTMLElement).style.animation = 'none';
+      });
+
+      const canvas = await html2canvas(card, {
         backgroundColor: null,
-        scale: 2,
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: card.offsetWidth,
+        height: card.offsetHeight,
+      });
+      
+      // Restore original styles
+      card.style.cssText = originalStyle;
+      animatedElements.forEach((el, i) => {
+        (el as HTMLElement).style.animation = '';
       });
       
       const link = document.createElement('a');
@@ -63,11 +88,10 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
         >
           {/* Front of Card */}
           <div 
-            ref={cardRef}
             className="absolute inset-0 backface-hidden"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl animate-shimmer-border">
+            <div ref={cardRef} className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl animate-shimmer-border">
               {/* Premium gradient background */}
               <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-yellow-700 to-amber-950" />
               
