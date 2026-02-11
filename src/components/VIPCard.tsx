@@ -1,10 +1,7 @@
-import { useState, useRef } from 'react';
-import { BadgeCheck, Crown, Hash, Download, Sparkles, Clock, Eye, Upload, Headset, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { BadgeCheck, Crown, Hash, Sparkles, Clock, Eye, Upload, Headset, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
 
 interface VIPCardProps {
   fullName: string;
@@ -18,69 +15,6 @@ interface VIPCardProps {
 
 const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = false, onClose }: VIPCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const handleDownload = async () => {
-    if (!cardRef.current) return;
-    
-    try {
-      const card = cardRef.current;
-      
-      // Create a clone for clean rendering
-      const clone = card.cloneNode(true) as HTMLElement;
-      clone.style.width = '320px';
-      clone.style.height = '190px';
-      clone.style.position = 'fixed';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.transform = 'none';
-      clone.style.backfaceVisibility = 'visible';
-      
-      // Remove all animations from clone
-      const animatedElements = clone.querySelectorAll('[class*="animate"]');
-      animatedElements.forEach((el) => {
-        (el as HTMLElement).style.animation = 'none';
-        (el as HTMLElement).style.opacity = '1';
-      });
-      
-      document.body.appendChild(clone);
-      
-      // Wait for image to load in clone
-      const img = clone.querySelector('img');
-      if (img && avatarUrl) {
-        await new Promise<void>((resolve) => {
-          const newImg = new Image();
-          newImg.crossOrigin = 'anonymous';
-          newImg.onload = () => {
-            img.src = newImg.src;
-            resolve();
-          };
-          newImg.onerror = () => resolve();
-          newImg.src = avatarUrl;
-        });
-      }
-
-      const canvas = await html2canvas(clone, {
-        backgroundColor: null,
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: 320,
-        height: 190,
-      });
-      
-      document.body.removeChild(clone);
-      
-      const link = document.createElement('a');
-      link.download = `${username || 'vip'}-card.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      toast.success('Card downloaded!');
-    } catch (error) {
-      toast.error('Failed to download card');
-    }
-  };
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -109,7 +43,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
             className="absolute inset-0 backface-hidden"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <div ref={cardRef} style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
               {/* Premium gradient background */}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom right, #78350f, #a16207, #451a03)' }} />
               
@@ -225,40 +159,15 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
       </div>
 
       {/* Actions */}
-      {isOwner && (
-        <div className="flex flex-col items-center gap-2">
-          {!dob && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-800 text-center">
-              Please add your Date of Birth in Edit Profile to download the card.
-            </p>
-          )}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              if (!dob) {
-                toast.error('Please add your Date of Birth in Edit Profile first.');
-                return;
-              }
-              handleDownload();
-            }}
-            disabled={!dob}
-            className="gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download
-          </Button>
-          {onClose && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onClose}
-              className="bg-red-600 hover:bg-red-700 text-white hover:text-white"
-            >
-              Close
-            </Button>
-          )}
-        </div>
+      {isOwner && onClose && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onClose}
+          className="bg-red-600 hover:bg-red-700 text-white hover:text-white"
+        >
+          Close
+        </Button>
       )}
     </div>
   );
