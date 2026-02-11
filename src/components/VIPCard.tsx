@@ -31,22 +31,22 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
         {/* Animated glow border - only when DOB is present */}
         {dob && (
           <div 
-            className="absolute -inset-[3px] rounded-[19px] opacity-80"
+            className="absolute -inset-[2px] rounded-[18px] opacity-60"
             style={{
-              background: 'linear-gradient(90deg, #facc15, #f59e0b, #ef4444, #a855f7, #3b82f6, #facc15)',
+              background: 'linear-gradient(90deg, hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%))',
               backgroundSize: '300% 100%',
-              animation: 'glowBorderMove 3s linear infinite',
-              filter: 'blur(6px)',
+              animation: 'glowBorderMove 6s ease-in-out infinite',
+              filter: 'blur(5px)',
             }}
           />
         )}
         {dob && (
           <div 
-            className="absolute -inset-[3px] rounded-[19px]"
+            className="absolute -inset-[2px] rounded-[18px]"
             style={{
-              background: 'linear-gradient(90deg, #facc15, #f59e0b, #ef4444, #a855f7, #3b82f6, #facc15)',
+              background: 'linear-gradient(90deg, hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%))',
               backgroundSize: '300% 100%',
-              animation: 'glowBorderMove 3s linear infinite',
+              animation: 'glowBorderMove 6s ease-in-out infinite',
             }}
           />
         )}
