@@ -47,7 +47,7 @@ const AvatarCropDialog = ({ open, onClose, imageSrc, onCropComplete }: AvatarCro
     };
   }, [open, imageSrc]);
 
-  // Draw the preview
+  // Draw the preview at 2x resolution for HD quality
   const drawPreview = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
@@ -56,9 +56,11 @@ const AvatarCropDialog = ({ open, onClose, imageSrc, onCropComplete }: AvatarCro
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = CROP_SIZE;
-    canvas.height = CROP_SIZE;
+    const dpr = window.devicePixelRatio || 2;
+    canvas.width = CROP_SIZE * dpr;
+    canvas.height = CROP_SIZE * dpr;
 
+    ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, CROP_SIZE, CROP_SIZE);
 
     // Create circular clip
@@ -74,6 +76,8 @@ const AvatarCropDialog = ({ open, onClose, imageSrc, onCropComplete }: AvatarCro
     const drawX = (CROP_SIZE - drawWidth) / 2 + offset.x;
     const drawY = (CROP_SIZE - drawHeight) / 2 + offset.y;
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
     ctx.restore();
 
