@@ -98,15 +98,20 @@ export default {
           "75%": { transform: "scale(0.5) rotate(-5deg)", opacity: "0.3" },
           "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
         },
-        "heart-split-left": {
-          "0%": { transform: "translateX(0) translateY(0) rotate(0deg)", opacity: "1" },
-          "40%": { transform: "translateX(-8px) translateY(4px) rotate(-12deg)", opacity: "0.9" },
-          "100%": { transform: "translateX(-30px) translateY(60px) rotate(-35deg)", opacity: "0" },
+        "heartAppear": {
+          "0%": { opacity: "0", transform: "scale(0.5)" },
+          "50%": { opacity: "1", transform: "scale(1.15)" },
+          "100%": { opacity: "0", transform: "scale(1)" },
         },
-        "heart-split-right": {
-          "0%": { transform: "translateX(0) translateY(0) rotate(0deg)", opacity: "1" },
-          "40%": { transform: "translateX(8px) translateY(4px) rotate(12deg)", opacity: "0.9" },
-          "100%": { transform: "translateX(30px) translateY(60px) rotate(35deg)", opacity: "0" },
+        "heartLeftFall": {
+          "0%": { opacity: "1", transform: "translateX(0) translateY(0) rotate(0deg)" },
+          "30%": { opacity: "1", transform: "translateX(-10px) translateY(5px) rotate(-15deg)" },
+          "100%": { opacity: "0", transform: "translateX(-40px) translateY(80px) rotate(-45deg)" },
+        },
+        "heartRightFall": {
+          "0%": { opacity: "1", transform: "translateX(0) translateY(0) rotate(0deg)" },
+          "30%": { opacity: "1", transform: "translateX(10px) translateY(5px) rotate(15deg)" },
+          "100%": { opacity: "0", transform: "translateX(40px) translateY(80px) rotate(45deg)" },
         },
       },
       animation: {
