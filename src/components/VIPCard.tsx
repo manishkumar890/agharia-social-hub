@@ -136,13 +136,13 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
 
                 {/* Main Content */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ position: 'relative', flexShrink: 0, width: '68px', height: '68px' }}>
-                    <div style={{ position: 'absolute', inset: '-4px', background: 'linear-gradient(to right, #facc15, #f59e0b)', borderRadius: '9999px', opacity: 0.75 }} />
+                  <div style={{ position: 'relative', flexShrink: 0, width: '80px', height: '80px' }}>
+                    <div style={{ position: 'absolute', inset: '-3px', background: 'linear-gradient(to right, #facc15, #f59e0b)', borderRadius: '9999px', opacity: 0.75 }} />
                     <img 
                       src={avatarUrl || ''} 
                       alt={fullName} 
                       crossOrigin="anonymous"
-                      style={{ width: '64px', height: '64px', borderRadius: '9999px', border: '2px solid #facc15', objectFit: 'cover', position: 'relative', display: 'block', backgroundColor: '#78350f' }}
+                      style={{ width: '76px', height: '76px', borderRadius: '9999px', border: '2px solid #facc15', objectFit: 'cover', position: 'relative', display: 'block', backgroundColor: '#78350f', imageRendering: 'auto' }}
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>
