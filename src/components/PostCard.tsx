@@ -47,6 +47,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [animateLike, setAnimateLike] = useState(false);
+  const [animateUnlike, setAnimateUnlike] = useState(false);
   const [isAuthorPremium, setIsAuthorPremium] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -148,10 +149,10 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const handleLike = async () => {
     if (!user) return;
 
-    setAnimateLike(true);
-    setTimeout(() => setAnimateLike(false), 300);
-
     if (liked) {
+      setAnimateUnlike(true);
+      setTimeout(() => setAnimateUnlike(false), 500);
+
       await supabase
         .from('likes')
         .delete()
@@ -161,6 +162,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
       setLiked(false);
       setLikesCount(prev => prev - 1);
     } else {
+      setAnimateLike(true);
+      setTimeout(() => setAnimateLike(false), 300);
+
       await supabase
         .from('likes')
         .insert({ post_id: post.id, user_id: user.id });
@@ -277,8 +281,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
               onClick={handleLike}
             >
               <Heart className={cn(
-                "w-6 h-6 transition-colors",
-                liked ? "text-primary fill-primary" : "text-foreground"
+                "w-6 h-6 transition-all",
+                liked ? "text-primary fill-primary" : "text-foreground",
+                animateUnlike && "animate-heart-break"
               )} />
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" asChild>
