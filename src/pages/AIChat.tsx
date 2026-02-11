@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,15 +15,22 @@ import PremiumUpgradeDialog from '@/components/PremiumUpgradeDialog';
 type Message = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
+const STORAGE_KEY = 'ai-chat-messages';
 
 const AIChat = () => {
   const { isPremium } = useSubscription();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,8 +58,19 @@ const AIChat = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Persist messages to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
+
   const handleClearChat = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearChat = () => {
     setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
+    setShowClearConfirm(false);
     toast.success('Chat cleared');
   };
 
@@ -277,6 +296,23 @@ const AIChat = () => {
           </Button>
         </form>
       </div>
+
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Chat History?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all your chat messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClearChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Clear Chat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
