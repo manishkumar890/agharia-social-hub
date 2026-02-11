@@ -14,6 +14,7 @@ import { ImagePlus, Video, MapPin, Loader2, X, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MultiImageUpload from '@/components/posts/MultiImageUpload';
+import ImageCropDialog from '@/components/posts/ImageCropDialog';
 import { compressImage, compressImages } from '@/lib/imageCompression';
 
 const CreatePost = () => {
@@ -31,6 +32,11 @@ const CreatePost = () => {
   const [multiImages, setMultiImages] = useState<File[]>([]);
   const [multiPreviews, setMultiPreviews] = useState<string[]>([]);
   const [selectedMusic, setSelectedMusic] = useState<{ url: string; name: string; duration?: number } | null>(null);
+  
+  // Crop dialog states
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState('');
+  const [cropMode, setCropMode] = useState<'single' | 'multi'>('single');
   
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
@@ -92,17 +98,28 @@ const CreatePost = () => {
         return;
       }
 
-      // Show preview immediately
+      // Open crop dialog instead of directly setting
+      const url = URL.createObjectURL(file);
+      setRawImageSrc(url);
+      setCropMode('single');
+      setCropDialogOpen(true);
+    }
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropDialogOpen(false);
+    
+    if (cropMode === 'single') {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setMediaPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      // Compress image for faster loading (max 1920px, 85% quality)
-      const compressedFile = await compressImage(file, 1920, 0.85);
-      setMediaFile(compressedFile);
+      reader.onloadend = () => setMediaPreview(reader.result as string);
+      reader.readAsDataURL(croppedFile);
+      setMediaFile(croppedFile);
       setMediaType('image');
+    }
+
+    if (rawImageSrc) {
+      URL.revokeObjectURL(rawImageSrc);
+      setRawImageSrc('');
     }
   };
 
@@ -458,6 +475,20 @@ const CreatePost = () => {
       </main>
 
       <MobileNav />
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onClose={() => {
+          setCropDialogOpen(false);
+          if (rawImageSrc) {
+            URL.revokeObjectURL(rawImageSrc);
+            setRawImageSrc('');
+          }
+        }}
+        imageSrc={rawImageSrc}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };
