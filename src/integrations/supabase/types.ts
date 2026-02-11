@@ -97,6 +97,42 @@ export type Database = {
           },
         ]
       }
+      contact_queries: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          query: string
+          status: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          query: string
+          status?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          query?: string
+          status?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string

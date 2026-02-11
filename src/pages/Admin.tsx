@@ -29,7 +29,8 @@ import {
   Video,
   Image,
   Loader2,
-  Save
+  Save,
+  Headphones
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -100,6 +101,18 @@ interface CategoryVideo {
   created_at: string;
 }
 
+interface ContactQuery {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  username: string | null;
+  email: string | null;
+  phone: string | null;
+  query: string;
+  status: string;
+  created_at: string;
+}
+
 const CATEGORIES = [
   { id: 'news', name: 'News', icon: '📰' },
   { id: 'devotional', name: 'Devotional', icon: '🙏' },
@@ -120,6 +133,7 @@ const Admin = () => {
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([]);
   const [categorySettings, setCategorySettings] = useState<CategorySetting[]>([]);
   const [categoryVideos, setCategoryVideos] = useState<CategoryVideo[]>([]);
+  const [contactQueries, setContactQueries] = useState<ContactQuery[]>([]);
   const [categoryVideoUrls, setCategoryVideoUrls] = useState<Record<string, string>>({});
   const [categoryThumbnails, setCategoryThumbnails] = useState<Record<string, File | null>>({});
   const [categoryThumbnailPreviews, setCategoryThumbnailPreviews] = useState<Record<string, string>>({});
@@ -241,6 +255,14 @@ const Admin = () => {
         videoUrls[cat.id] = '';
       });
       setCategoryVideoUrls(videoUrls);
+
+      // Fetch contact queries
+      const { data: queriesData } = await supabase
+        .from('contact_queries')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      setContactQueries((queriesData as ContactQuery[]) || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -629,6 +651,10 @@ const Admin = () => {
                 <TabsTrigger value="categories" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Categories</span>
+                </TabsTrigger>
+                <TabsTrigger value="support" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <Headphones className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Support</span>
                 </TabsTrigger>
               </TabsList>
             </ScrollArea>
@@ -1066,6 +1092,96 @@ const Admin = () => {
                         </div>
                       );
                     })}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Support Queries Tab */}
+            <TabsContent value="support">
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Headphones className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    Support Queries
+                  </CardTitle>
+                  <CardDescription>Premium user support requests</CardDescription>
+                </CardHeader>
+                <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                  <div className="space-y-2 sm:space-y-3">
+                    {loading ? (
+                      <p className="text-muted-foreground text-center py-8">Loading...</p>
+                    ) : contactQueries.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">No support queries yet</p>
+                    ) : (
+                      contactQueries.map((q) => (
+                        <div 
+                          key={q.id}
+                          className="p-3 sm:p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <p className="font-medium text-sm sm:text-base">{q.full_name || 'No name'}</p>
+                                {q.username && (
+                                  <span className="text-xs text-muted-foreground">@{q.username}</span>
+                                )}
+                                <Badge variant={q.status === 'pending' ? 'secondary' : 'outline'} className="text-xs">
+                                  {q.status}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground space-y-0.5 mb-2">
+                                {q.email && <p>📧 {q.email}</p>}
+                                {q.phone && <p>📱 {q.phone}</p>}
+                              </div>
+                              <p className="text-sm text-foreground bg-muted/50 p-2 rounded">{q.query}</p>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {formatDistanceToNow(new Date(q.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              {q.status === 'pending' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="w-8 h-8 text-primary hover:text-primary"
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from('contact_queries')
+                                      .update({ status: 'resolved' })
+                                      .eq('id', q.id);
+                                    if (!error) {
+                                      setContactQueries(prev => prev.map(cq => cq.id === q.id ? { ...cq, status: 'resolved' } : cq));
+                                      toast.success('Marked as resolved');
+                                    }
+                                  }}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="w-8 h-8 text-destructive hover:text-destructive"
+                                onClick={async () => {
+                                  if (!confirm('Delete this query?')) return;
+                                  const { error } = await supabase
+                                    .from('contact_queries')
+                                    .delete()
+                                    .eq('id', q.id);
+                                  if (!error) {
+                                    setContactQueries(prev => prev.filter(cq => cq.id !== q.id));
+                                    toast.success('Query deleted');
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
