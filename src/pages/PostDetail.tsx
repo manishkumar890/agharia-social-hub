@@ -272,17 +272,18 @@ const PostDetail = () => {
                   backgroundAudioUrl={post.background_audio_url}
                   className="w-full max-h-[70vh]"
                 />
+              ) : post.background_audio_url ? (
+                <ImageCarousel 
+                  images={[post.image_url]}
+                  backgroundAudioUrl={post.background_audio_url}
+                  className="w-full max-h-[70vh]"
+                />
               ) : (
-                <>
-                  <img
-                    src={post.image_url}
-                    alt={post.caption || 'Post'}
-                    className="w-full max-h-[70vh] object-contain"
-                  />
-                  {post.background_audio_url && (
-                    <audio src={post.background_audio_url} controls loop className="w-full mt-2" />
-                  )}
-                </>
+                <img
+                  src={post.image_url}
+                  alt={post.caption || 'Post'}
+                  className="w-full max-h-[70vh] object-contain"
+                />
               )}
             </div>
 
