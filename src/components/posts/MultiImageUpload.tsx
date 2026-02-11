@@ -160,24 +160,32 @@ const MultiImageUpload = ({
   // No images yet - show upload area
   if (previews.length === 0) {
     return (
-      <div className="space-y-4">
-        <Label>Photos (up to {maxImages}, max 30MB each)</Label>
-        <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-          <ImagePlus className="w-12 h-12 text-muted-foreground mb-2" />
-          <span className="text-sm text-muted-foreground">Click to upload photos</span>
-          <span className="text-xs text-muted-foreground mt-1">
-            Premium: Add up to 10 photos with music
-          </span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleAddImages}
-            className="hidden"
-          />
-        </label>
-      </div>
+      <>
+        <div className="space-y-4">
+          <Label>Photos (up to {maxImages}, max 30MB each)</Label>
+          <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+            <ImagePlus className="w-12 h-12 text-muted-foreground mb-2" />
+            <span className="text-sm text-muted-foreground">Click to upload photos</span>
+            <span className="text-xs text-muted-foreground mt-1">
+              Premium: Add up to 10 photos with music
+            </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleAddImages}
+              className="hidden"
+            />
+          </label>
+        </div>
+        <ImageCropDialog
+          open={cropDialogOpen}
+          onClose={handleCropClose}
+          imageSrc={cropSrc}
+          onCropComplete={handleCropComplete}
+        />
+      </>
     );
   }
 
