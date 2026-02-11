@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
+import { Heart, HeartCrack, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -266,6 +266,11 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         {animateLike && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Heart className="w-24 h-24 text-primary fill-primary animate-heart opacity-80" />
+          </div>
+        )}
+        {animateUnlike && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <HeartCrack className="w-24 h-24 text-muted-foreground animate-heart-break-overlay opacity-80" />
           </div>
         )}
       </div>
