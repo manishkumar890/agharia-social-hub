@@ -81,19 +81,21 @@ const ImageCropDialog = ({ open, onClose, imageSrc, onCropComplete }: ImageCropD
     setOffset({ x: 0, y: 0 });
   }, [imageLoaded, aspectRatio, getCropDimensions]);
 
-  // Draw preview
+  // Draw preview at 2x resolution for HD quality
   const drawPreview = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
     if (!canvas || !img) return;
 
     const { width, height } = getCropDimensions();
-    canvas.width = width;
-    canvas.height = height;
+    const dpr = window.devicePixelRatio || 2;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, width, height);
 
     const scale = baseScale * zoom;
@@ -175,7 +177,7 @@ const ImageCropDialog = ({ open, onClose, imageSrc, onCropComplete }: ImageCropD
         }
       },
       'image/jpeg',
-      0.92
+      0.95
     );
   };
 
