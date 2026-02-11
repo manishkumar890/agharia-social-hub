@@ -31,11 +31,11 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
         {/* Animated glow border - only when DOB is present */}
         {dob && (
           <div 
-            className="absolute -inset-[2px] rounded-[18px] opacity-60"
+            className="absolute -inset-[2px] rounded-[18px] opacity-50"
             style={{
               background: 'linear-gradient(90deg, hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%))',
               backgroundSize: '300% 100%',
-              animation: 'glowBorderMove 6s ease-in-out infinite',
+              animation: 'glowBorderMove 10s ease-in-out infinite',
               filter: 'blur(5px)',
             }}
           />
@@ -46,7 +46,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
             style={{
               background: 'linear-gradient(90deg, hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%), hsl(43 74% 49%), hsl(345 70% 35%))',
               backgroundSize: '300% 100%',
-              animation: 'glowBorderMove 6s ease-in-out infinite',
+              animation: 'glowBorderMove 10s ease-in-out infinite',
             }}
           />
         )}
@@ -103,11 +103,25 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                 {/* Main Content */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ position: 'relative', flexShrink: 0, width: '82px', height: '82px' }}>
+                    {/* Rotating ring around avatar */}
+                    <div style={{
+                      position: 'absolute',
+                      inset: '-4px',
+                      borderRadius: '9999px',
+                      background: 'conic-gradient(from 0deg, hsl(43 74% 49%), hsl(345 70% 35%), hsl(43 80% 65%), hsl(345 65% 50%), hsl(43 74% 49%))',
+                      animation: 'vipAvatarSpin 8s linear infinite',
+                    }} />
+                    <div style={{
+                      position: 'absolute',
+                      inset: '-1px',
+                      borderRadius: '9999px',
+                      background: 'linear-gradient(to bottom right, #78350f, #a16207)',
+                    }} />
                     <img 
                       src={avatarUrl || ''} 
                       alt={fullName} 
                       crossOrigin="anonymous"
-                      style={{ width: '82px', height: '82px', borderRadius: '9999px', border: '2px solid #facc15', objectFit: 'cover', display: 'block', backgroundColor: '#78350f' }}
+                      style={{ position: 'relative', width: '82px', height: '82px', borderRadius: '9999px', objectFit: 'cover', display: 'block', backgroundColor: '#78350f' }}
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>
