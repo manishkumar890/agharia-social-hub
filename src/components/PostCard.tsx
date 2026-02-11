@@ -151,7 +151,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
 
     if (liked) {
       setAnimateUnlike(true);
-      setTimeout(() => setAnimateUnlike(false), 500);
+      setTimeout(() => setAnimateUnlike(false), 900);
 
       await supabase
         .from('likes')
@@ -270,7 +270,10 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         )}
         {animateUnlike && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <HeartCrack className="w-24 h-24 text-muted-foreground animate-heart-break-overlay opacity-80" />
+            <div className="relative animate-heart-break-overlay">
+              <Heart className="w-24 h-24 text-primary fill-primary absolute inset-0 animate-[fade-out_0.3s_ease-in_0.25s_forwards]" />
+              <HeartCrack className="w-24 h-24 text-primary fill-primary opacity-0 animate-[fade-in_0.2s_ease-out_0.3s_forwards]" />
+            </div>
           </div>
         )}
       </div>
