@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, HeartCrack, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -269,10 +269,24 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           </div>
         )}
         {animateUnlike && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative animate-heart-break-overlay">
-              <Heart className="w-24 h-24 text-primary fill-primary absolute inset-0 animate-[fade-out_0.3s_ease-in_0.25s_forwards]" />
-              <HeartCrack className="w-24 h-24 text-primary fill-primary opacity-0 animate-[fade-in_0.2s_ease-out_0.3s_forwards]" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            {/* Full heart appears first */}
+            <div className="relative w-24 h-24 animate-[scale-in_0.15s_ease-out]">
+              {/* Full heart - visible briefly then fades */}
+              <Heart className="w-24 h-24 text-primary fill-primary absolute inset-0 animate-[fade-out_0.15s_ease-in_0.2s_forwards]" />
+              {/* Left half */}
+              <div className="absolute inset-0 overflow-hidden opacity-0 animate-[fade-in_0.1s_ease-out_0.3s_forwards]" style={{ clipPath: 'inset(0 50% 0 0)' }}>
+                <Heart className="w-24 h-24 text-primary fill-primary animate-[heart-split-left_0.5s_ease-in_0.35s_forwards]" />
+              </div>
+              {/* Right half */}
+              <div className="absolute inset-0 overflow-hidden opacity-0 animate-[fade-in_0.1s_ease-out_0.3s_forwards]" style={{ clipPath: 'inset(0 0 0 50%)' }}>
+                <Heart className="w-24 h-24 text-primary fill-primary animate-[heart-split-right_0.5s_ease-in_0.35s_forwards]" />
+              </div>
+              {/* Crack line */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 animate-[fade-in_0.1s_ease-out_0.25s_forwards]">
+                <div className="w-[2px] h-16 bg-background/80 rotate-[5deg] animate-[fade-out_0.2s_ease-in_0.45s_forwards]" 
+                  style={{ boxShadow: '0 0 6px hsl(var(--background))' }} />
+              </div>
             </div>
           </div>
         )}
