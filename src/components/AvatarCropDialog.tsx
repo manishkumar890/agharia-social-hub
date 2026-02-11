@@ -205,6 +205,7 @@ const AvatarCropDialog = ({ open, onClose, imageSrc, onCropComplete }: AvatarCro
               ref={canvasRef}
               width={CROP_SIZE}
               height={CROP_SIZE}
+              style={{ width: CROP_SIZE, height: CROP_SIZE }}
               className="cursor-grab active:cursor-grabbing touch-none"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
