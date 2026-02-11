@@ -98,15 +98,15 @@ export default {
           "75%": { transform: "scale(0.5) rotate(-5deg)", opacity: "0.3" },
           "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
         },
-        "heart-break-overlay": {
-          "0%": { transform: "scale(0.5)", opacity: "0" },
-          "15%": { transform: "scale(1.2)", opacity: "1" },
-          "30%": { transform: "scale(1)", opacity: "1" },
-          "45%": { transform: "scale(1.05) rotate(-8deg)", opacity: "0.9" },
-          "55%": { transform: "scale(1.1) rotate(8deg)", opacity: "0.8" },
-          "65%": { transform: "scale(0.9) rotate(-5deg)", opacity: "0.7" },
-          "80%": { transform: "scale(0.6) translateY(40px) rotate(-15deg)", opacity: "0.4" },
-          "100%": { transform: "scale(0.3) translateY(100px) rotate(-25deg)", opacity: "0" },
+        "heart-split-left": {
+          "0%": { transform: "translateX(0) translateY(0) rotate(0deg)", opacity: "1" },
+          "40%": { transform: "translateX(-8px) translateY(4px) rotate(-12deg)", opacity: "0.9" },
+          "100%": { transform: "translateX(-30px) translateY(60px) rotate(-35deg)", opacity: "0" },
+        },
+        "heart-split-right": {
+          "0%": { transform: "translateX(0) translateY(0) rotate(0deg)", opacity: "1" },
+          "40%": { transform: "translateX(8px) translateY(4px) rotate(12deg)", opacity: "0.9" },
+          "100%": { transform: "translateX(30px) translateY(60px) rotate(35deg)", opacity: "0" },
         },
       },
       animation: {
@@ -114,7 +114,6 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 1.5s infinite",
         "heart-break": "heart-break 0.5s ease-out",
-        "heart-break-overlay": "heart-break-overlay 0.9s ease-in forwards",
       },
     },
   },
