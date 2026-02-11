@@ -14,6 +14,7 @@ import { ImagePlus, Video, MapPin, Loader2, X, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MultiImageUpload from '@/components/posts/MultiImageUpload';
+import MusicSelector from '@/components/stories/MusicSelector';
 import ImageCropDialog from '@/components/posts/ImageCropDialog';
 import { compressImage, compressImages } from '@/lib/imageCompression';
 
@@ -279,6 +280,7 @@ const CreatePost = () => {
           location: location.trim() || null,
           media_type: mediaType,
           thumbnail_url: thumbnailUrl,
+          background_audio_url: mediaType === 'image' ? (selectedMusic?.url || null) : null,
         });
 
         if (error) throw error;
@@ -347,35 +349,50 @@ const CreatePost = () => {
 
                 {/* Single Photo Tab */}
                 <TabsContent value="photo" className="mt-4">
-                  <div className="space-y-2">
-                    <Label>Photo (max 30MB)</Label>
-                    {mediaPreview && mediaType === 'image' ? (
-                      <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
-                        <img 
-                          src={mediaPreview} 
-                          alt="Preview" 
-                          className="w-full h-full object-cover"
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Photo (max 30MB)</Label>
+                      {mediaPreview && mediaType === 'image' ? (
+                        <div className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                          <img 
+                            src={mediaPreview} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8"
+                            onClick={clearMedia}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                          <ImagePlus className="w-12 h-12 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Click to upload photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSingleImageChange}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Background Music for single photo */}
+                    {isPremium && (
+                      <div className="space-y-2">
+                        <Label>Background Music (Optional)</Label>
+                        <MusicSelector
+                          selectedMusic={selectedMusic}
+                          onSelect={setSelectedMusic}
+                          onUpload={handleMusicUpload}
+                          maxSize={10 * 1024 * 1024}
                         />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-8 w-8"
-                          onClick={clearMedia}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
                       </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                        <ImagePlus className="w-12 h-12 text-muted-foreground mb-2" />
-                        <span className="text-sm text-muted-foreground">Click to upload photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleSingleImageChange}
-                          className="hidden"
-                        />
-                      </label>
                     )}
                   </div>
                 </TabsContent>
