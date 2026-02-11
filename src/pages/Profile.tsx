@@ -238,7 +238,7 @@ const Profile = () => {
                           VIP Card
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:hidden">
+                      <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                         <VIPCard
                           fullName={profile.full_name || ''}
                           username={profile.username || ''}

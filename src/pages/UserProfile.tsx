@@ -355,7 +355,7 @@ const UserProfile = () => {
                         VIP Card
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:absolute [&>button]:right-0 [&>button]:top-0 [&>button]:translate-x-[40%] [&>button]:-translate-y-[40%] [&>button]:bg-white [&>button]:rounded-full [&>button]:p-1.5 [&>button]:shadow-lg [&>button]:z-50 [&>button]:border [&>button]:border-border/30 [&>button]:opacity-100">
+                    <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:absolute [&>button]:right-0 [&>button]:top-0 [&>button]:translate-x-[40%] [&>button]:-translate-y-[40%] [&>button]:bg-white [&>button]:rounded-full [&>button]:p-1.5 [&>button]:shadow-lg [&>button]:z-50 [&>button]:border [&>button]:border-border/30 [&>button]:opacity-100" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                       <VIPCard
                         fullName={profile.full_name || ''}
                         username={profile.username || ''}
