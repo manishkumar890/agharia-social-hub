@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import MusicSelector from '@/components/stories/MusicSelector';
+import ImageCropDialog from '@/components/posts/ImageCropDialog';
 
 interface MultiImageUploadProps {
   images: File[];
@@ -34,6 +35,10 @@ const MultiImageUpload = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [currentCropIndex, setCurrentCropIndex] = useState(0);
+  const [cropSrc, setCropSrc] = useState('');
 
   // Minimum swipe distance
   const minSwipeDistance = 50;
@@ -71,32 +76,69 @@ const MultiImageUpload = ({
     }
 
     const validFiles: File[] = [];
-    const validPreviews: string[] = [];
-
     for (const file of files) {
       if (file.size > maxImageSize) {
         toast.error(`Image "${file.name}" exceeds 30MB limit`);
         continue;
       }
-
       if (!file.type.startsWith('image/')) {
         toast.error(`"${file.name}" is not a valid image`);
         continue;
       }
-
       validFiles.push(file);
-      validPreviews.push(URL.createObjectURL(file));
     }
 
     if (validFiles.length > 0) {
-      onImagesChange([...images, ...validFiles]);
-      onPreviewsChange([...previews, ...validPreviews]);
+      // Start cropping flow for each image
+      setPendingFiles(validFiles);
+      setCurrentCropIndex(0);
+      const url = URL.createObjectURL(validFiles[0]);
+      setCropSrc(url);
+      setCropDialogOpen(true);
     }
 
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const [croppedResults, setCroppedResults] = useState<{ file: File; preview: string }[]>([]);
+
+  const handleCropComplete = (croppedFile: File) => {
+    const preview = URL.createObjectURL(croppedFile);
+    const newResults = [...croppedResults, { file: croppedFile, preview }];
+    
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+
+    const nextIndex = currentCropIndex + 1;
+    if (nextIndex < pendingFiles.length) {
+      // Crop next image
+      setCroppedResults(newResults);
+      setCurrentCropIndex(nextIndex);
+      const url = URL.createObjectURL(pendingFiles[nextIndex]);
+      setCropSrc(url);
+    } else {
+      // All done
+      setCropDialogOpen(false);
+      onImagesChange([...images, ...newResults.map(r => r.file)]);
+      onPreviewsChange([...previews, ...newResults.map(r => r.preview)]);
+      setCroppedResults([]);
+      setPendingFiles([]);
+      setCropSrc('');
+    }
+  };
+
+  const handleCropClose = () => {
+    setCropDialogOpen(false);
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    // Add any already-cropped results
+    if (croppedResults.length > 0) {
+      onImagesChange([...images, ...croppedResults.map(r => r.file)]);
+      onPreviewsChange([...previews, ...croppedResults.map(r => r.preview)]);
+    }
+    setCroppedResults([]);
+    setPendingFiles([]);
+    setCropSrc('');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -221,6 +263,14 @@ const MultiImageUpload = ({
           />
         </div>
       )}
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onClose={handleCropClose}
+        imageSrc={cropSrc}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };
