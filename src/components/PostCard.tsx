@@ -257,11 +257,16 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             backgroundAudioUrl={post.background_audio_url}
           />
         ) : (
-          <img 
-            src={post.image_url} 
-            alt={post.caption || 'Post image'} 
-            className="w-full h-full object-cover"
-          />
+          <>
+            <img 
+              src={post.image_url} 
+              alt={post.caption || 'Post image'} 
+              className="w-full h-full object-cover"
+            />
+            {post.background_audio_url && (
+              <audio src={post.background_audio_url} controls loop className="absolute bottom-2 left-2 right-2 h-8 opacity-80" />
+            )}
+          </>
         )}
         {animateLike && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
