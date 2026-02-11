@@ -44,6 +44,16 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
             style={{ backfaceVisibility: 'hidden' }}
           >
             <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+              {/* DOB missing overlay */}
+              {!dob && isOwner && (
+                <div style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>
+                  <div style={{ textAlign: 'center', color: 'white', padding: '16px' }}>
+                    <Calendar style={{ width: '28px', height: '28px', margin: '0 auto 8px', color: '#facc15' }} />
+                    <p style={{ fontSize: '13px', fontWeight: 600, lineHeight: '18px', color: '#fde047' }}>Add your Date of Birth</p>
+                    <p style={{ fontSize: '10px', lineHeight: '14px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>Go to Edit Profile to complete your VIP card</p>
+                  </div>
+                </div>
+              )}
               {/* Premium gradient background */}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom right, #78350f, #a16207, #451a03)' }} />
               
