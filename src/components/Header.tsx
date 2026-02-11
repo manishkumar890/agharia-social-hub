@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User, Bookmark, UserPen, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun } from 'lucide-react';
+import { User, Bookmark, UserPen, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun, Headphones } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ContactUsDialog from '@/components/ContactUsDialog';
 
 const TITLES = [
   { text: 'अघरिया समाज', lang: 'Hindi' },
@@ -31,6 +32,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [titleIndex, setTitleIndex] = useState(globalTitleIndex);
+  const [contactOpen, setContactOpen] = useState(false);
 
   const isAuthPage = location.pathname === '/auth';
 
@@ -65,6 +67,7 @@ const Header = () => {
   };
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-50">
       {/* Sambalpuri Pattern Banner - Only on Auth page */}
       {isAuthPage && (
@@ -166,6 +169,15 @@ const Header = () => {
                     </>
                   )}
                 </DropdownMenuItem>
+                {isPremium && (
+                  <DropdownMenuItem 
+                    onClick={() => setContactOpen(true)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <Headphones className="w-4 h-4" />
+                    Contact Us
+                  </DropdownMenuItem>
+                )}
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
@@ -188,6 +200,9 @@ const Header = () => {
         </div>
       </nav>
     </header>
+
+    <ContactUsDialog open={contactOpen} onOpenChange={setContactOpen} />
+    </>
   );
 };
 
