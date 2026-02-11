@@ -28,6 +28,28 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
         className="perspective-1000 cursor-pointer"
         onClick={() => setIsFlipped(!isFlipped)}
       >
+        {/* Animated glow border - only when DOB is present */}
+        {dob && (
+          <div 
+            className="absolute -inset-[3px] rounded-[19px] opacity-80"
+            style={{
+              background: 'linear-gradient(90deg, #facc15, #f59e0b, #ef4444, #a855f7, #3b82f6, #facc15)',
+              backgroundSize: '300% 100%',
+              animation: 'glowBorderMove 3s linear infinite',
+              filter: 'blur(6px)',
+            }}
+          />
+        )}
+        {dob && (
+          <div 
+            className="absolute -inset-[3px] rounded-[19px]"
+            style={{
+              background: 'linear-gradient(90deg, #facc15, #f59e0b, #ef4444, #a855f7, #3b82f6, #facc15)',
+              backgroundSize: '300% 100%',
+              animation: 'glowBorderMove 3s linear infinite',
+            }}
+          />
+        )}
         <div 
           className={cn(
             "relative w-[300px] h-[180px] sm:w-[320px] sm:h-[190px] transition-all duration-700 transform-style-3d",
