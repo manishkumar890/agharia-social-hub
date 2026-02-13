@@ -246,7 +246,7 @@ const PostDetail = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           {/* Mobile Back Button */}
           <div className="md:hidden px-4 py-3 flex items-center gap-4 border-b border-border">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>

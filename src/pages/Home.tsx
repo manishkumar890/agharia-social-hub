@@ -102,7 +102,7 @@ const Home = () => {
         {/* Story Bar (scrolls with posts) */}
         <StoryBar />
 
-        <div className="max-w-lg mx-auto px-4">
+        <div className="max-w-xl lg:max-w-2xl mx-auto px-4">
           {/* Posts Feed */}
           <div className="space-y-6">
             {loading ? (

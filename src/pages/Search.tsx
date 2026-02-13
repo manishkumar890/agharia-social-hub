@@ -143,7 +143,7 @@ const Search = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-5xl mx-auto px-4 py-4">
           {/* Search Bar */}
           <div className="relative mb-6">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -196,7 +196,7 @@ const Search = () => {
                   <p className="text-muted-foreground">No posts to explore yet</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-1">
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
                   {explorePosts.map((post) => (
                     <Link
                       key={post.id}

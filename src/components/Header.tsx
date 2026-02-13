@@ -86,7 +86,7 @@ const Header = () => {
 
       {/* Navigation Bar */}
       <nav className="bg-card border-b border-border px-4 py-2">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           {/* Logo/Home with Refresh */}
           <div className="flex items-center gap-2">
             <Link 
