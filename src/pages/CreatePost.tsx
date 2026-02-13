@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ImagePlus, Video, MapPin, Loader2, X, Crown } from 'lucide-react';
+import { ImagePlus, Video, MapPin, Loader2, X, Crown, MessageCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MultiImageUpload from '@/components/posts/MultiImageUpload';
@@ -41,6 +42,7 @@ const CreatePost = () => {
   
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
   // Size limits based on subscription
@@ -237,6 +239,7 @@ const CreatePost = () => {
           location: location.trim() || null,
           media_type: 'image',
           background_audio_url: selectedMusic?.url || null,
+          comments_enabled: commentsEnabled,
         });
 
         if (error) throw error;
@@ -281,6 +284,7 @@ const CreatePost = () => {
           media_type: mediaType,
           thumbnail_url: thumbnailUrl,
           background_audio_url: mediaType === 'image' ? (selectedMusic?.url || null) : null,
+          comments_enabled: commentsEnabled,
         });
 
         if (error) throw error;
@@ -469,6 +473,19 @@ const CreatePost = () => {
                     className="pl-10"
                   />
                 </div>
+              </div>
+
+              {/* Comments Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-muted-foreground" />
+                  <Label htmlFor="comments-toggle">Turn off commenting</Label>
+                </div>
+                <Switch
+                  id="comments-toggle"
+                  checked={!commentsEnabled}
+                  onCheckedChange={(checked) => setCommentsEnabled(!checked)}
+                />
               </div>
 
               {/* Submit Button */}

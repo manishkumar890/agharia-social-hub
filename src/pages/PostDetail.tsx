@@ -26,6 +26,7 @@ interface Post {
   image_url: string;
   image_urls?: string[] | null;
   background_audio_url?: string | null;
+  comments_enabled?: boolean;
   caption: string | null;
   location: string | null;
   created_at: string;
@@ -350,39 +351,43 @@ const PostDetail = () => {
                 )}
 
                 {/* Comments */}
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3 group">
-                    <Link to={`/user/${comment.user_id}`}>
-                      <Avatar className="w-8 h-8 flex-shrink-0">
-                        <AvatarImage src={comment.profiles?.avatar_url || undefined} />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                          {comment.profiles?.full_name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Link>
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        <Link to={`/user/${comment.user_id}`} className="font-semibold mr-1 hover:underline">
-                          {comment.profiles?.username || comment.profiles?.full_name || 'User'}
-                        </Link>
-                        {comment.content}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                {post.comments_enabled === false ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Comments are turned off</p>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-3 group">
+                      <Link to={`/user/${comment.user_id}`}>
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarImage src={comment.profiles?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                            {comment.profiles?.full_name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="flex-1">
+                        <p className="text-sm">
+                          <Link to={`/user/${comment.user_id}`} className="font-semibold mr-1 hover:underline">
+                            {comment.profiles?.username || comment.profiles?.full_name || 'User'}
+                          </Link>
+                          {comment.content}
                         </p>
-                        {(user?.id === comment.user_id || isAdmin) && (
-                          <button 
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-xs text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                          </p>
+                          {(user?.id === comment.user_id || isAdmin) && (
+                            <button 
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-xs text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               {/* Actions */}
@@ -410,27 +415,29 @@ const PostDetail = () => {
                 <p className="font-semibold text-sm mb-2">{likesCount} likes</p>
 
                 {/* Add Comment */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleComment()}
-                    className="flex-1"
-                  />
-                  <Button
-                    size="icon"
-                    onClick={handleComment}
-                    disabled={!newComment.trim() || submitting}
-                    className="gradient-maroon text-primary-foreground"
-                  >
-                    {submitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
+                {post.comments_enabled !== false && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Add a comment..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="icon"
+                      onClick={handleComment}
+                      disabled={!newComment.trim() || submitting}
+                      className="gradient-maroon text-primary-foreground"
+                    >
+                      {submitting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
