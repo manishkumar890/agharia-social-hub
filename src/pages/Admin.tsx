@@ -162,6 +162,48 @@ const Admin = () => {
     }
   }, [isAdmin]);
 
+  // Realtime subscription for new premium users
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-subscriptions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_subscriptions',
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const sub = payload.new as any;
+            if (sub.plan_type === 'premium') {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, username, avatar_url, phone')
+                .eq('user_id', sub.user_id)
+                .maybeSingle();
+              const newPremium = { ...sub, profile } as PremiumUser;
+              setPremiumUsers(prev => {
+                const filtered = prev.filter(p => p.user_id !== sub.user_id);
+                return [newPremium, ...filtered];
+              });
+              setStats(prev => ({ ...prev, premium: prev.premium + (payload.eventType === 'INSERT' ? 1 : 0) }));
+            } else {
+              // Plan changed away from premium (e.g. revoked)
+              setPremiumUsers(prev => prev.filter(p => p.user_id !== sub.user_id));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin]);
+
   const fetchData = async () => {
     try {
       // Fetch users
