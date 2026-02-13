@@ -63,6 +63,8 @@ const Messages = () => {
   const { user } = useAuth();
   const { startCall } = useCall();
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
+  const [videoCallEnabled, setVideoCallEnabled] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -73,6 +75,23 @@ const Messages = () => {
   const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Fetch call settings
+  useEffect(() => {
+    const fetchCallSettings = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', ['voice_call_enabled', 'video_call_enabled']);
+      if (data) {
+        data.forEach((s: { key: string; value: string }) => {
+          if (s.key === 'voice_call_enabled') setVoiceCallEnabled(s.value === 'true');
+          if (s.key === 'video_call_enabled') setVideoCallEnabled(s.value === 'true');
+        });
+      }
+    };
+    fetchCallSettings();
+  }, []);
 
   // Fetch conversations
   useEffect(() => {
@@ -397,24 +416,28 @@ const Messages = () => {
                 )}
               </Link>
             </div>
-            {!isOtherUserDisabled && (
+            {!isOtherUserDisabled && (voiceCallEnabled || videoCallEnabled) && (
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => conversationId && startCall(conversationId, otherUserId, 'voice')}
-                  className="text-primary hover:bg-primary/10"
-                >
-                  <Phone className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => conversationId && startCall(conversationId, otherUserId, 'video')}
-                  className="text-primary hover:bg-primary/10"
-                >
-                  <Video className="w-5 h-5" />
-                </Button>
+                {voiceCallEnabled && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => conversationId && startCall(conversationId, otherUserId, 'voice')}
+                    className="text-primary hover:bg-primary/10"
+                  >
+                    <Phone className="w-5 h-5" />
+                  </Button>
+                )}
+                {videoCallEnabled && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => conversationId && startCall(conversationId, otherUserId, 'video')}
+                    className="text-primary hover:bg-primary/10"
+                  >
+                    <Video className="w-5 h-5" />
+                  </Button>
+                )}
               </div>
             )}
           </div>

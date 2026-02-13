@@ -30,7 +30,8 @@ import {
   Image,
   Loader2,
   Save,
-  Headphones
+  Headphones,
+  Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -145,6 +146,8 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
+  const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
+  const [videoCallEnabled, setVideoCallEnabled] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -263,6 +266,18 @@ const Admin = () => {
         .order('created_at', { ascending: false });
       
       setContactQueries((queriesData as ContactQuery[]) || []);
+
+      // Fetch app settings for call controls
+      const { data: appSettings } = await supabase
+        .from('app_settings')
+        .select('key, value');
+      
+      if (appSettings) {
+        appSettings.forEach((s: { key: string; value: string }) => {
+          if (s.key === 'voice_call_enabled') setVoiceCallEnabled(s.value === 'true');
+          if (s.key === 'video_call_enabled') setVideoCallEnabled(s.value === 'true');
+        });
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -655,6 +670,10 @@ const Admin = () => {
                 <TabsTrigger value="support" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
                   <Headphones className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Support</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
+                  <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Calls</span>
                 </TabsTrigger>
               </TabsList>
             </ScrollArea>
@@ -1182,6 +1201,70 @@ const Admin = () => {
                         </div>
                       ))
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Call Settings Tab */}
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Call Settings</CardTitle>
+                  <CardDescription>Enable or disable voice and video calling for all users</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Phone className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Voice Calls</p>
+                        <p className="text-xs text-muted-foreground">Allow users to make voice calls</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={voiceCallEnabled}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase
+                          .from('app_settings')
+                          .update({ value: checked ? 'true' : 'false', updated_at: new Date().toISOString() })
+                          .eq('key', 'voice_call_enabled');
+                        if (!error) {
+                          setVoiceCallEnabled(checked);
+                          toast.success(checked ? 'Voice calls enabled' : 'Voice calls disabled');
+                        } else {
+                          toast.error('Failed to update setting');
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Video className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Video Calls</p>
+                        <p className="text-xs text-muted-foreground">Allow users to make video calls</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={videoCallEnabled}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase
+                          .from('app_settings')
+                          .update({ value: checked ? 'true' : 'false', updated_at: new Date().toISOString() })
+                          .eq('key', 'video_call_enabled');
+                        if (!error) {
+                          setVideoCallEnabled(checked);
+                          toast.success(checked ? 'Video calls enabled' : 'Video calls disabled');
+                        } else {
+                          toast.error('Failed to update setting');
+                        }
+                      }}
+                    />
                   </div>
                 </CardContent>
               </Card>
