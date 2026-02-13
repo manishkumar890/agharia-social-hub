@@ -18,7 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban, Phone, Video } from 'lucide-react';
+import { useCall } from '@/components/calls/CallProvider';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -60,6 +61,7 @@ const Messages = () => {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { startCall } = useCall();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -395,6 +397,26 @@ const Messages = () => {
                 )}
               </Link>
             </div>
+            {!isOtherUserDisabled && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => conversationId && startCall(conversationId, otherUserId, 'voice')}
+                  className="text-primary hover:bg-primary/10"
+                >
+                  <Phone className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => conversationId && startCall(conversationId, otherUserId, 'video')}
+                  className="text-primary hover:bg-primary/10"
+                >
+                  <Video className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Messages */}

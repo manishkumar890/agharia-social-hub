@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { CallProvider } from "@/components/calls/CallProvider";
 import PremiumPopup from "@/components/PremiumPopup";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -107,8 +108,10 @@ const App = () => (
           <AuthProvider>
             <NotificationProvider>
               <SubscriptionProvider>
-                <PremiumPopup />
-                <AppRoutes />
+                <CallProvider>
+                  <PremiumPopup />
+                  <AppRoutes />
+                </CallProvider>
               </SubscriptionProvider>
             </NotificationProvider>
           </AuthProvider>
