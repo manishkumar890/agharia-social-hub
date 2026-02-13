@@ -146,7 +146,7 @@ const Settings = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-lg mx-auto px-4 py-6">
+        <div className="max-w-xl lg:max-w-2xl mx-auto px-4 py-6">
           {/* Header */}
           <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>

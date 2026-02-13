@@ -148,7 +148,7 @@ const Profile = () => {
     }
 
     return (
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
         {postsToRender.map((post) => (
           <Link
             key={post.id}
@@ -192,7 +192,7 @@ const Profile = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           {/* Profile Header */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
             {/* Profile Avatar with Story Ring */}

@@ -547,7 +547,7 @@ const Messages = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <div className="px-4 py-4 border-b border-border">
             <h1 className="text-xl font-display font-semibold">Messages</h1>
           </div>

@@ -235,7 +235,7 @@ const Notifications = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-lg mx-auto px-4 py-4">
+        <div className="max-w-xl lg:max-w-2xl mx-auto px-4 py-4">
           <h2 className="text-lg font-display font-semibold mb-4">Activity</h2>
 
           {loading ? (

@@ -308,7 +308,7 @@ const CreatePost = () => {
       <Header />
       
       <main className="pt-14 pb-20 md:pb-8">
-        <div className="max-w-lg mx-auto px-4 py-6">
+        <div className="max-w-xl lg:max-w-2xl mx-auto px-4 py-6">
           <Card className="shadow-elegant">
             <CardHeader>
               <CardTitle className="font-display text-xl">Create New Post</CardTitle>

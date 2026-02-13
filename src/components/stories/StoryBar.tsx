@@ -278,7 +278,7 @@ const StoryBar = () => {
   return (
     <>
       <div className="bg-transparent px-4 py-3">
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-xl lg:max-w-2xl mx-auto">
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-1">
             {/* My Story / Add Story */}
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
