@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageSquare, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -314,7 +314,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             {post.comments_enabled !== false && (
               <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" asChild>
                 <Link to={`/post/${post.id}`}>
-                  <MessageCircle className="w-6 h-6" />
+                  <MessageSquare className="w-6 h-6" />
                 </Link>
               </Button>
             )}
