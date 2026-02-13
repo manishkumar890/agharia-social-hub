@@ -7,7 +7,7 @@ import MobileNav from '@/components/MobileNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, MessageCircle, Send, Bookmark, ArrowLeft, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Heart, MessageSquare, Send, Bookmark, ArrowLeft, MoreHorizontal, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -401,7 +401,7 @@ const PostDetail = () => {
                       )} />
                     </Button>
                     <Button variant="ghost" size="icon">
-                      <MessageCircle className="w-6 h-6" />
+                      <MessageSquare className="w-6 h-6" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => setSendDialogOpen(true)}>
                       <Send className="w-6 h-6" />
