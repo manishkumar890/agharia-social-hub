@@ -78,6 +78,8 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   const hasBackgroundAudio = isImage && !!currentStory?.background_audio_url;
   const hasMediaElement = isVideo || isAudio;
   const bgAudioRef = useRef<HTMLAudioElement>(null);
+  const [imageReady, setImageReady] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
 
   // Handle back button - navigate to home instead of closing app
   useEffect(() => {
@@ -348,6 +350,8 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
   useEffect(() => {
     setProgress(0);
     setIsLoading(true);
+    setImageReady(false);
+    setAudioReady(false);
     
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
@@ -357,12 +361,24 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(() => {});
     }
-    // Play background audio for image stories
-    if (bgAudioRef.current && hasBackgroundAudio) {
-      bgAudioRef.current.currentTime = 0;
-      bgAudioRef.current.play().catch(() => {});
+    // Background audio will be played once both image and audio are ready
+  }, [currentIndex]);
+
+  // Sync image + background audio loading
+  useEffect(() => {
+    if (hasBackgroundAudio) {
+      // Both must be ready
+      if (imageReady && audioReady) {
+        setIsLoading(false);
+        if (bgAudioRef.current) {
+          bgAudioRef.current.currentTime = 0;
+          bgAudioRef.current.play().catch(() => {});
+        }
+      }
+    } else if (isImage && imageReady) {
+      setIsLoading(false);
     }
-  }, [currentIndex, hasBackgroundAudio]);
+  }, [imageReady, audioReady, hasBackgroundAudio, isImage]);
 
   // Handle media loaded
   const handleMediaLoaded = () => {
@@ -586,8 +602,8 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
             <img
               src={currentStory.media_url}
               alt="Story"
-              className="max-w-full max-h-full object-contain"
-              onLoad={handleMediaLoaded}
+              className={`max-w-full max-h-full object-contain transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+              onLoad={() => setImageReady(true)}
             />
             {/* Background audio for image stories */}
             {hasBackgroundAudio && (
@@ -595,12 +611,13 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                 <audio
                   ref={bgAudioRef}
                   src={currentStory.background_audio_url}
-                  autoPlay
                   loop
+                  preload="auto"
+                  onCanPlayThrough={() => setAudioReady(true)}
                   className="hidden"
                 />
                 {/* Music indicator */}
-                <div className="absolute bottom-24 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 rounded-full z-20">
+                <div className={`absolute bottom-24 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 rounded-full z-20 transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
                   <Music className="w-4 h-4 text-white animate-pulse" />
                   <span className="text-white text-xs">♪ Music</span>
                 </div>
