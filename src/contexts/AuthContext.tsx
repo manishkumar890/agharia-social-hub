@@ -59,33 +59,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const checkAdminRole = async (userId: string, phone: string) => {
-    // Check if user has admin phone number
-    if (phone === ADMIN_PHONE) {
-      // Check if admin role exists, if not create it
-      const { data: roleData } = await supabase
+    // Check database for admin role
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .single();
+    
+    if (roleData) {
+      setIsAdmin(true);
+    } else if (phone === ADMIN_PHONE) {
+      // Admin phone but no role in DB yet — insert it
+      await supabase
         .from('user_roles')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .single();
-      
-      if (!roleData) {
-        // Create admin role for this user (this will work only if they're first admin or an admin creates it)
-        // For the first admin, we'll handle this specially
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(true);
-      }
+        .insert({ user_id: userId, role: 'admin' });
+      setIsAdmin(true);
     } else {
-      // Check database for admin role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .single();
-      
-      setIsAdmin(!!roleData);
+      setIsAdmin(false);
     }
   };
 
