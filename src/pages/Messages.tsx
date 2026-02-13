@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Send, Loader2, MessageCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ interface Profile {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  is_disabled?: boolean;
 }
 
 interface Conversation {
@@ -223,7 +224,7 @@ const Messages = () => {
           const otherUserId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1;
           const { data: profile } = await supabase
             .from('profiles')
-            .select('user_id, full_name, username, avatar_url')
+            .select('user_id, full_name, username, avatar_url, is_disabled')
             .eq('user_id', otherUserId)
             .single();
 
@@ -353,6 +354,7 @@ const Messages = () => {
       ? activeConversation.participant_2 
       : activeConversation.participant_1;
     const isTyping = typingUsers.has(otherUserId);
+    const isOtherUserDisabled = activeConversation.otherUser?.is_disabled || false;
 
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -380,7 +382,11 @@ const Messages = () => {
                 <p className="font-semibold text-sm">
                   {activeConversation.otherUser?.full_name || activeConversation.otherUser?.username || 'User'}
                 </p>
-                {isTyping ? (
+                {isOtherUserDisabled ? (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <Ban className="w-3 h-3" /> Account Disabled
+                  </p>
+                ) : isTyping ? (
                   <p className="text-xs text-primary animate-pulse">typing...</p>
                 ) : isUserOnline(otherUserId) ? (
                   <p className="text-xs text-green-500">Online</p>
@@ -480,25 +486,32 @@ const Messages = () => {
 
           {/* Input */}
           <div className="bg-card border-t border-border p-4">
-            <div className="max-w-2xl mx-auto flex gap-2">
-              <Input
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  handleTyping();
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim() || sending}
-                className="gradient-maroon"
-              >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
+            {isOtherUserDisabled ? (
+              <div className="max-w-2xl mx-auto flex items-center justify-center gap-2 py-2 text-destructive">
+                <Ban className="w-4 h-4" />
+                <p className="text-sm font-medium">This account has been disabled. You cannot send messages.</p>
+              </div>
+            ) : (
+              <div className="max-w-2xl mx-auto flex gap-2">
+                <Input
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || sending}
+                  className="gradient-maroon"
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+            )}
           </div>
         </main>
 
@@ -578,9 +591,15 @@ const Messages = () => {
                       <p className="font-semibold text-sm truncate">
                         {conv.otherUser?.full_name || conv.otherUser?.username || 'User'}
                       </p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {conv.lastMessage || 'Start chatting...'}
-                      </p>
+                      {conv.otherUser?.is_disabled ? (
+                        <p className="text-xs text-destructive flex items-center gap-1">
+                          <Ban className="w-3 h-3" /> Account Disabled
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {conv.lastMessage || 'Start chatting...'}
+                        </p>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })}
