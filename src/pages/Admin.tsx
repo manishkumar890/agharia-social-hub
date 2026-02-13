@@ -564,7 +564,7 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-14 pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-16">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
           {/* Header */}
           <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">

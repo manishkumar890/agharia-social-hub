@@ -307,7 +307,7 @@ const CreatePost = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-14 pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-16">
         <div className="max-w-xl lg:max-w-2xl mx-auto px-4 py-6">
           <Card className="shadow-elegant">
             <CardHeader>

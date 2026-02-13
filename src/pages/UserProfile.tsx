@@ -308,7 +308,7 @@ const UserProfile = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-14 pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-16">
         <div className="max-w-5xl mx-auto px-4 py-6">
           {/* Profile Header */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">

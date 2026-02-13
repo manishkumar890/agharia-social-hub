@@ -360,7 +360,7 @@ const Messages = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
         
-        <main className="pt-14 pb-20 md:pb-8 flex-1 flex flex-col">
+        <main className="pt-14 pb-20 md:pb-16 flex-1 flex flex-col">
           {/* Chat Header */}
           <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
@@ -546,7 +546,7 @@ const Messages = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-14 pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-16">
         <div className="max-w-3xl mx-auto">
           <div className="px-4 py-4 border-b border-border">
             <h1 className="text-xl font-display font-semibold">Messages</h1>
