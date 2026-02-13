@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useWebRTC, CallStatus, CallType } from '@/hooks/useWebRTC';
 import { supabase } from '@/integrations/supabase/client';
+import { playVoiceRingtone, playVideoRingtone, stopRingtone } from '@/lib/ringtones';
 import IncomingCallDialog from './IncomingCallDialog';
 import ActiveCallScreen from './ActiveCallScreen';
 
@@ -23,15 +24,29 @@ export const useCall = () => useContext(CallContext);
 
 export const CallProvider = ({ children }: { children: ReactNode }) => {
   const {
-    callState, startCall, answerCall, declineCall, endCall,
-    toggleMute, toggleCamera, localVideoRef, remoteVideoRef,
-    localStreamRef, remoteStreamRef,
+    callState, localStream, remoteStream,
+    startCall, answerCall, declineCall, endCall,
+    toggleMute, toggleCamera,
   } = useWebRTC();
 
   const [callerInfo, setCallerInfo] = useState<CallerInfo>({ name: 'User', avatar: null });
   const [remoteInfo, setRemoteInfo] = useState<CallerInfo>({ name: 'User', avatar: null });
 
-  // Fetch caller info when receiving a call
+  // Play ringtones based on call status and type
+  useEffect(() => {
+    if (callState.status === 'ringing' || callState.status === 'calling') {
+      if (callState.callType === 'video') {
+        playVideoRingtone();
+      } else {
+        playVoiceRingtone();
+      }
+    } else {
+      stopRingtone();
+    }
+    return () => stopRingtone();
+  }, [callState.status, callState.callType]);
+
+  // Fetch caller/remote info
   useEffect(() => {
     if (callState.status === 'ringing' && callState.remoteUserId) {
       supabase
@@ -60,9 +75,8 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
   }, [callState.status, callState.remoteUserId]);
 
   const handleAnswer = () => {
-    const state = callState as any;
-    if (state._incomingOffer && callState.callLogId && callState.remoteUserId && callState.conversationId) {
-      answerCall(callState.callLogId, callState.remoteUserId, callState.callType, callState.conversationId, state._incomingOffer);
+    if (callState._incomingOffer && callState.callLogId && callState.remoteUserId && callState.conversationId) {
+      answerCall(callState.callLogId, callState.remoteUserId, callState.callType, callState.conversationId, callState._incomingOffer);
     }
   };
 
@@ -76,7 +90,6 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
     <CallContext.Provider value={{ startCall, callStatus: callState.status }}>
       {children}
 
-      {/* Incoming call dialog */}
       {callState.status === 'ringing' && (
         <IncomingCallDialog
           callerName={callerInfo.name}
@@ -87,7 +100,6 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
         />
       )}
 
-      {/* Active call screen */}
       {(callState.status === 'calling' || callState.status === 'connected') && (
         <ActiveCallScreen
           remoteUserName={remoteInfo.name}
@@ -100,10 +112,8 @@ export const CallProvider = ({ children }: { children: ReactNode }) => {
           onEndCall={endCall}
           onToggleMute={toggleMute}
           onToggleCamera={toggleCamera}
-          localVideoRef={localVideoRef}
-          remoteVideoRef={remoteVideoRef}
-          localStream={localStreamRef.current}
-          remoteStream={remoteStreamRef.current}
+          localStream={localStream}
+          remoteStream={remoteStream}
         />
       )}
     </CallContext.Provider>
