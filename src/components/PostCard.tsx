@@ -24,6 +24,7 @@ interface Post {
   image_url: string;
   image_urls?: string[] | null;
   background_audio_url?: string | null;
+  comments_enabled?: boolean;
   caption: string | null;
   location: string | null;
   created_at: string;
@@ -310,11 +311,13 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
                 animateUnlike && "animate-heart-break"
               )} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" asChild>
-              <Link to={`/post/${post.id}`}>
-                <MessageCircle className="w-6 h-6" />
-              </Link>
-            </Button>
+            {post.comments_enabled !== false && (
+              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" asChild>
+                <Link to={`/post/${post.id}`}>
+                  <MessageCircle className="w-6 h-6" />
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" onClick={handleSend}>
               <Send className="w-6 h-6" />
             </Button>
@@ -341,7 +344,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         )}
 
         {/* Comments Count */}
-        {commentsCount > 0 && (
+        {post.comments_enabled !== false && commentsCount > 0 && (
           <Link to={`/post/${post.id}`} className="text-sm text-muted-foreground mt-1 block">
             View all {commentsCount} comments
           </Link>

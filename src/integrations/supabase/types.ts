@@ -291,6 +291,7 @@ export type Database = {
         Row: {
           background_audio_url: string | null
           caption: string | null
+          comments_enabled: boolean
           created_at: string
           id: string
           image_url: string
@@ -304,6 +305,7 @@ export type Database = {
         Insert: {
           background_audio_url?: string | null
           caption?: string | null
+          comments_enabled?: boolean
           created_at?: string
           id?: string
           image_url: string
@@ -317,6 +319,7 @@ export type Database = {
         Update: {
           background_audio_url?: string | null
           caption?: string | null
+          comments_enabled?: boolean
           created_at?: string
           id?: string
           image_url?: string
