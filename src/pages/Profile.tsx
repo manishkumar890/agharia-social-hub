@@ -227,7 +227,7 @@ const Profile = () => {
                   <h1 className="text-xl font-semibold">
                     {profile.username || profile.full_name}
                   </h1>
-                  <VerificationBadge isPremium={isPremium} isOwnProfile={true} size="lg" />
+                  <VerificationBadge isPremium={isPremium} isOwnProfile={true} size="sm" />
                 </div>
                 <div className="flex items-center gap-2">
                   {isPremium && (
