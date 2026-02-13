@@ -15,8 +15,6 @@ interface ActiveCallScreenProps {
   onEndCall: () => void;
   onToggleMute: () => void;
   onToggleCamera: () => void;
-  localVideoRef: React.RefObject<HTMLVideoElement | null>;
-  remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
 }
@@ -30,25 +28,26 @@ const formatDuration = (seconds: number) => {
 const ActiveCallScreen = ({
   remoteUserName, remoteUserAvatar, callType, status,
   isMuted, isCameraOff, duration, onEndCall, onToggleMute,
-  onToggleCamera, localVideoRef, remoteVideoRef, localStream, remoteStream,
+  onToggleCamera, localStream, remoteStream,
 }: ActiveCallScreenProps) => {
 
   const localRef = useRef<HTMLVideoElement>(null);
   const remoteRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const el = localRef.current || localVideoRef.current;
-    if (el && localStream) el.srcObject = localStream;
+    if (localRef.current && localStream) {
+      localRef.current.srcObject = localStream;
+    }
   }, [localStream]);
 
   useEffect(() => {
-    const el = remoteRef.current || remoteVideoRef.current;
-    if (el && remoteStream) el.srcObject = remoteStream;
+    if (remoteRef.current && remoteStream) {
+      remoteRef.current.srcObject = remoteStream;
+    }
   }, [remoteStream]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-      {/* Main video / avatar area */}
       <div className="flex-1 relative flex items-center justify-center">
         {callType === 'video' && status === 'connected' ? (
           <>
@@ -58,14 +57,13 @@ const ActiveCallScreen = ({
               playsInline
               className="w-full h-full object-cover"
             />
-            {/* Local video pip */}
             <div className="absolute top-4 right-4 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white/30 shadow-lg">
               <video
                 ref={localRef}
                 autoPlay
                 playsInline
                 muted
-                className="w-full h-full object-cover mirror"
+                className="w-full h-full object-cover"
                 style={{ transform: 'scaleX(-1)' }}
               />
             </div>
@@ -97,14 +95,12 @@ const ActiveCallScreen = ({
         )}
       </div>
 
-      {/* Status bar */}
       {status === 'connected' && callType === 'video' && (
         <div className="absolute top-4 left-4 bg-black/50 backdrop-blur rounded-full px-4 py-2">
           <p className="text-white text-sm font-medium">{formatDuration(duration)}</p>
         </div>
       )}
 
-      {/* Controls */}
       <div className="bg-black/50 backdrop-blur-lg p-6 pb-10 flex justify-center gap-6">
         <Button
           onClick={onToggleMute}
