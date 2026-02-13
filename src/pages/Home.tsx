@@ -98,7 +98,7 @@ const Home = () => {
       <Header />
 
       {/* Content scrolls under the fixed navbar */}
-      <main className="pt-14 pb-20 md:pb-8">
+      <main className="pt-14 pb-20 md:pb-16">
         {/* Story Bar (scrolls with posts) */}
         <StoryBar />
 
