@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import CategorySlidePopup from '@/components/CategorySlidePopup';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -523,6 +524,7 @@ const CreatePost = () => {
         imageSrc={rawImageSrc}
         onCropComplete={handleCropComplete}
       />
+      <CategorySlidePopup />
     </div>
   );
 };

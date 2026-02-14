@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,11 +12,6 @@ const categories = [
 const CategorySlidePopup = () => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleCategoryClick = (categoryId: string) => {
     setIsVisible(false);
