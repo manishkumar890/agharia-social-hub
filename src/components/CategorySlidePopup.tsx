@@ -4,7 +4,6 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const categories = [
-  { id: 'education', name: 'Education', icon: '📚', color: 'bg-blue-500/10 text-blue-600' },
   { id: 'festival', name: 'Festival', icon: '🎉', color: 'bg-orange-500/10 text-orange-600' },
   { id: 'apps', name: 'Apps', icon: '📱', color: 'bg-emerald-500/10 text-emerald-600' },
 ];
@@ -21,7 +20,7 @@ const CategorySlidePopup = () => {
   return (
     <div
       className={cn(
-        "fixed right-0 top-1/2 -translate-y-1/2 z-[55] transition-transform duration-500 ease-out",
+        "fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-transform duration-500 ease-out",
         isVisible ? "translate-x-0" : "translate-x-[calc(100%-28px)]"
       )}
     >
