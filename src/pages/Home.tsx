@@ -7,6 +7,7 @@ import PostCard from '@/components/PostCard';
 import StoryBar from '@/components/stories/StoryBar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
+import CategorySlidePopup from '@/components/CategorySlidePopup';
 
 interface Post {
   id: string;
@@ -145,6 +146,7 @@ const Home = () => {
       </main>
 
       <MobileNav />
+      <CategorySlidePopup />
     </div>
   );
 };
