@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const categories = [
@@ -24,23 +24,28 @@ const CategorySlidePopup = () => {
   };
 
   return (
-    <div
-      className={cn(
-        "fixed right-0 top-1/2 -translate-y-1/2 z-[55] transition-transform duration-500 ease-out",
-        isVisible ? "translate-x-0" : "translate-x-full"
-      )}
-    >
-      {/* Close tab */}
+    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[55]">
+      {/* Arrow toggle tab - always visible */}
       <button
-        onClick={() => setIsVisible(false)}
+        onClick={() => setIsVisible(!isVisible)}
         className="absolute -left-7 top-1/2 -translate-y-1/2 w-7 h-14 bg-card border border-r-0 border-border rounded-l-lg flex items-center justify-center shadow-md hover:bg-muted transition-colors"
-        aria-label="Close"
+        aria-label={isVisible ? "Close categories" : "Open categories"}
       >
-        <X className="w-3.5 h-3.5 text-muted-foreground" />
+        <ChevronRight
+          className={cn(
+            "w-4 h-4 text-muted-foreground transition-transform duration-300",
+            isVisible ? "rotate-0" : "rotate-180"
+          )}
+        />
       </button>
 
       {/* Panel */}
-      <div className="bg-card border border-border rounded-l-xl shadow-xl w-48 py-2 px-2 space-y-1">
+      <div
+        className={cn(
+          "bg-card border border-border rounded-l-xl shadow-xl w-48 py-2 px-2 space-y-1 transition-transform duration-500 ease-out",
+          isVisible ? "translate-x-0" : "translate-x-full"
+        )}
+      >
         {categories.map((cat) => (
           <button
             key={cat.id}
