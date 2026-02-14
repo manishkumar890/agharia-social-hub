@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
+import CategorySlidePopup from '@/components/CategorySlidePopup';
 import MobileNav from '@/components/MobileNav';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -225,6 +226,7 @@ const Search = () => {
       </main>
 
       <MobileNav />
+      <CategorySlidePopup />
     </div>
   );
 };

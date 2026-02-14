@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import CategorySlidePopup from '@/components/CategorySlidePopup';
 import ActivityItem from '@/components/notifications/ActivityItem';
 import { Heart } from 'lucide-react';
 
@@ -272,6 +273,7 @@ const Notifications = () => {
       </main>
 
       <MobileNav />
+      <CategorySlidePopup />
     </div>
   );
 };
