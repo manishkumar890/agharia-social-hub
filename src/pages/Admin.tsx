@@ -31,7 +31,8 @@ import {
   Loader2,
   Save,
   Headphones,
-  Phone
+  Phone,
+  Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -148,6 +149,7 @@ const Admin = () => {
   const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
   const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
   const [videoCallEnabled, setVideoCallEnabled] = useState(true);
+  const [singlePageMode, setSinglePageMode] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -318,6 +320,7 @@ const Admin = () => {
         appSettings.forEach((s: { key: string; value: string }) => {
           if (s.key === 'voice_call_enabled') setVoiceCallEnabled(s.value === 'true');
           if (s.key === 'video_call_enabled') setVideoCallEnabled(s.value === 'true');
+          if (s.key === 'single_page_mode') setSinglePageMode(s.value === 'true');
         });
       }
     } catch (error) {
@@ -1252,8 +1255,8 @@ const Admin = () => {
             <TabsContent value="settings">
               <Card>
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Call Settings</CardTitle>
-                  <CardDescription>Enable or disable voice and video calling for all users</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">App Settings</CardTitle>
+                  <CardDescription>Configure global app features for all users</CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
                   <div className="flex items-center justify-between p-4 rounded-lg border border-border">
@@ -1302,6 +1305,34 @@ const Admin = () => {
                         if (!error) {
                           setVideoCallEnabled(checked);
                           toast.success(checked ? 'Video calls enabled' : 'Video calls disabled');
+                        } else {
+                          toast.error('Failed to update setting');
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Single Page Mode */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Globe className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Single Page Mode</p>
+                        <p className="text-xs text-muted-foreground">Convert app to a single-page website (Home only)</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={singlePageMode}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase
+                          .from('app_settings')
+                          .update({ value: checked ? 'true' : 'false', updated_at: new Date().toISOString() })
+                          .eq('key', 'single_page_mode');
+                        if (!error) {
+                          setSinglePageMode(checked);
+                          toast.success(checked ? 'Single page mode enabled' : 'App restored to multi-page mode');
                         } else {
                           toast.error('Failed to update setting');
                         }
