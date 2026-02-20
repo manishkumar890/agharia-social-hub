@@ -24,19 +24,14 @@ import Messages from "./pages/Messages";
 import AIChat from "./pages/AIChat";
 import Category from "./pages/Category";
 import NotFound from "./pages/NotFound";
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-// Context to share single page mode state
-const SinglePageContext = createContext(false);
-export const useSinglePageMode = () => useContext(SinglePageContext);
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isDisabled, signOut } = useAuth();
-  const singlePageMode = useSinglePageMode();
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -44,12 +39,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
-  // In single page mode without login, redirect to home
-  if (!user && singlePageMode) {
-    return <Navigate to="/" replace />;
-  }
-
+  
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
@@ -83,12 +73,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-
+  
   return <>{children}</>;
 };
 
-// Provider that fetches single page mode setting
-const SinglePageProvider = ({ children }: { children: React.ReactNode }) => {
+// Guard that redirects to Home when single page mode is active (except admin)
+const SinglePageGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isAdmin } = useAuth();
+  const location = useLocation();
   const [singlePageMode, setSinglePageMode] = useState(false);
   const [checked, setChecked] = useState(false);
 
@@ -104,28 +96,11 @@ const SinglePageProvider = ({ children }: { children: React.ReactNode }) => {
       });
   }, []);
 
-  if (!checked) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  if (!checked) return null;
 
-  return (
-    <SinglePageContext.Provider value={singlePageMode}>
-      {children}
-    </SinglePageContext.Provider>
-  );
-};
-
-// Guard that redirects to Home when single page mode is active (except admin)
-const SinglePageGuard = ({ children }: { children: React.ReactNode }) => {
-  const { isAdmin, user } = useAuth();
-  const location = useLocation();
-  const singlePageMode = useSinglePageMode();
-
-  // In single page mode, non-admin users (logged in or not) can only access /
+  // In single page mode, non-admin users can only access / and /auth
   if (singlePageMode && !isAdmin) {
-    const allowed = ['/'];
+    const allowed = ['/', '/auth'];
     if (!allowed.includes(location.pathname)) {
       return <Navigate to="/" replace />;
     }
@@ -139,7 +114,7 @@ const AppRoutes = () => {
     <SinglePageGuard>
       <Routes>
         <Route path="/auth" element={<Auth />} />
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
@@ -167,16 +142,14 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <SinglePageProvider>
-              <NotificationProvider>
-                <SubscriptionProvider>
-                  <CallProvider>
-                    <PremiumPopup />
-                    <AppRoutes />
-                  </CallProvider>
-                </SubscriptionProvider>
-              </NotificationProvider>
-            </SinglePageProvider>
+            <NotificationProvider>
+              <SubscriptionProvider>
+                <CallProvider>
+                  <PremiumPopup />
+                  <AppRoutes />
+                </CallProvider>
+              </SubscriptionProvider>
+            </NotificationProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

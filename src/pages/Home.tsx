@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSinglePageMode } from '@/App';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import PostCard from '@/components/PostCard';
@@ -26,7 +25,6 @@ interface Post {
 
 const Home = () => {
   const { user } = useAuth();
-  const singlePageMode = useSinglePageMode();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -96,17 +94,14 @@ const Home = () => {
     setPosts(posts.filter(p => p.id !== postId));
   };
 
-  // In single page mode without login, show a simple public view
-  const isPublicMode = singlePageMode && !user;
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       {/* Content scrolls under the fixed navbar */}
-      <main className={`pt-14 ${isPublicMode ? 'pb-4' : 'pb-20 md:pb-16'}`}>
-        {/* Story Bar - only for logged-in users */}
-        {!isPublicMode && <StoryBar />}
+      <main className="pt-14 pb-20 md:pb-16">
+        {/* Story Bar (scrolls with posts) */}
+        <StoryBar />
 
         <div className="max-w-xl lg:max-w-2xl mx-auto px-4">
           {/* Posts Feed */}
@@ -142,7 +137,7 @@ const Home = () => {
                 <PostCard 
                   key={post.id} 
                   post={post} 
-                  onDelete={() => handleDeletePost(post.id)}
+                  onDelete={() => handleDeletePost(post.id)} 
                 />
               ))
             )}
@@ -150,9 +145,8 @@ const Home = () => {
         </div>
       </main>
 
-      {/* Mobile nav only for logged-in users */}
-      {!isPublicMode && <MobileNav />}
-      {!isPublicMode && <CategorySlidePopup />}
+      <MobileNav />
+      <CategorySlidePopup />
     </div>
   );
 };
