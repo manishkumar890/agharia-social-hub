@@ -1,55 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Crown, Check, Loader2, BadgeCheck, Clock, Video, Sparkles, Shield, Star, X, Plane } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useState } from 'react';
+import { Crown, Check, BadgeCheck, Clock, Video, Sparkles, Shield, Star, X, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayResponse) => void;
-  prefill: {
-    name: string;
-    contact: string;
-  };
-  theme: {
-    color: string;
-  };
-  modal?: {
-    confirm_close?: boolean;
-    escape?: boolean;
-    backdropclose?: boolean;
-  };
-  readonly?: {
-    contact?: boolean;
-    email?: boolean;
-    name?: boolean;
-  };
-}
-
-interface RazorpayInstance {
-  open: () => void;
-}
-
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
 
 interface PremiumUpgradeDialogProps {
   open: boolean;
@@ -89,109 +42,12 @@ const premiumBenefits = [
   }
 ];
 
+const PAYMENT_LINK = 'https://rzp.io/rzp/aghariasamajvip';
+
 const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps) => {
-  const { user, profile } = useAuth();
-  const { refreshSubscription } = useSubscription();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
-
-  // Preload Razorpay script when dialog opens
-  useEffect(() => {
-    if (open && !window.Razorpay) {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.onload = () => setIsScriptLoaded(true);
-      script.onerror = () => setIsScriptLoaded(false);
-      document.body.appendChild(script);
-    } else if (window.Razorpay) {
-      setIsScriptLoaded(true);
-    }
-  }, [open]);
-
-  const handlePayment = async () => {
-    if (!user) {
-      toast.error('Please login to continue');
-      return;
-    }
-
-    if (!isScriptLoaded && !window.Razorpay) {
-      toast.error('Payment gateway is loading, please try again');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-        body: { amount: 19900 }
-      });
-
-      if (error || !data?.order_id) {
-        console.error('Order creation error:', error, data);
-        throw new Error('Failed to create order');
-      }
-
-      const options: RazorpayOptions = {
-        key: data.key_id,
-        amount: data.amount,
-        currency: data.currency,
-        name: 'Agharia Samaj',
-        description: 'Premium Lifetime Subscription',
-        order_id: data.order_id,
-        handler: async (response: RazorpayResponse) => {
-          try {
-            const { error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                user_id: user.id,
-                 amount: 199
-              }
-            });
-
-            if (verifyError) throw verifyError;
-
-            toast.success('🎉 Welcome to Premium! You are now verified.');
-            await refreshSubscription();
-            onOpenChange(false);
-          } catch (err) {
-            console.error('Payment verification failed:', err);
-            toast.error('Payment verification failed. Please contact support.');
-          }
-        },
-        prefill: {
-          name: profile?.full_name || '',
-          contact: profile?.phone || ''
-        },
-        theme: {
-          color: '#d97706'
-        },
-        modal: {
-          confirm_close: true,
-          escape: false,
-          backdropclose: false
-        },
-        readonly: {
-          contact: false,
-          name: true
-        }
-      };
-
-      // Important: Radix Dialog (modal) disables pointer-events outside the dialog.
-      // Razorpay injects its checkout UI into <body>, so we must close this dialog
-      // before opening Razorpay; otherwise payment method clicks may be blocked.
-      onOpenChange(false);
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast.error('Failed to initiate payment');
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePayment = () => {
+    window.open(PAYMENT_LINK, '_blank');
+    onOpenChange(false);
   };
 
   return (
@@ -204,28 +60,20 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]"
           )}
         >
-          {/* Custom Close Button - Big with red background, inside the card */}
           <DialogPrimitive.Close className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2">
             <X className="w-5 h-5 text-white" strokeWidth={2.5} />
           </DialogPrimitive.Close>
 
-          {/* Animated border wrapper */}
           <div className="relative rounded-3xl overflow-hidden">
-            {/* Animated gradient border */}
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 animate-shimmer-border" />
             
-            {/* Inner content with gap for border visibility */}
             <div className="relative m-[2px] rounded-[22px] overflow-hidden bg-card">
               {/* Airplane Animation Banner */}
               <div className="relative h-8 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 overflow-hidden">
-                {/* Sambalpuri pattern overlay */}
                 <div className="absolute inset-0 bg-[url('/sambalpuri-pattern.jpg')] opacity-20 mix-blend-overlay" />
-                
-                {/* Animated airplane */}
                 <div className="absolute inset-0 flex items-center">
                   <div className="animate-airplane flex items-center gap-1">
                     <Plane className="w-5 h-5 text-primary rotate-0" />
-                    {/* Trail effect */}
                     <div className="flex gap-0.5">
                       <div className="w-3 h-0.5 bg-primary/60 rounded-full" />
                       <div className="w-2 h-0.5 bg-primary/40 rounded-full" />
@@ -233,8 +81,6 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                     </div>
                   </div>
                 </div>
-                
-                {/* Decorative dots pattern */}
                 <div className="absolute inset-0 flex items-center justify-around pointer-events-none opacity-30">
                   {[...Array(8)].map((_, i) => (
                     <div key={i} className="w-1 h-1 bg-primary rounded-full" />
@@ -242,11 +88,9 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                 </div>
               </div>
 
-              {/* Premium Header with gradient */}
+              {/* Premium Header */}
               <div className="relative bg-gradient-to-br from-primary via-primary/90 to-amber-700 p-5 sm:p-6 text-primary-foreground">
                 <div className="absolute inset-0 bg-[url('/sambalpuri-pattern.jpg')] opacity-10 mix-blend-overlay" />
-                
-                {/* Sparkle effects */}
                 <div className="absolute top-2 right-4 w-2 h-2 bg-yellow-300 rounded-full animate-pulse" />
                 <div className="absolute top-8 right-8 w-1.5 h-1.5 bg-amber-200 rounded-full animate-pulse delay-300" />
                 <div className="absolute bottom-4 left-6 w-1 h-1 bg-yellow-200 rounded-full animate-pulse delay-500" />
@@ -262,7 +106,6 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                     </div>
                   </div>
                   
-                  {/* Price badge */}
                   <div className="mt-4 flex items-end gap-2 flex-wrap">
                     <span className="text-4xl font-display font-bold drop-shadow-sm">₹199</span>
                     <span className="text-lg line-through opacity-60 mb-1">₹999</span>
@@ -300,21 +143,11 @@ const PremiumUpgradeDialog = ({ open, onOpenChange }: PremiumUpgradeDialogProps)
                 {/* CTA Button */}
                 <Button 
                   onClick={handlePayment} 
-                  disabled={isLoading}
                   className="w-full mt-5 h-12 text-base font-bold rounded-xl bg-gradient-to-r from-primary via-primary to-amber-700 hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
                   size="lg"
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="w-5 h-5 mr-2" />
-                      Get Verified Now - ₹199
-                    </>
-                  )}
+                  <Crown className="w-5 h-5 mr-2" />
+                  Pay Now - ₹199
                 </Button>
 
                 {/* Trust badges */}
