@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import PremiumBadge from '@/components/PremiumBadge';
 import { Search as SearchIcon, Users, TrendingUp, Ban } from 'lucide-react';
 
 interface User {
@@ -16,7 +17,9 @@ interface User {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  phone: string;
   is_disabled: boolean;
+  isPremium?: boolean;
 }
 
 interface Post {
@@ -47,13 +50,35 @@ const Search = () => {
     }
   }, [searchTerm]);
 
+  const ADMIN_PHONE = '7326937200';
+
+  const enrichWithPremium = async (profiles: User[]): Promise<User[]> => {
+    const activeUserIds = profiles.filter(p => !p.is_disabled).map(p => p.user_id);
+    if (activeUserIds.length === 0) return profiles;
+
+    const { data: subscriptions } = await supabase
+      .from('user_subscriptions')
+      .select('user_id, plan_type')
+      .in('user_id', activeUserIds);
+
+    const premiumUserIds = new Set(
+      (subscriptions || []).filter(s => s.plan_type === 'premium').map(s => s.user_id)
+    );
+
+    return profiles.map(p => ({
+      ...p,
+      isPremium: p.is_disabled ? false : (p.phone === ADMIN_PHONE || premiumUserIds.has(p.user_id)),
+    }));
+  };
+
   const fetchAllUsers = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('id, user_id, full_name, username, avatar_url, is_disabled')
+      .select('id, user_id, full_name, username, avatar_url, is_disabled, phone')
       .order('full_name', { ascending: true });
     
-    setAllUsers(data || []);
+    const enriched = await enrichWithPremium(data || []);
+    setAllUsers(enriched);
   };
 
   const fetchExplorePosts = async () => {
@@ -70,12 +95,13 @@ const Search = () => {
     setLoading(true);
     const { data } = await supabase
       .from('profiles')
-      .select('id, user_id, full_name, username, avatar_url, is_disabled')
+      .select('id, user_id, full_name, username, avatar_url, is_disabled, phone')
       .or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
       .order('full_name', { ascending: true })
       .limit(20);
     
-    setUsers(data || []);
+    const enriched = await enrichWithPremium(data || []);
+    setUsers(enriched);
     setLoading(false);
   };
 
@@ -130,7 +156,10 @@ const Search = () => {
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <p className="font-medium text-sm truncate">{user.full_name || 'User'}</p>
+          <p className="font-medium text-sm truncate flex items-center gap-1">
+            {user.full_name || 'User'}
+            {user.isPremium && <PremiumBadge size="sm" />}
+          </p>
           {user.username && (
             <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
           )}
