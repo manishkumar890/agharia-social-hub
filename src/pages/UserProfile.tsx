@@ -62,6 +62,7 @@ const UserProfile = () => {
   const [userStories, setUserStories] = useState<Story[]>([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [showFollowPopup, setShowFollowPopup] = useState(false);
+  const [vipCardOpen, setVipCardOpen] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
@@ -349,20 +350,21 @@ const UserProfile = () => {
                   {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
                 </div>
                 {isPremiumUser && (
-                  <Dialog>
+                  <Dialog open={vipCardOpen} onOpenChange={setVipCardOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
                         <Crown className="w-4 h-4" />
                         VIP Card
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:absolute [&>button]:right-0 [&>button]:top-0 [&>button]:translate-x-[40%] [&>button]:-translate-y-[40%] [&>button]:bg-white [&>button]:rounded-full [&>button]:p-1.5 [&>button]:shadow-lg [&>button]:z-50 [&>button]:border [&>button]:border-border/30 [&>button]:opacity-100" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                    <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                       <VIPCard
                         fullName={profile.full_name || ''}
                         username={profile.username || ''}
                         avatarUrl={profile.avatar_url}
                         registerNo={profile.register_no}
                         isOwner={isOwnProfile}
+                        onClose={() => setVipCardOpen(false)}
                       />
                     </DialogContent>
                   </Dialog>
