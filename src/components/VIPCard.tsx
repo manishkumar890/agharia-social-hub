@@ -205,7 +205,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
       </div>
 
       {/* Actions */}
-      {isOwner && onClose && (
+      {onClose && (
         <Button 
           variant="ghost" 
           size="sm" 
