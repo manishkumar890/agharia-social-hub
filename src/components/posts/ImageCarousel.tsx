@@ -48,16 +48,7 @@ const ImageCarousel = ({
     }
   };
 
-  // Auto-play audio when component mounts
-  useEffect(() => {
-    if (backgroundAudioUrl && audioRef.current) {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(() => {
-        setIsPlaying(false);
-      });
-    }
-  }, [backgroundAudioUrl]);
+  // Audio starts paused - user must click music icon to play
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
