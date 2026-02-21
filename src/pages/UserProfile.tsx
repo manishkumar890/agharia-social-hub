@@ -361,6 +361,7 @@ const UserProfile = () => {
                       <VIPCard
                         fullName={profile.full_name || ''}
                         username={profile.username || ''}
+                        dob={profile.dob}
                         avatarUrl={profile.avatar_url}
                         registerNo={profile.register_no}
                         isOwner={isOwnProfile}
