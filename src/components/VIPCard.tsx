@@ -146,8 +146,14 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
-                    <Hash style={{ width: '14px', height: '14px', flexShrink: 0 }} />
-                    <span>{registerNo || 'AS00000'}</span>
+                    {isOwner ? (
+                      <>
+                        <Hash style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+                        <span>{registerNo || 'AS00000'}</span>
+                      </>
+                    ) : (
+                      <span style={{ fontWeight: 600, letterSpacing: '0.05em' }}>Agharia Samaj</span>
+                    )}
                   </div>
                 </div>
               </div>
