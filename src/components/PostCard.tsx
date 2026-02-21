@@ -15,6 +15,7 @@ import PremiumBadge from '@/components/PremiumBadge';
 import SendPostDialog from '@/components/SendPostDialog';
 import ImageCarousel from '@/components/posts/ImageCarousel';
 import { cn } from '@/lib/utils';
+import { mediaManager } from '@/lib/mediaManager';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -280,6 +281,11 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             controls
             controlsList="nodownload noplaybackrate"
             preload="metadata"
+            onPlay={() => {
+              mediaManager.play(() => {
+                videoRef.current?.pause();
+              });
+            }}
           />
         ) : post.image_urls && post.image_urls.length > 1 ? (
           <ImageCarousel 
