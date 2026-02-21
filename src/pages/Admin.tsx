@@ -362,7 +362,6 @@ const Admin = () => {
   const handleToggleVIP = async (userIdAuth: string, currentlyPremium: boolean) => {
     try {
       if (currentlyPremium) {
-        // Remove premium
         const { error } = await supabase
           .from('user_subscriptions')
           .update({ plan_type: 'free' })
@@ -372,20 +371,44 @@ const Admin = () => {
         setStats(prev => ({ ...prev, premium: prev.premium - 1 }));
         toast.success('VIP removed');
       } else {
-        // Add premium via upsert
-        const { data, error } = await supabase
+        // Check if subscription record exists
+        const { data: existing } = await supabase
           .from('user_subscriptions')
-          .upsert({
-            user_id: userIdAuth,
-            plan_type: 'premium',
-            amount: 199,
-            purchased_at: new Date().toISOString(),
-            payment_id: `admin_${Date.now()}`
-          }, { onConflict: 'user_id' })
-          .select()
-          .single();
-        if (error) throw error;
-        // Fetch profile for premium list
+          .select('id')
+          .eq('user_id', userIdAuth)
+          .maybeSingle();
+
+        let data;
+        if (existing) {
+          const { data: updated, error } = await supabase
+            .from('user_subscriptions')
+            .update({
+              plan_type: 'premium',
+              amount: 199,
+              purchased_at: new Date().toISOString(),
+              payment_id: `admin_${Date.now()}`
+            })
+            .eq('user_id', userIdAuth)
+            .select()
+            .single();
+          if (error) throw error;
+          data = updated;
+        } else {
+          const { data: inserted, error } = await supabase
+            .from('user_subscriptions')
+            .insert({
+              user_id: userIdAuth,
+              plan_type: 'premium',
+              amount: 199,
+              purchased_at: new Date().toISOString(),
+              payment_id: `admin_${Date.now()}`
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          data = inserted;
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, username, avatar_url, phone')
