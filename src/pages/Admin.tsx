@@ -45,6 +45,7 @@ interface User {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  email: string | null;
   created_at: string;
   is_disabled: boolean;
 }
@@ -846,6 +847,11 @@ const Admin = () => {
                               </div>
                               <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 {user.username ? `@${user.username}` : user.phone}
+                              </p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground/70 truncate">
+                                {user.email && <span>{user.email}</span>}
+                                {user.email && user.phone && <span> • </span>}
+                                {user.phone && <span>{user.phone}</span>}
                               </p>
                             </div>
                           </div>
