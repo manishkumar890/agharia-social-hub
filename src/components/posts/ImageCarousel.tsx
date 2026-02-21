@@ -7,12 +7,14 @@ interface ImageCarouselProps {
   images: string[];
   backgroundAudioUrl?: string | null;
   className?: string;
+  isVisible?: boolean;
 }
 
 const ImageCarousel = ({ 
   images, 
   backgroundAudioUrl, 
-  className
+  className,
+  isVisible = true
 }: ImageCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -48,7 +50,13 @@ const ImageCarousel = ({
     }
   };
 
-  // Audio starts paused - user must click music icon to play
+  // Auto-pause audio when post scrolls out of view
+  useEffect(() => {
+    if (!isVisible && audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isVisible]);
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
