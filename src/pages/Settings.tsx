@@ -107,16 +107,28 @@ const Settings = () => {
         finalAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
       }
 
-      // If email changed, update auth email first
+      // Sync email and username to auth account
       const newEmail = email.trim().toLowerCase();
       const oldEmail = profile.email?.toLowerCase();
+      const newUsername = username.trim().toLowerCase();
+      const oldUsername = profile.username?.toLowerCase();
+
+      const authUpdate: { email?: string; data?: Record<string, string> } = {};
       if (newEmail && newEmail !== oldEmail) {
-        const { error: authEmailError } = await supabase.auth.updateUser({
-          email: newEmail,
-        });
-        if (authEmailError) {
-          console.error('Auth email update error:', authEmailError);
-          toast.error('Failed to update email in authentication. ' + authEmailError.message);
+        authUpdate.email = newEmail;
+      }
+      if (newUsername && newUsername !== oldUsername) {
+        authUpdate.data = { ...authUpdate.data, username: newUsername };
+      }
+      if (fullName.trim() !== (profile.full_name || '')) {
+        authUpdate.data = { ...authUpdate.data, full_name: fullName.trim() };
+      }
+
+      if (authUpdate.email || authUpdate.data) {
+        const { error: authError } = await supabase.auth.updateUser(authUpdate);
+        if (authError) {
+          console.error('Auth update error:', authError);
+          toast.error('Failed to sync profile with authentication. ' + authError.message);
           setIsLoading(false);
           return;
         }
