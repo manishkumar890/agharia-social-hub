@@ -67,10 +67,10 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
         return;
       }
 
-      // Fetch profiles for these users (including is_disabled status)
+      // Fetch profiles for these users (including is_disabled status and phone)
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, full_name, username, avatar_url, is_disabled')
+        .select('user_id, full_name, username, avatar_url, is_disabled, phone')
         .in('user_id', userIds);
 
       // Get active user IDs for subscription lookup
@@ -88,9 +88,10 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
           .map(s => s.user_id)
       );
 
+      const ADMIN_PHONE = '7326937200';
       const usersWithPremium = (profiles || []).map(profile => ({
         ...profile,
-        isPremium: profile.is_disabled ? false : premiumUserIds.has(profile.user_id),
+        isPremium: profile.is_disabled ? false : (profile.phone === ADMIN_PHONE || premiumUserIds.has(profile.user_id)),
       }));
 
       setUsers(usersWithPremium);
