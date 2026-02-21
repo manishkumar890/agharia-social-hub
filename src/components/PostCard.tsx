@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MessageSquare, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,8 +52,28 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [isAuthorPremium, setIsAuthorPremium] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const postRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  
+  // IntersectionObserver to detect when post is visible
+  useEffect(() => {
+    const el = postRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Auto-pause video when post scrolls out of view
+  useEffect(() => {
+    if (!isVisible && videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+    }
+  }, [isVisible]);
 
   useEffect(() => {
     fetchLikesAndComments();
@@ -208,7 +228,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const canDelete = user?.id === post.user_id || isAdmin;
 
   return (
-    <article className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in shadow-sm">
+    <article ref={postRef} className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in shadow-sm">
       {/* Post Header */}
       <div className="flex items-center justify-between p-3">
         <Link to={`/user/${post.user_id}`} className="flex items-center gap-3">
@@ -253,6 +273,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
       >
         {post.media_type === 'video' ? (
           <video 
+            ref={videoRef}
             src={post.image_url} 
             poster={post.thumbnail_url || undefined}
             className="w-full h-full object-cover"
@@ -264,11 +285,13 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           <ImageCarousel 
             images={post.image_urls}
             backgroundAudioUrl={post.background_audio_url}
+            isVisible={isVisible}
           />
         ) : post.background_audio_url ? (
           <ImageCarousel 
             images={[post.image_url]}
             backgroundAudioUrl={post.background_audio_url}
+            isVisible={isVisible}
           />
         ) : (
           <img 
