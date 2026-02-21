@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { mediaManager } from '@/lib/mediaManager';
 
 interface ImageCarouselProps {
   images: string[];
@@ -65,6 +66,11 @@ const ImageCarousel = ({
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
+        // Register with global manager so other media stops
+        mediaManager.play(() => {
+          audioRef.current?.pause();
+          setIsPlaying(false);
+        });
         audioRef.current.play();
         setIsPlaying(true);
       }
