@@ -107,12 +107,27 @@ const Settings = () => {
         finalAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
       }
 
+      // If email changed, update auth email first
+      const newEmail = email.trim().toLowerCase();
+      const oldEmail = profile.email?.toLowerCase();
+      if (newEmail && newEmail !== oldEmail) {
+        const { error: authEmailError } = await supabase.auth.updateUser({
+          email: newEmail,
+        });
+        if (authEmailError) {
+          console.error('Auth email update error:', authEmailError);
+          toast.error('Failed to update email in authentication. ' + authEmailError.message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
           full_name: fullName.trim(),
           username: username.trim() || null,
-          email: email.trim() || null,
+          email: newEmail || null,
           bio: bio.trim() || null,
           avatar_url: finalAvatarUrl || null,
           dob: dob || null,
