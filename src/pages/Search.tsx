@@ -188,8 +188,8 @@ const Search = () => {
 
             {/* Dropdown List */}
             {showDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+              <div className="fixed inset-0 top-[112px] bg-background z-50 flex flex-col">
+                <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">
                     {searchTerm ? 'Search Results' : 'All Users'}
@@ -198,7 +198,7 @@ const Search = () => {
                     {displayUsers.length} users
                   </span>
                 </div>
-                <ScrollArea className="max-h-[300px]">
+                <ScrollArea className="flex-1">
                   {loading ? (
                     <p className="text-muted-foreground text-center py-4 text-sm">Searching...</p>
                   ) : displayUsers.length === 0 ? (
