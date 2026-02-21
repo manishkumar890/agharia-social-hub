@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -30,6 +31,8 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   is_disabled?: boolean;
+  phone?: string;
+  isPremium?: boolean;
 }
 
 interface Conversation {
@@ -245,9 +248,21 @@ const Messages = () => {
           const otherUserId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1;
           const { data: profile } = await supabase
             .from('profiles')
-            .select('user_id, full_name, username, avatar_url, is_disabled')
+            .select('user_id, full_name, username, avatar_url, is_disabled, phone')
             .eq('user_id', otherUserId)
             .single();
+
+          // Check premium status
+          const isAdminPhone = profile?.phone === '7326937200';
+          let isPremium = isAdminPhone;
+          if (!isPremium) {
+            const { data: sub } = await supabase
+              .from('user_subscriptions')
+              .select('plan_type')
+              .eq('user_id', otherUserId)
+              .maybeSingle();
+            isPremium = sub?.plan_type === 'premium';
+          }
 
           // Get last message
           const { data: lastMsg } = await supabase
@@ -260,7 +275,7 @@ const Messages = () => {
 
           return {
             ...conv,
-            otherUser: profile,
+            otherUser: profile ? { ...profile, isPremium } : undefined,
             lastMessage: lastMsg?.content
           } as Conversation;
         })
@@ -400,8 +415,11 @@ const Messages = () => {
                 )}
               </Link>
               <Link to={`/user/${otherUserId}`} className="flex-1">
-                <p className="font-semibold text-sm">
+                <p className="font-semibold text-sm flex items-center gap-1">
                   {activeConversation.otherUser?.full_name || activeConversation.otherUser?.username || 'User'}
+                  {activeConversation.otherUser?.isPremium && (
+                    <BadgeCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  )}
                 </p>
                 {isOtherUserDisabled ? (
                   <p className="text-xs text-destructive flex items-center gap-1">
@@ -633,8 +651,11 @@ const Messages = () => {
                       )}
                     </Link>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">
+                      <p className="font-semibold text-sm truncate flex items-center gap-1">
                         {conv.otherUser?.full_name || conv.otherUser?.username || 'User'}
+                        {conv.otherUser?.isPremium && (
+                          <BadgeCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        )}
                       </p>
                       {conv.otherUser?.is_disabled ? (
                         <p className="text-xs text-destructive flex items-center gap-1">
