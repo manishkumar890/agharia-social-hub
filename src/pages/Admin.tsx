@@ -359,6 +359,57 @@ const Admin = () => {
     }
   };
 
+  const handleToggleVIP = async (userIdAuth: string, currentlyPremium: boolean) => {
+    try {
+      if (currentlyPremium) {
+        // Remove premium
+        const { error } = await supabase
+          .from('user_subscriptions')
+          .update({ plan_type: 'free' })
+          .eq('user_id', userIdAuth);
+        if (error) throw error;
+        setPremiumUsers(prev => prev.filter(p => p.user_id !== userIdAuth));
+        setStats(prev => ({ ...prev, premium: prev.premium - 1 }));
+        toast.success('VIP removed');
+      } else {
+        // Add premium via upsert
+        const { data, error } = await supabase
+          .from('user_subscriptions')
+          .upsert({
+            user_id: userIdAuth,
+            plan_type: 'premium',
+            amount: 199,
+            purchased_at: new Date().toISOString(),
+            payment_id: `admin_${Date.now()}`
+          }, { onConflict: 'user_id' })
+          .select()
+          .single();
+        if (error) throw error;
+        // Fetch profile for premium list
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, username, avatar_url, phone')
+          .eq('user_id', userIdAuth)
+          .maybeSingle();
+        if (data) {
+          setPremiumUsers(prev => {
+            const filtered = prev.filter(p => p.user_id !== userIdAuth);
+            return [{ ...data, profile } as PremiumUser, ...filtered];
+          });
+        }
+        setStats(prev => ({ ...prev, premium: prev.premium + 1 }));
+        toast.success('VIP granted');
+      }
+    } catch (error) {
+      console.error('Error toggling VIP:', error);
+      toast.error('Failed to update VIP status');
+    }
+  };
+
+  const isUserPremium = (userIdAuth: string) => {
+    return premiumUsers.some(p => p.user_id === userIdAuth);
+  };
+
   const handleDeletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return;
 
@@ -785,14 +836,27 @@ const Admin = () => {
                                 Admin
                               </Badge>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground hidden sm:inline">
-                                  {user.is_disabled ? 'Disabled' : 'Active'}
-                                </span>
-                                <Switch
-                                  checked={!user.is_disabled}
-                                  onCheckedChange={() => handleToggleDisabled(user.id, user.user_id, user.is_disabled)}
-                                />
+                              <div className="flex items-center gap-2 flex-wrap justify-end">
+                                {/* VIP Toggle */}
+                                <div className="flex items-center gap-1.5">
+                                  <Crown className={`w-3.5 h-3.5 ${isUserPremium(user.user_id) ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                                  <span className="text-xs text-muted-foreground">VIP</span>
+                                  <Switch
+                                    checked={isUserPremium(user.user_id)}
+                                    onCheckedChange={() => handleToggleVIP(user.user_id, isUserPremium(user.user_id))}
+                                    className="data-[state=checked]:bg-amber-500"
+                                  />
+                                </div>
+                                {/* Active/Disabled Toggle */}
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                                    {user.is_disabled ? 'Disabled' : 'Active'}
+                                  </span>
+                                  <Switch
+                                    checked={!user.is_disabled}
+                                    onCheckedChange={() => handleToggleDisabled(user.id, user.user_id, user.is_disabled)}
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>
