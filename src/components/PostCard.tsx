@@ -62,13 +62,21 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   }, [post.id, user]);
 
   const fetchAuthorPremiumStatus = async () => {
-    const { data } = await supabase
-      .from('user_subscriptions')
-      .select('plan_type')
-      .eq('user_id', post.user_id)
-      .single();
+    const [{ data: subData }, { data: profileData }] = await Promise.all([
+      supabase
+        .from('user_subscriptions')
+        .select('plan_type')
+        .eq('user_id', post.user_id)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('phone')
+        .eq('user_id', post.user_id)
+        .single(),
+    ]);
 
-    setIsAuthorPremium(data?.plan_type === 'premium');
+    const isAdminPhone = profileData?.phone === '7326937200';
+    setIsAuthorPremium(isAdminPhone || subData?.plan_type === 'premium');
   };
 
   const fetchLikesAndComments = async () => {
