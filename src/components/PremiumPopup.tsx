@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { supabase } from '@/integrations/supabase/client';
 import PremiumUpgradeDialog from '@/components/PremiumUpgradeDialog';
 
 const PremiumPopup = () => {
@@ -9,23 +10,18 @@ const PremiumPopup = () => {
   const [isOpen, setIsOpen] = useState(false);
   const hasShownRef = useRef(false);
 
-  // Play notification sound when popup opens
   const playNotificationSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-      
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch (e) {
@@ -34,19 +30,29 @@ const PremiumPopup = () => {
   };
 
   useEffect(() => {
-    // Show popup for non-premium users after app loads
     if (!loading && user && !isPremium && !hasShownRef.current) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-        hasShownRef.current = true;
-        playNotificationSound();
-      }, 10000); // 10 seconds delay
+      const checkAndShow = async () => {
+        const { data } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'premium_popup_enabled')
+          .single();
 
-      return () => clearTimeout(timer);
+        if (data?.value !== 'true') return;
+
+        const timer = setTimeout(() => {
+          setIsOpen(true);
+          hasShownRef.current = true;
+          playNotificationSound();
+        }, 10000);
+
+        return () => clearTimeout(timer);
+      };
+
+      checkAndShow();
     }
   }, [loading, user, isPremium]);
 
-  // Don't render anything if premium or still loading
   if (loading || isPremium || !user) {
     return null;
   }
