@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import PremiumBadge from '@/components/PremiumBadge';
 import SendPostDialog from '@/components/SendPostDialog';
+import LikesDialog from '@/components/LikesDialog';
 import ImageCarousel from '@/components/posts/ImageCarousel';
 import { cn } from '@/lib/utils';
 import { mediaManager } from '@/lib/mediaManager';
@@ -54,6 +55,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [isAuthorPremium, setIsAuthorPremium] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [likesDialogOpen, setLikesDialogOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const postRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -375,7 +377,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         </div>
 
         {/* Likes Count */}
-        <p className="font-semibold text-sm mb-1">{likesCount} likes</p>
+        <button onClick={() => setLikesDialogOpen(true)} className="font-semibold text-sm mb-1 hover:opacity-70 transition-opacity">
+          {likesCount} likes
+        </button>
 
         {/* Caption */}
         {post.caption && (
@@ -410,6 +414,12 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         postAuthorId={post.user_id}
         postAuthorUsername={post.profiles?.username || post.profiles?.full_name || null}
         postAuthorAvatar={post.profiles?.avatar_url || null}
+      />
+
+      <LikesDialog
+        open={likesDialogOpen}
+        onOpenChange={setLikesDialogOpen}
+        postId={post.id}
       />
     </article>
   );
