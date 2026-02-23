@@ -529,7 +529,7 @@ const Messages = () => {
                       </Link>
                     )}
                     {msg.content && (
-                      <p className="text-sm px-4 py-2">{msg.content}</p>
+                      <p className={cn("text-sm px-4 py-2", msg.sender_id === user?.id && "pr-10")}>{msg.content}</p>
                     )}
                     {!msg.content && msg.media_url && (
                       <div className="px-1 py-1" />
