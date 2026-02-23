@@ -188,7 +188,7 @@ const Search = () => {
 
             {/* Dropdown List */}
             {showDropdown && (
-              <div className="fixed inset-0 top-[112px] bg-background z-50 flex flex-col">
+              <div className="fixed inset-0 top-[112px] bottom-[80px] md:bottom-0 bg-background z-50 flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">
@@ -198,7 +198,7 @@ const Search = () => {
                     {displayUsers.length} users
                   </span>
                 </div>
-                <ScrollArea className="flex-1">
+                <ScrollArea className="flex-1 h-full">
                   {loading ? (
                     <p className="text-muted-foreground text-center py-4 text-sm">Searching...</p>
                   ) : displayUsers.length === 0 ? (
