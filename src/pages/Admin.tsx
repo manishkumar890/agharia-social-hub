@@ -54,6 +54,8 @@ interface Post {
   id: string;
   user_id: string;
   image_url: string;
+  media_type?: string;
+  thumbnail_url?: string | null;
   caption: string | null;
   created_at: string;
   profiles?: {
@@ -913,11 +915,26 @@ const Admin = () => {
                     ) : (
                       posts.map((post) => (
                         <div key={post.id} className="relative group">
-                          <img
-                            src={post.image_url}
-                            alt={post.caption || ''}
-                            className="aspect-square object-cover rounded-lg w-full"
-                          />
+                          {post.media_type === 'video' ? (
+                            <div className="relative aspect-square w-full">
+                              <img
+                                src={post.thumbnail_url || post.image_url}
+                                alt={post.caption || ''}
+                                className="aspect-square object-cover rounded-lg w-full"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/60 flex items-center justify-center">
+                                  <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={post.image_url}
+                              alt={post.caption || ''}
+                              className="aspect-square object-cover rounded-lg w-full"
+                            />
+                          )}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                             <Button
                               variant="destructive"
