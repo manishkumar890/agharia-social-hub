@@ -46,6 +46,7 @@ interface PostCardProps {
 const PostCard = ({ post, onDelete }: PostCardProps) => {
   const { user, isAdmin } = useAuth();
   const [liked, setLiked] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [animateLike, setAnimateLike] = useState(false);
@@ -300,11 +301,17 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             isVisible={isVisible}
           />
         ) : (
-          <img 
-            src={post.image_url} 
-            alt={post.caption || 'Post image'} 
-            className="w-full h-full object-cover"
-          />
+          <>
+            {!imageLoaded && (
+              <div className="w-full aspect-square bg-muted animate-pulse" />
+            )}
+            <img 
+              src={post.image_url} 
+              alt={post.caption || 'Post image'} 
+              className={cn("w-full h-full object-cover", !imageLoaded && "hidden")}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </>
         )}
         {animateLike && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
