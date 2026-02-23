@@ -151,6 +151,7 @@ const Admin = () => {
   const [stats, setStats] = useState({ users: 0, posts: 0, comments: 0, premium: 0 });
   const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
   const [videoCallEnabled, setVideoCallEnabled] = useState(true);
+  const [premiumPopupEnabled, setPremiumPopupEnabled] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -321,6 +322,7 @@ const Admin = () => {
         appSettings.forEach((s: { key: string; value: string }) => {
           if (s.key === 'voice_call_enabled') setVoiceCallEnabled(s.value === 'true');
           if (s.key === 'video_call_enabled') setVideoCallEnabled(s.value === 'true');
+          if (s.key === 'premium_popup_enabled') setPremiumPopupEnabled(s.value === 'true');
         });
       }
     } catch (error) {
@@ -1412,6 +1414,32 @@ const Admin = () => {
                         if (!error) {
                           setVideoCallEnabled(checked);
                           toast.success(checked ? 'Video calls enabled' : 'Video calls disabled');
+                        } else {
+                          toast.error('Failed to update setting');
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Crown className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Premium Popup</p>
+                        <p className="text-xs text-muted-foreground">Show premium upgrade popup to non-premium users after 10 seconds</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={premiumPopupEnabled}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase
+                          .from('app_settings')
+                          .update({ value: checked ? 'true' : 'false', updated_at: new Date().toISOString() })
+                          .eq('key', 'premium_popup_enabled');
+                        if (!error) {
+                          setPremiumPopupEnabled(checked);
+                          toast.success(checked ? 'Premium popup enabled' : 'Premium popup disabled');
                         } else {
                           toast.error('Failed to update setting');
                         }
