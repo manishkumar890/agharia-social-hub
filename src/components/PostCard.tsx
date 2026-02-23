@@ -14,6 +14,7 @@ import {
 import PremiumBadge from '@/components/PremiumBadge';
 import SendPostDialog from '@/components/SendPostDialog';
 import LikesDialog from '@/components/LikesDialog';
+import CommentsDrawer from '@/components/CommentsDrawer';
 import ImageCarousel from '@/components/posts/ImageCarousel';
 import { cn } from '@/lib/utils';
 import { mediaManager } from '@/lib/mediaManager';
@@ -56,6 +57,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likesDialogOpen, setLikesDialogOpen] = useState(false);
+  const [commentsDrawerOpen, setCommentsDrawerOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const postRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -358,10 +360,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
               )} />
             </Button>
             {post.comments_enabled !== false && (
-              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" asChild>
-                <Link to={`/post/${post.id}`}>
-                  <MessageSquare className="w-6 h-6" />
-                </Link>
+              <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" onClick={() => setCommentsDrawerOpen(true)}>
+                <MessageSquare className="w-6 h-6" />
               </Button>
             )}
             <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-transparent active:bg-transparent" onClick={handleSend}>
@@ -393,9 +393,9 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
 
         {/* Comments Count */}
         {post.comments_enabled !== false && commentsCount > 0 && (
-          <Link to={`/post/${post.id}`} className="text-sm text-muted-foreground mt-1 block">
+          <button onClick={() => setCommentsDrawerOpen(true)} className="text-sm text-muted-foreground mt-1 block hover:opacity-70 transition-opacity">
             View all {commentsCount} comments
-          </Link>
+          </button>
         )}
 
         {/* Timestamp */}
@@ -420,6 +420,14 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         open={likesDialogOpen}
         onOpenChange={setLikesDialogOpen}
         postId={post.id}
+      />
+
+      <CommentsDrawer
+        open={commentsDrawerOpen}
+        onOpenChange={setCommentsDrawerOpen}
+        postId={post.id}
+        commentsEnabled={post.comments_enabled !== false}
+        onCommentsCountChange={setCommentsCount}
       />
     </article>
   );
