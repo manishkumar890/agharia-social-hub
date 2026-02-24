@@ -61,6 +61,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const postRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const likeInProgressRef = useRef(false);
 
   // IntersectionObserver to detect when post is visible
   useEffect(() => {
@@ -183,29 +184,34 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
 
   const handleLike = async () => {
     if (!user) return;
+    if (likeInProgressRef.current) return;
+    likeInProgressRef.current = true;
+    try {
+      if (liked) {
+        setAnimateUnlike(true);
+        setTimeout(() => setAnimateUnlike(false), 900);
 
-    if (liked) {
-      setAnimateUnlike(true);
-      setTimeout(() => setAnimateUnlike(false), 900);
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('user_id', user.id);
+        
+        setLiked(false);
+        setLikesCount(prev => prev - 1);
+      } else {
+        setAnimateLike(true);
+        setTimeout(() => setAnimateLike(false), 300);
 
-      await supabase
-        .from('likes')
-        .delete()
-        .eq('post_id', post.id)
-        .eq('user_id', user.id);
-      
-      setLiked(false);
-      setLikesCount(prev => prev - 1);
-    } else {
-      setAnimateLike(true);
-      setTimeout(() => setAnimateLike(false), 300);
-
-      await supabase
-        .from('likes')
-        .insert({ post_id: post.id, user_id: user.id });
-      
-      setLiked(true);
-      setLikesCount(prev => prev + 1);
+        await supabase
+          .from('likes')
+          .insert({ post_id: post.id, user_id: user.id });
+        
+        setLiked(true);
+        setLikesCount(prev => prev + 1);
+      }
+    } finally {
+      likeInProgressRef.current = false;
     }
   };
 
