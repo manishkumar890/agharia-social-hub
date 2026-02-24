@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMessages } from '@/contexts/MessageContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -65,6 +66,7 @@ const Messages = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { startCall } = useCall();
+  const { refreshMessageCount } = useMessages();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
   const [videoCallEnabled, setVideoCallEnabled] = useState(true);
@@ -303,6 +305,9 @@ const Messages = () => {
         .eq('conversation_id', convId)
         .neq('sender_id', user?.id)
         .is('read_at', null);
+      
+      // Refresh unread message count immediately
+      refreshMessageCount();
     }
   };
 
