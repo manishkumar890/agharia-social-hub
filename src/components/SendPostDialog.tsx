@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Loader2 } from 'lucide-react';
+import { Search, Send, Loader2, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Profile {
@@ -20,6 +20,7 @@ interface Profile {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  isPremium?: boolean;
 }
 
 interface SendPostDialogProps {
@@ -58,6 +59,18 @@ const SendPostDialog = ({
     }
   }, [open]);
 
+  const enrichWithPremium = async (profiles: Profile[]): Promise<Profile[]> => {
+    if (profiles.length === 0) return profiles;
+    const userIds = profiles.map(p => p.user_id);
+    const { data: subs } = await supabase
+      .from('user_subscriptions')
+      .select('user_id')
+      .in('user_id', userIds)
+      .gt('expires_at', new Date().toISOString());
+    const premiumIds = new Set((subs || []).map(s => s.user_id));
+    return profiles.map(p => ({ ...p, isPremium: premiumIds.has(p.user_id) }));
+  };
+
   const fetchFollowingUsers = async () => {
     if (!user) return;
     setLoading(true);
@@ -77,7 +90,8 @@ const SendPostDialog = ({
           .select('user_id, full_name, username, avatar_url')
           .in('user_id', followingIds);
 
-        setUsers(profilesData || []);
+        const enriched = await enrichWithPremium(profilesData || []);
+        setUsers(enriched);
       } else {
         // If not following anyone, show recent conversations
         const { data: convData } = await supabase
@@ -97,7 +111,8 @@ const SendPostDialog = ({
             .select('user_id, full_name, username, avatar_url')
             .in('user_id', userIds);
 
-          setUsers(profilesData || []);
+          const enriched = await enrichWithPremium(profilesData || []);
+          setUsers(enriched);
         }
       }
     } catch (error) {
@@ -221,8 +236,11 @@ const SendPostDialog = ({
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-sm">
+                      <p className="font-medium text-sm flex items-center gap-1">
                         {profile.full_name || profile.username || 'User'}
+                        {profile.isPremium && (
+                          <BadgeCheck className="w-4 h-4 text-primary fill-primary/20 flex-shrink-0" />
+                        )}
                       </p>
                       {profile.username && profile.full_name && (
                         <p className="text-xs text-muted-foreground">@{profile.username}</p>
