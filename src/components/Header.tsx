@@ -4,7 +4,9 @@ import { User, Bookmark, UserPen, Settings, LogOut, RefreshCw, MessageCircle, Bo
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useMessages } from '@/contexts/MessageContext';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,7 @@ let globalIntervalId: ReturnType<typeof setInterval> | null = null;
 const Header = () => {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { isPremium } = useSubscription();
+  const { unreadMessageCount } = useMessages();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -117,9 +120,17 @@ const Header = () => {
             {/* Messages Button */}
             <Link
               to="/messages"
-              className="p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
+              className="relative p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
             >
               <MessageCircle className="w-5 h-5" />
+              {unreadMessageCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
+                >
+                  {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                </Badge>
+              )}
             </Link>
 
             {/* Profile Dropdown */}
