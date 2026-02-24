@@ -126,7 +126,7 @@ const Header = () => {
               {unreadMessageCount > 0 && (
                 <Badge 
                   variant="destructive" 
-                  className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
+                  className="absolute -top-2 -right-2 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold pointer-events-none"
                 >
                   {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
                 </Badge>
