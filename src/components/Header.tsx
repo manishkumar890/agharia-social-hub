@@ -120,17 +120,19 @@ const Header = () => {
             {/* Messages Button */}
             <Link
               to="/messages"
-              className="relative p-2 text-foreground hover:text-primary transition-colors"
+              className="p-2 text-foreground hover:text-primary transition-colors"
             >
-              <MessageCircle className="w-5 h-5" />
-              {unreadMessageCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-2 -right-2 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold pointer-events-none"
-                >
-                  {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
-                </Badge>
-              )}
+              <div className="relative">
+                <MessageCircle className="w-5 h-5" />
+                {unreadMessageCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] font-bold"
+                  >
+                    {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                  </Badge>
+                )}
+              </div>
             </Link>
 
             {/* Profile Dropdown */}
