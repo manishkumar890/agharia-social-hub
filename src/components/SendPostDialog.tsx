@@ -66,7 +66,7 @@ const SendPostDialog = ({
       .from('user_subscriptions')
       .select('user_id')
       .in('user_id', userIds)
-      .gt('expires_at', new Date().toISOString());
+      .eq('plan_type', 'premium');
     const premiumIds = new Set((subs || []).map(s => s.user_id));
     return profiles.map(p => ({ ...p, isPremium: premiumIds.has(p.user_id) }));
   };
