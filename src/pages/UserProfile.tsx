@@ -248,6 +248,7 @@ const UserProfile = () => {
           <Link
             key={post.id}
             to={`/post/${post.id}`}
+            state={{ userId }}
             className="aspect-square bg-muted overflow-hidden relative"
           >
             {post.media_type === 'video' ? (
