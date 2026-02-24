@@ -24,6 +24,7 @@ interface User {
 
 interface Post {
   id: string;
+  user_id: string;
   image_url: string;
   thumbnail_url: string | null;
   media_type: string;
@@ -84,7 +85,7 @@ const Search = () => {
   const fetchExplorePosts = async () => {
     const { data } = await supabase
       .from('posts')
-      .select('id, image_url, thumbnail_url, media_type')
+      .select('id, user_id, image_url, thumbnail_url, media_type')
       .order('created_at', { ascending: false })
       .limit(30);
     
@@ -231,6 +232,7 @@ const Search = () => {
                     <Link
                       key={post.id}
                       to={`/post/${post.id}`}
+                      state={{ userId: post.user_id }}
                       className="aspect-square bg-muted overflow-hidden relative"
                     >
                       <img

@@ -510,6 +510,7 @@ const Messages = () => {
                     {msg.media_url && (
                       <Link 
                         to={msg.shared_post_id ? `/post/${msg.shared_post_id}` : '#'}
+                        state={msg.shared_from_user_id ? { userId: msg.shared_from_user_id } : undefined}
                         className="block w-full max-w-[280px]"
                       >
                         {msg.media_type === 'video' ? (
