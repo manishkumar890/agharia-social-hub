@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 
 interface MessageContextType {
   unreadMessageCount: number;
-  refreshMessageCount: () => Promise<void>;
+  refreshMessageCount: () => void;
 }
 
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
@@ -14,6 +14,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const location = useLocation();
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) {
@@ -47,6 +48,16 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  // Debounced fetch to avoid rapid re-fetches from multiple realtime events
+  const debouncedFetch = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      fetchUnreadCount();
+    }, 500);
+  }, [fetchUnreadCount]);
+
   // Initial fetch
   useEffect(() => {
     if (user) {
@@ -54,14 +65,18 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, fetchUnreadCount]);
 
-  // Refetch when navigating away from messages (to catch reads)
+  // Refetch when route changes
   useEffect(() => {
     if (user) {
-      fetchUnreadCount();
+      // Small delay to allow DB to commit read_at updates
+      const timer = setTimeout(() => {
+        fetchUnreadCount();
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [location.pathname, user, fetchUnreadCount]);
 
-  // Real-time: only listen for new incoming messages, always refetch for updates
+  // Real-time subscriptions
   useEffect(() => {
     if (!user) return;
 
@@ -72,8 +87,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           if (payload.new.sender_id !== user.id) {
-            // Refetch to get accurate count instead of blindly incrementing
-            fetchUnreadCount();
+            debouncedFetch();
           }
         }
       )
@@ -81,19 +95,24 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages' },
         () => {
-          // Always refetch on any message update (e.g. read_at set)
-          fetchUnreadCount();
+          debouncedFetch();
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
-  }, [user, fetchUnreadCount]);
+  }, [user, debouncedFetch]);
 
-  const refreshMessageCount = useCallback(async () => {
-    await fetchUnreadCount();
+  // refreshMessageCount with delay to ensure DB has committed
+  const refreshMessageCount = useCallback(() => {
+    setTimeout(() => {
+      fetchUnreadCount();
+    }, 600);
   }, [fetchUnreadCount]);
 
   return (
