@@ -140,9 +140,9 @@ const PostDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-14 pb-20 md:pb-16">
+      <main className="pt-[calc(3.5rem+41px)] pb-20 md:pb-16">
         {/* Back Button */}
-        <div className="sticky top-14 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-2 flex items-center gap-3">
+        <div className="fixed top-14 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-2 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8">
             <ArrowLeft className="w-5 h-5" />
           </Button>
