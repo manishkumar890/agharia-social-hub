@@ -122,11 +122,20 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
     return activity.post ? `/post/${activity.post.id}` : `/user/${activity.user.id}`;
   };
 
+  const getLinkState = () => {
+    if (activity.type !== 'follow' && activity.post && user) {
+      // The post belongs to the current user (activity is on their post)
+      return { userId: user.id };
+    }
+    return undefined;
+  };
+
   const userName = activity.user.full_name || activity.user.username || 'User';
 
   return (
     <Link
       to={getLink()}
+      state={getLinkState()}
       className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
     >
       {/* Avatar with activity icon overlay */}
