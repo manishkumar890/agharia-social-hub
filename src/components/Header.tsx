@@ -120,7 +120,7 @@ const Header = () => {
             {/* Messages Button */}
             <Link
               to="/messages"
-              className="relative p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
+              className="relative p-2 text-foreground hover:text-primary transition-colors"
             >
               <MessageCircle className="w-5 h-5" />
               {unreadMessageCount > 0 && (
