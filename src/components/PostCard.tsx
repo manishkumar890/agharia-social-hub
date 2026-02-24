@@ -378,7 +378,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
 
         {/* Likes Count */}
         <button onClick={() => setLikesDialogOpen(true)} className="font-semibold text-sm mb-1 hover:opacity-70 transition-opacity">
-          {likesCount} likes
+          {likesCount} {likesCount === 1 ? 'like' : 'likes'}
         </button>
 
         {/* Caption */}
