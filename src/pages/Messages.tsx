@@ -413,12 +413,12 @@ const Messages = () => {
     const isOtherUserDisabled = activeConversation.otherUser?.is_disabled || false;
 
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
         <Header />
         
-        <main className="pt-14 pb-20 md:pb-16 flex-1 flex flex-col">
-          {/* Chat Header */}
-          <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+        <main className="pt-14 flex-1 flex flex-col overflow-hidden">
+          {/* Chat Header - Sticky */}
+          <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -480,8 +480,8 @@ const Messages = () => {
             )}
           </div>
 
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
+          {/* Messages - Scrollable */}
+          <ScrollArea className="flex-1 min-h-0 p-4">
             <div className="space-y-4 max-w-2xl mx-auto">
               {messages.map((msg) => (
                 <div
@@ -580,8 +580,8 @@ const Messages = () => {
             </div>
           </ScrollArea>
 
-          {/* Input */}
-          <div className="bg-card border-t border-border p-4">
+          {/* Input - Sticky */}
+          <div className="bg-card border-t border-border p-4 flex-shrink-0">
             {isOtherUserDisabled ? (
               <div className="max-w-2xl mx-auto flex items-center justify-center gap-2 py-2 text-destructive">
                 <Ban className="w-4 h-4" />
@@ -610,8 +610,6 @@ const Messages = () => {
             )}
           </div>
         </main>
-
-        <MobileNav />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!deleteMessageId} onOpenChange={(open) => !open && setDeleteMessageId(null)}>
