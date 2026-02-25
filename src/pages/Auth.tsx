@@ -423,10 +423,10 @@ const Auth = () => {
         showRegistrationCompatibilityNoticeOnce();
       }, REGISTER_OTP_TIMEOUT_MS);
 
-      // Send OTP to phone — use same 8s timeout for the fetch itself
+      // Send OTP to phone
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: regPhone,
-      }, REGISTER_OTP_TIMEOUT_MS);
+      });
 
       if (didOtpTimeout) return;
       if (otpTimeoutId) {
