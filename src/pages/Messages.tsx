@@ -150,6 +150,23 @@ const Messages = () => {
     setActiveConversation(null);
   }, [conversationId]);
 
+  // Keep chat route pinned at top and prevent body scroll jump on mobile
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehaviorY;
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehaviorY = 'none';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehaviorY = previousBodyOverscroll;
+    };
+  }, [conversationId]);
+
   // Fetch messages when conversation changes
   useEffect(() => {
     if (!conversationId || !user) return;
@@ -413,10 +430,10 @@ const Messages = () => {
     const isOtherUserDisabled = activeConversation.otherUser?.is_disabled || false;
 
     return (
-      <div className="fixed inset-0 bg-background flex flex-col">
+      <div className="fixed inset-0 h-[100dvh] bg-background flex flex-col">
         <Header />
         
-        <main className="pt-14 pb-14 flex-1 flex flex-col overflow-hidden">
+        <main className="pt-14 pb-[calc(3.5rem+env(safe-area-inset-bottom))] flex-1 flex flex-col overflow-hidden">
           {/* Chat Header - Sticky */}
           <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
@@ -581,7 +598,7 @@ const Messages = () => {
           </ScrollArea>
 
           {/* Input - Sticky */}
-          <div className="bg-card border-t border-border p-4 flex-shrink-0">
+          <div className="bg-card border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex-shrink-0">
             {isOtherUserDisabled ? (
               <div className="max-w-2xl mx-auto flex items-center justify-center gap-2 py-2 text-destructive">
                 <Ban className="w-4 h-4" />
