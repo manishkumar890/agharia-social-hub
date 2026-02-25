@@ -713,7 +713,7 @@ const Admin = () => {
                 <span className="truncate">Admin Panel</span>
               </h1>
               <p className="text-muted-foreground text-xs sm:text-sm">Manage your community</p>
-              <a href="https://agharia-social-hub.lovable.app" target="_blank" rel="noopener noreferrer" className="text-primary text-xs sm:text-sm underline hover:text-primary/80 transition-colors">agharia-social-hub.lovable.app</a>
+              <a href="https://aghariasamaj.netlify.app" target="_blank" rel="noopener noreferrer" className="text-primary text-xs sm:text-sm underline hover:text-primary/80 transition-colors">aghariasamaj.netlify.app</a>
             </div>
           </div>
 
