@@ -77,14 +77,35 @@ serve(async (req) => {
     // API Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp}/{template_name}
     const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/${otp}/OTP1`;
     
-    console.log('Sending SMS OTP to:', phone, 'OTP:', otp);
-    
-    const smsResponse = await fetch(smsUrl, {
-      method: 'GET',
-    });
+    const maskedPhone = `${'*'.repeat(6)}${phone.slice(-4)}`;
+    console.log('Sending SMS OTP to:', maskedPhone);
 
-    const smsResult = await smsResponse.json();
-    console.log('2Factor SMS Response:', smsResult);
+    const smsAbortController = new AbortController();
+    const smsTimeout = setTimeout(() => smsAbortController.abort(), 8000);
+
+    let smsResult: any;
+    try {
+      const smsResponse = await fetch(smsUrl, {
+        method: 'GET',
+        signal: smsAbortController.signal,
+      });
+
+      smsResult = await smsResponse.json();
+      console.log('2Factor SMS Response:', smsResult);
+    } catch (smsError) {
+      console.error('SMS provider timeout/error:', smsError);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'SMS service timeout. Use demo OTP.',
+          otp: otp,
+          expiresIn: 600
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } finally {
+      clearTimeout(smsTimeout);
+    }
 
     if (smsResult.Status !== 'Success') {
       console.error('SMS sending failed:', smsResult);
