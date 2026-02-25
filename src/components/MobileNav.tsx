@@ -42,7 +42,7 @@ const MobileNav = () => {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
         <div className="max-w-5xl mx-auto flex items-center justify-around py-2">
           {navItems.map((item) => (
             <Link
