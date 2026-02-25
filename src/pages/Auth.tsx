@@ -395,7 +395,7 @@ const Auth = () => {
   // Simple Login - just credentials, no OTP
   const handleLoginSubmit = async () => {
     if (!loginIdentifier.trim()) {
-      toast.error('Please enter your username or email');
+      toast.error('Please enter your username, email, or phone number');
       return;
     }
 
@@ -411,20 +411,43 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Determine if identifier is email or username
-      const isEmail = loginIdentifier.includes('@');
-      let email = loginIdentifier.toLowerCase();
+      const identifier = loginIdentifier.trim().toLowerCase();
+      const isEmail = identifier.includes('@');
+      const isPhone = /^\d{10}$/.test(identifier);
+      let email = identifier;
 
       if (!isEmail) {
-        // It's a username, find the email
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('username', loginIdentifier.toLowerCase())
-          .maybeSingle();
+        // It's a username or phone — look up the email
+        let profile = null;
+        let queryError = null;
+
+        if (isPhone) {
+          const result = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('phone', identifier)
+            .maybeSingle();
+          profile = result.data;
+          queryError = result.error;
+        } else {
+          const result = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('username', identifier)
+            .maybeSingle();
+          profile = result.data;
+          queryError = result.error;
+        }
+
+        if (queryError) {
+          console.error('Profile lookup error:', queryError);
+          toast.error('Unable to connect. Please check your internet and try again.');
+          setIsLoading(false);
+          return;
+        }
 
         if (!profile || !profile.email) {
-          toast.error('User not found');
+          toast.error('User not found. Please check your username, email, or phone number.');
           setIsLoading(false);
           return;
         }
@@ -438,7 +461,13 @@ const Auth = () => {
       });
 
       if (signInError) {
-        toast.error('Invalid credentials');
+        if (signInError.message?.toLowerCase().includes('fetch') || 
+            signInError.message?.toLowerCase().includes('network') ||
+            signInError.message?.toLowerCase().includes('failed to')) {
+          toast.error('Network error. Please check your internet connection and try again.');
+        } else {
+          toast.error('Invalid credentials. Please check your password.');
+        }
         setIsLoading(false);
         return;
       }
@@ -447,8 +476,12 @@ const Auth = () => {
       navigate('/');
     } catch (error: unknown) {
       console.error('Login Error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      toast.error(errorMessage);
+      const msg = error instanceof Error ? error.message : '';
+      if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
+        toast.error('Network error. Please check your internet and try again.');
+      } else {
+        toast.error(msg || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
