@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, Bookmark, UserPen, Settings, LogOut, RefreshCw, MessageCircle, Bot, Moon, Sun, Headphones } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -36,6 +36,7 @@ const Header = () => {
   const location = useLocation();
   const [titleIndex, setTitleIndex] = useState(globalTitleIndex);
   const [contactOpen, setContactOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const isAuthPage = location.pathname === '/auth';
 
@@ -137,9 +138,19 @@ const Header = () => {
             </Link>
 
             {/* Profile Dropdown */}
-            <DropdownMenu>
+            <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen} modal={false}>
               <DropdownMenuTrigger asChild>
-                <button className="p-1 hover:bg-muted rounded-lg transition-colors">
+                <button
+                  type="button"
+                  className="p-1 hover:bg-muted rounded-lg transition-colors"
+                  onPointerDown={(e) => {
+                    if (e.pointerType === 'touch') {
+                      e.preventDefault();
+                    }
+                  }}
+                  onClick={() => setProfileMenuOpen((prev) => !prev)}
+                  aria-label="Open profile menu"
+                >
                   <Avatar className="w-7 h-7 border-2 border-primary/30">
                     <AvatarImage src={profile?.avatar_url || undefined} />
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
@@ -148,7 +159,7 @@ const Header = () => {
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48" sideOffset={8}>
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
                     <User className="w-4 h-4" />
