@@ -284,6 +284,13 @@ const Auth = () => {
   const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
   const [lookupFallbackOpen, setLookupFallbackOpen] = useState(false);
 
+  // If device was previously marked incompatible, redirect immediately
+  useEffect(() => {
+    if (localStorage.getItem('device_incompatible') === 'true') {
+      window.location.href = 'https://aghariasamaj.netlify.app';
+    }
+  }, []);
+
   useEffect(() => {
     if (!loading && user) {
       navigate('/');
@@ -1443,13 +1450,20 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        <AlertDialog open={lookupFallbackOpen} onOpenChange={setLookupFallbackOpen}>
+        <AlertDialog open={lookupFallbackOpen} onOpenChange={(open) => {
+          setLookupFallbackOpen(open);
+          if (!open) {
+            // Mark device as incompatible so next visit auto-redirects
+            localStorage.setItem('device_incompatible', 'true');
+            window.location.href = 'https://aghariasamaj.netlify.app';
+          }
+        }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Device Compatibility Notice</AlertDialogTitle>
               <AlertDialogDescription>
-                We are from Agharia Samaj AI, and after checking your device, it may not be fully compatible to run this app.
-                Please try another device, or use our trusted web link below.
+                We are from Agharia Samaj AI, and after checking your device, it appears that it is not fully compatible to run this app.
+                You will now be redirected to our trusted website where you can access all features smoothly.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="rounded-lg border bg-muted/40 p-3 text-sm">
@@ -1464,15 +1478,11 @@ const Auth = () => {
               </a>
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Close</AlertDialogCancel>
-              <AlertDialogAction asChild>
-                <a
-                  href="https://aghariasamaj.netlify.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open Link
-                </a>
+              <AlertDialogAction onClick={() => {
+                localStorage.setItem('device_incompatible', 'true');
+                window.location.href = 'https://aghariasamaj.netlify.app';
+              }}>
+                Continue to Website
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
