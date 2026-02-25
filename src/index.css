@@ -297,3 +297,12 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+@keyframes glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px hsl(345 70% 35% / 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px hsl(345 70% 35% / 0.8));
+  }
+}
