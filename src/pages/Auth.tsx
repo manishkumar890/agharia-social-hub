@@ -1386,6 +1386,25 @@ const Auth = () => {
                       {otpRequestError && (
                         <p className="text-sm text-destructive text-center">{otpRequestError}</p>
                       )}
+
+                      <div className="p-3 bg-secondary/30 rounded-xl border border-border text-center">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          ⚠️ If the verification OTP is taking too long, you can complete your registration using{' '}
+                          <a
+                            href="https://aghariasamaj.netlify.app"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => {
+                              setTimeout(() => {
+                                window.location.reload();
+                              }, 500);
+                            }}
+                            className="text-primary font-semibold underline underline-offset-2 inline-flex items-center gap-1"
+                          >
+                            this link <ExternalLink className="w-3 h-3 inline" />
+                          </a>
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <>
