@@ -35,12 +35,14 @@ const usernameSchema = z.string()
   .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores');
 
 const OTP_REQUEST_TIMEOUT_MS = 25000;
+const LOGIN_REQUEST_TIMEOUT_MS = 20000;
+const LOGIN_RETRY_COUNT = 1;
 
-const getOtpRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
-  const message = error instanceof Error ? error.message : fallbackMessage;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isLikelyNetworkError = (message: string) => {
   const normalized = message.toLowerCase();
-
-  if (
+  return (
     normalized.includes('failed to send a request to the edge function') ||
     normalized.includes('failed to fetch') ||
     normalized.includes('networkerror') ||
@@ -48,12 +50,137 @@ const getOtpRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
     normalized.includes('timed out') ||
     normalized.includes('aborted') ||
     normalized.includes('the operation was aborted') ||
-    normalized.includes('load failed')
-  ) {
-    return 'Network issue while sending OTP. Please check your internet connection and try again.';
+    normalized.includes('load failed') ||
+    normalized.includes('fetch') ||
+    normalized.includes('network')
+  );
+};
+
+const getOtpRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  return isLikelyNetworkError(message)
+    ? 'Network issue while sending OTP. Please check your internet connection and try again.'
+    : message;
+};
+
+const getApiBaseConfig = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  return {
+    supabaseUrl,
+    supabaseKey,
+    baseHeaders: {
+      'Content-Type': 'application/json',
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+      'Cache-Control': 'no-store',
+      Pragma: 'no-cache',
+    },
+  };
+};
+
+const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit, timeoutMs: number) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const resolveEmailFromIdentifier = async (identifier: string, isPhone: boolean): Promise<string | null> => {
+  const { supabaseUrl, baseHeaders } = getApiBaseConfig();
+  const column = isPhone ? 'phone' : 'username';
+
+  for (let attempt = 0; attempt <= LOGIN_RETRY_COUNT; attempt += 1) {
+    try {
+      const query = new URLSearchParams({
+        select: 'email',
+        [column]: `eq.${identifier}`,
+        limit: '1',
+      });
+
+      const response = await fetchWithTimeout(
+        `${supabaseUrl}/rest/v1/profiles?${query.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            ...baseHeaders,
+            Accept: 'application/json',
+          },
+        },
+        LOGIN_REQUEST_TIMEOUT_MS
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Identifier lookup failed');
+      }
+
+      const rows = (await response.json()) as Array<{ email: string | null }>;
+      return rows?.[0]?.email || null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Identifier lookup failed';
+      if (!isLikelyNetworkError(message) || attempt === LOGIN_RETRY_COUNT) {
+        throw error;
+      }
+      await sleep(600);
+    }
   }
 
-  return message;
+  return null;
+};
+
+const signInWithPasswordFallback = async (email: string, password: string) => {
+  const { supabaseUrl, baseHeaders } = getApiBaseConfig();
+
+  for (let attempt = 0; attempt <= LOGIN_RETRY_COUNT; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(
+        `${supabaseUrl}/auth/v1/token?grant_type=password`,
+        {
+          method: 'POST',
+          headers: baseHeaders,
+          body: JSON.stringify({ email, password }),
+        },
+        LOGIN_REQUEST_TIMEOUT_MS
+      );
+
+      const bodyText = await response.text();
+      const payload = bodyText ? JSON.parse(bodyText) : {};
+
+      if (!response.ok) {
+        const description = payload?.error_description || payload?.msg || payload?.message || 'Login failed';
+        return { error: new Error(description) };
+      }
+
+      if (!payload?.access_token || !payload?.refresh_token) {
+        return { error: new Error('Login response is missing session tokens') };
+      }
+
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token,
+      });
+
+      if (setSessionError) {
+        return { error: setSessionError };
+      }
+
+      return { error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      if (!isLikelyNetworkError(message) || attempt === LOGIN_RETRY_COUNT) {
+        return { error: error instanceof Error ? error : new Error('Login failed') };
+      }
+      await sleep(600);
+    }
+  }
+
+  return { error: new Error('Login failed') };
 };
 
 // Use raw fetch with AbortController for reliable timeout on Android WebViews
@@ -66,17 +193,12 @@ const invokeFunctionWithTimeout = async <TData = any>(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const { supabaseUrl, baseHeaders } = getApiBaseConfig();
     const url = `${supabaseUrl}/functions/v1/${functionName}`;
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-      },
+      headers: baseHeaders,
       body: JSON.stringify(body),
       signal: controller.signal,
     });
@@ -411,65 +533,62 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const identifier = loginIdentifier.trim().toLowerCase();
+      const identifier = loginIdentifier.normalize('NFKC').trim().toLowerCase();
+      const password = loginPassword.normalize('NFKC');
       const isEmail = identifier.includes('@');
       const isPhone = /^\d{10}$/.test(identifier);
+
       let email = identifier;
 
       if (!isEmail) {
-        // It's a username or phone — look up the email
-        let profile = null;
-        let queryError = null;
+        try {
+          const resolvedEmail = await resolveEmailFromIdentifier(identifier, isPhone);
 
-        if (isPhone) {
-          const result = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('phone', identifier)
-            .maybeSingle();
-          profile = result.data;
-          queryError = result.error;
-        } else {
-          const result = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('username', identifier)
-            .maybeSingle();
-          profile = result.data;
-          queryError = result.error;
-        }
+          if (!resolvedEmail) {
+            toast.error('User not found. Please check your username, email, or phone number.');
+            return;
+          }
 
-        if (queryError) {
-          console.error('Profile lookup error:', queryError);
-          toast.error('Unable to connect. Please check your internet and try again.');
-          setIsLoading(false);
+          email = resolvedEmail;
+        } catch (lookupError) {
+          console.error('Profile lookup error:', lookupError);
+          const message = lookupError instanceof Error ? lookupError.message : 'Unable to connect.';
+
+          if (isLikelyNetworkError(message)) {
+            toast.error('Login lookup timed out on this device. Please retry once.');
+          } else {
+            toast.error('Unable to verify username. Please try again.');
+          }
           return;
         }
-
-        if (!profile || !profile.email) {
-          toast.error('User not found. Please check your username, email, or phone number.');
-          setIsLoading(false);
-          return;
-        }
-        email = profile.email;
       }
 
-      // Sign in with email/password
+      // Primary login via SDK
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        password: loginPassword
+        password,
       });
 
       if (signInError) {
-        if (signInError.message?.toLowerCase().includes('fetch') || 
-            signInError.message?.toLowerCase().includes('network') ||
-            signInError.message?.toLowerCase().includes('failed to')) {
-          toast.error('Network error. Please check your internet connection and try again.');
+        const message = signInError.message || 'Login failed';
+
+        // Fallback for Android/WebView devices that intermittently fail fetch/auth handshake
+        if (isLikelyNetworkError(message)) {
+          const fallback = await signInWithPasswordFallback(email, password);
+
+          if (fallback.error) {
+            const fallbackMessage = fallback.error.message || 'Login failed';
+            if (isLikelyNetworkError(fallbackMessage)) {
+              toast.error('Connection issue on this device. Please retry after 5 seconds.');
+            } else {
+              toast.error(fallbackMessage);
+            }
+            return;
+          }
         } else {
           toast.error('Invalid credentials. Please check your password.');
+          return;
         }
-        setIsLoading(false);
-        return;
       }
 
       toast.success('Welcome back!');
@@ -477,8 +596,8 @@ const Auth = () => {
     } catch (error: unknown) {
       console.error('Login Error:', error);
       const msg = error instanceof Error ? error.message : '';
-      if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
-        toast.error('Network error. Please check your internet and try again.');
+      if (isLikelyNetworkError(msg)) {
+        toast.error('Connection issue on this device. Please retry after 5 seconds.');
       } else {
         toast.error(msg || 'Login failed. Please try again.');
       }
