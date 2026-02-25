@@ -112,9 +112,10 @@ const Header = () => {
             {/* AI Bot Button */}
             <Link
               to="/ai-chat"
-              className="relative p-2 rounded-full transition-colors group ai-glow-btn"
+              className="relative p-2 rounded-lg transition-colors group"
             >
-              <Bot className="relative w-5 h-5 text-primary" />
+              <span className="absolute inset-0 rounded-lg bg-primary/20 animate-pulse group-hover:bg-primary/30 transition-colors" />
+              <Bot className="relative w-5 h-5 text-primary animate-[glow_2s_ease-in-out_infinite]" />
             </Link>
 
             {/* Messages Button */}
