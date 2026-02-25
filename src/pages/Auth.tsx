@@ -10,9 +10,19 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Phone, Shield, ArrowRight, Loader2, Mail, Lock, User, Camera, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Phone, Shield, ArrowRight, Loader2, Mail, Lock, User, Camera, Eye, EyeOff, KeyRound, ExternalLink } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AvatarCropDialog from '@/components/AvatarCropDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Validation schemas
 const phoneSchema = z.string()
@@ -272,6 +282,7 @@ const Auth = () => {
   const [resendTimer, setResendTimer] = useState(0);
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
+  const [lookupFallbackOpen, setLookupFallbackOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
@@ -555,7 +566,7 @@ const Auth = () => {
           const message = lookupError instanceof Error ? lookupError.message : 'Unable to connect.';
 
           if (isLikelyNetworkError(message)) {
-            toast.error('Login lookup timed out on this device. Please retry once.');
+            setLookupFallbackOpen(true);
           } else {
             toast.error('Unable to verify username. Please try again.');
           }
@@ -1407,6 +1418,41 @@ const Auth = () => {
             )}
           </CardContent>
         </Card>
+
+        <AlertDialog open={lookupFallbackOpen} onOpenChange={setLookupFallbackOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Device Compatibility Notice</AlertDialogTitle>
+              <AlertDialogDescription>
+                We are from Agharia Samaj AI, and after checking your device, it may not be fully compatible to run this app.
+                Please try another device, or use our trusted web link below.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <a
+                href="https://aghariasamaj.netlify.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                https://aghariasamaj.netlify.app
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <a
+                  href="https://aghariasamaj.netlify.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Link
+                </a>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Footer */}
         <div className="mt-6 text-center">
