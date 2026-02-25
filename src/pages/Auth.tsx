@@ -34,7 +34,7 @@ const usernameSchema = z.string()
   .max(20, 'Username must be at most 20 characters')
   .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores');
 
-const OTP_REQUEST_TIMEOUT_MS = 20000;
+const OTP_REQUEST_TIMEOUT_MS = 25000;
 
 const getOtpRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
   const message = error instanceof Error ? error.message : fallbackMessage;
@@ -45,29 +45,65 @@ const getOtpRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
     normalized.includes('failed to fetch') ||
     normalized.includes('networkerror') ||
     normalized.includes('network request failed') ||
-    normalized.includes('timed out')
+    normalized.includes('timed out') ||
+    normalized.includes('aborted') ||
+    normalized.includes('the operation was aborted') ||
+    normalized.includes('load failed')
   ) {
-    return 'Network issue while sending OTP. Please check internet and try again.';
+    return 'Network issue while sending OTP. Please check your internet connection and try again.';
   }
 
   return message;
 };
 
+// Use raw fetch with AbortController for reliable timeout on Android WebViews
 const invokeFunctionWithTimeout = async <TData = any>(
   functionName: string,
   body: unknown,
   timeoutMs = OTP_REQUEST_TIMEOUT_MS
 ): Promise<{ data: TData | null; error: Error | null }> => {
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
-      reject(new Error('Request timed out. Please try again.'));
-    }, timeoutMs);
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  return (await Promise.race([
-    supabase.functions.invoke(functionName, { body }),
-    timeoutPromise,
-  ])) as { data: TData | null; error: Error | null };
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const url = `${supabaseUrl}/functions/v1/${functionName}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      let errorMessage = 'Request failed';
+      try {
+        const parsed = JSON.parse(errorBody);
+        errorMessage = parsed.error || parsed.message || errorMessage;
+      } catch {
+        errorMessage = errorBody || errorMessage;
+      }
+      return { data: null, error: new Error(errorMessage) };
+    }
+
+    const data = await response.json();
+    return { data: data as TData, error: null };
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      return { data: null, error: new Error('Request timed out. Please try again.') };
+    }
+    return { data: null, error: err instanceof Error ? err : new Error('Failed to send request. Please try again.') };
+  }
 };
 
 const Auth = () => {
@@ -270,8 +306,8 @@ const Auth = () => {
 
     try {
       // Verify OTP
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-otp', {
-        body: { phone: regPhone, otp: regOtp }
+      const { data: verifyData, error: verifyError } = await invokeFunctionWithTimeout<{ success?: boolean; error?: string; isNewUser?: boolean; userId?: string; email?: string; password?: string }>('verify-otp', {
+        phone: regPhone, otp: regOtp
       });
 
       if (verifyError) throw verifyError;
@@ -491,8 +527,8 @@ const Auth = () => {
 
     try {
       // Verify OTP
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-otp', {
-        body: { phone: forgotPhone, otp: forgotOtp }
+      const { data: verifyData, error: verifyError } = await invokeFunctionWithTimeout<{ success?: boolean; error?: string }>('verify-otp', {
+        phone: forgotPhone, otp: forgotOtp
       });
 
       if (verifyError) throw verifyError;
