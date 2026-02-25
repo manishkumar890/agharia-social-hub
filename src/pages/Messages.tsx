@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban, Phone, Video } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban, Phone, Video, Check, CheckCheck } from 'lucide-react';
 import { useCall } from '@/components/calls/CallProvider';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -143,6 +143,12 @@ const Messages = () => {
       supabase.removeChannel(presenceChannel);
     };
   }, [user]);
+
+  // Clear messages immediately when conversation changes to prevent stale data
+  useEffect(() => {
+    setMessages([]);
+    setActiveConversation(null);
+  }, [conversationId]);
 
   // Fetch messages when conversation changes
   useEffect(() => {
@@ -275,10 +281,19 @@ const Messages = () => {
             .limit(1)
             .single();
 
+          // Get unread count for this conversation
+          const { count: unreadCount } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('conversation_id', conv.id)
+            .neq('sender_id', user.id)
+            .is('read_at', null);
+
           return {
             ...conv,
             otherUser: profile ? { ...profile, isPremium } : undefined,
-            lastMessage: lastMsg?.content
+            lastMessage: lastMsg?.content,
+            unreadCount: unreadCount || 0
           } as Conversation;
         })
       );
@@ -540,12 +555,24 @@ const Messages = () => {
                     {!msg.content && msg.media_url && (
                       <div className="px-1 py-1" />
                     )}
-                    <p className={cn(
-                      "text-xs px-4 pb-2",
-                      msg.sender_id === user?.id ? "text-primary-foreground/70" : "text-muted-foreground"
+                    <div className={cn(
+                      "flex items-center gap-1 px-4 pb-2",
+                      msg.sender_id === user?.id ? "justify-end" : ""
                     )}>
-                      {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-                    </p>
+                      <p className={cn(
+                        "text-xs",
+                        msg.sender_id === user?.id ? "text-primary-foreground/70" : "text-muted-foreground"
+                      )}>
+                        {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                      </p>
+                      {msg.sender_id === user?.id && (
+                        msg.read_at ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-green-400" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 text-primary-foreground/50" />
+                        )
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -673,8 +700,15 @@ const Messages = () => {
                         </p>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })}
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })}
+                      </span>
+                      {(conv.unreadCount ?? 0) > 0 && (
+                        <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
+                          {conv.unreadCount! > 99 ? '99+' : conv.unreadCount}
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
