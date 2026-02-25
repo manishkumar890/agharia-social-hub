@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent pinch-zoom from interfering with touch interactions */
+* {
+  touch-action: manipulation;
+}
+
 /* Agharia Samaj - Sambalpuri Inspired Design System */
 
 @layer base {
