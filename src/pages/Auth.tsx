@@ -543,6 +543,15 @@ const Auth = () => {
 
     setIsLoading(true);
 
+    // 8-second overall timeout — if login doesn't finish, show compatibility popup
+    const LOGIN_TIMEOUT = 8000;
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      setIsLoading(false);
+      setLookupFallbackOpen(true);
+    }, LOGIN_TIMEOUT);
+
     try {
       const identifier = loginIdentifier.normalize('NFKC').trim().toLowerCase();
       const password = loginPassword.normalize('NFKC');
@@ -555,13 +564,18 @@ const Auth = () => {
         try {
           const resolvedEmail = await resolveEmailFromIdentifier(identifier, isPhone);
 
+          if (didTimeout) return;
+
           if (!resolvedEmail) {
+            clearTimeout(timeoutId);
             toast.error('User not found. Please check your username, email, or phone number.');
             return;
           }
 
           email = resolvedEmail;
         } catch (lookupError) {
+          if (didTimeout) return;
+          clearTimeout(timeoutId);
           console.error('Profile lookup error:', lookupError);
           const message = lookupError instanceof Error ? lookupError.message : 'Unable to connect.';
 
@@ -574,11 +588,16 @@ const Auth = () => {
         }
       }
 
+      if (didTimeout) return;
+
       // Primary login via SDK
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      if (didTimeout) return;
+      clearTimeout(timeoutId);
 
       if (signInError) {
         const message = signInError.message || 'Login failed';
@@ -590,7 +609,7 @@ const Auth = () => {
           if (fallback.error) {
             const fallbackMessage = fallback.error.message || 'Login failed';
             if (isLikelyNetworkError(fallbackMessage)) {
-              toast.error('Connection issue on this device. Please retry after 5 seconds.');
+              setLookupFallbackOpen(true);
             } else {
               toast.error(fallbackMessage);
             }
@@ -605,15 +624,20 @@ const Auth = () => {
       toast.success('Welcome back!');
       navigate('/');
     } catch (error: unknown) {
+      if (didTimeout) return;
+      clearTimeout(timeoutId);
       console.error('Login Error:', error);
       const msg = error instanceof Error ? error.message : '';
       if (isLikelyNetworkError(msg)) {
-        toast.error('Connection issue on this device. Please retry after 5 seconds.');
+        setLookupFallbackOpen(true);
       } else {
         toast.error(msg || 'Login failed. Please try again.');
       }
     } finally {
-      setIsLoading(false);
+      if (!didTimeout) {
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+      }
     }
   };
 
