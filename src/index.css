@@ -298,11 +298,61 @@
   100% { transform: rotate(360deg); }
 }
 
-@keyframes glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 2px hsl(345 70% 35% / 0.4));
-  }
-  50% {
-    filter: drop-shadow(0 0 8px hsl(345 70% 35% / 0.8));
+/* AI Bot Neon Glow Button */
+.ai-glow-btn {
+  position: relative;
+  z-index: 0;
+  overflow: visible;
+}
+
+.ai-glow-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    hsl(345 70% 50%),
+    hsl(43 74% 49%),
+    hsl(345 70% 50%),
+    hsl(43 74% 49%),
+    hsl(345 70% 50%)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: neon-spin 2.5s linear infinite;
+  z-index: -1;
+}
+
+.ai-glow-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    hsl(345 70% 50% / 0.6),
+    hsl(43 74% 49% / 0.6),
+    hsl(345 70% 50% / 0.6),
+    hsl(43 74% 49% / 0.6),
+    hsl(345 70% 50% / 0.6)
+  );
+  filter: blur(6px);
+  animation: neon-spin 2.5s linear infinite;
+  z-index: -2;
+}
+
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes neon-spin {
+  to {
+    --glow-angle: 360deg;
   }
 }
