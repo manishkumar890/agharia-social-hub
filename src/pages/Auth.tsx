@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -283,7 +283,6 @@ const Auth = () => {
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
   const [lookupFallbackOpen, setLookupFallbackOpen] = useState(false);
-  const registrationCompatibilityShownRef = useRef(false);
 
   // If device was previously marked incompatible, redirect immediately
   useEffect(() => {
@@ -304,12 +303,6 @@ const Auth = () => {
       return () => clearTimeout(timer);
     }
   }, [resendTimer]);
-
-  const showRegistrationCompatibilityNoticeOnce = () => {
-    if (registrationCompatibilityShownRef.current) return;
-    registrationCompatibilityShownRef.current = true;
-    setLookupFallbackOpen(true);
-  };
 
   // Handle avatar file selection
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -372,10 +365,14 @@ const Auth = () => {
     setDemoOtp(null);
     setOtpRequestError(null);
 
-    // 8-second timeout for the OTP request itself (same threshold as login)
-    const REGISTER_OTP_TIMEOUT_MS = 8000;
-    let didOtpTimeout = false;
-    let otpTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    // 8-second overall timeout for entire registration flow (same as login)
+    const REG_TIMEOUT = 8000;
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      setIsLoading(false);
+      setLookupFallbackOpen(true);
+    }, REG_TIMEOUT);
 
     try {
       // Check if username already exists
@@ -385,7 +382,10 @@ const Auth = () => {
         .eq('username', regUsername.toLowerCase())
         .maybeSingle();
 
+      if (didTimeout) return;
+
       if (existingUsername) {
+        clearTimeout(timeoutId);
         toast.error('Username already taken');
         setIsLoading(false);
         return;
@@ -398,7 +398,10 @@ const Auth = () => {
         .eq('email', regEmail.toLowerCase())
         .maybeSingle();
 
+      if (didTimeout) return;
+
       if (existingEmail) {
+        clearTimeout(timeoutId);
         toast.error('Email already registered');
         setIsLoading(false);
         return;
@@ -411,28 +414,22 @@ const Auth = () => {
         .eq('phone', regPhone)
         .maybeSingle();
 
+      if (didTimeout) return;
+
       if (existingPhone) {
+        clearTimeout(timeoutId);
         toast.error('Phone number already registered');
         setIsLoading(false);
         return;
       }
-
-      otpTimeoutId = setTimeout(() => {
-        didOtpTimeout = true;
-        setIsLoading(false);
-        showRegistrationCompatibilityNoticeOnce();
-      }, REGISTER_OTP_TIMEOUT_MS);
 
       // Send OTP to phone
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: regPhone,
       });
 
-      if (didOtpTimeout) return;
-      if (otpTimeoutId) {
-        clearTimeout(otpTimeoutId);
-        otpTimeoutId = null;
-      }
+      if (didTimeout) return;
+      clearTimeout(timeoutId);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -446,26 +443,21 @@ const Auth = () => {
       setRegStep('otp');
       setResendTimer(60);
     } catch (error: unknown) {
-      if (didOtpTimeout) return;
-      if (otpTimeoutId) {
-        clearTimeout(otpTimeoutId);
-        otpTimeoutId = null;
-      }
+      if (didTimeout) return;
+      clearTimeout(timeoutId);
 
       console.error('Registration Error:', error);
       const message = error instanceof Error ? error.message : 'Failed to send OTP';
       if (isLikelyNetworkError(message)) {
-        showRegistrationCompatibilityNoticeOnce();
+        setLookupFallbackOpen(true);
       } else {
         const errorMessage = getOtpRequestErrorMessage(error, 'Failed to send OTP');
         setOtpRequestError(errorMessage);
         toast.error(errorMessage);
       }
     } finally {
-      if (otpTimeoutId) {
-        clearTimeout(otpTimeoutId);
-      }
-      if (!didOtpTimeout) {
+      if (!didTimeout) {
+        clearTimeout(timeoutId);
         setIsLoading(false);
       }
     }
@@ -1490,7 +1482,14 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        <AlertDialog open={lookupFallbackOpen} onOpenChange={setLookupFallbackOpen}>
+        <AlertDialog open={lookupFallbackOpen} onOpenChange={(open) => {
+          setLookupFallbackOpen(open);
+          if (!open) {
+            // Mark device as incompatible so next visit auto-redirects
+            localStorage.setItem('device_incompatible', 'true');
+            window.location.href = 'https://aghariasamaj.netlify.app';
+          }
+        }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Device Compatibility Notice</AlertDialogTitle>
