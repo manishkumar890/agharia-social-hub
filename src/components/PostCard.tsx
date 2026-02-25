@@ -16,6 +16,16 @@ import SendPostDialog from '@/components/SendPostDialog';
 import LikesDialog from '@/components/LikesDialog';
 import CommentsDrawer from '@/components/CommentsDrawer';
 import ImageCarousel from '@/components/posts/ImageCarousel';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { mediaManager } from '@/lib/mediaManager';
 import { formatDistanceToNow } from 'date-fns';
@@ -59,6 +69,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [likesDialogOpen, setLikesDialogOpen] = useState(false);
   const [commentsDrawerOpen, setCommentsDrawerOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const postRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const likeInProgressRef = useRef(false);
@@ -270,7 +281,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleSend}>Send</DropdownMenuItem>
             {canDelete && (
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+              <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-destructive">
                 Delete
               </DropdownMenuItem>
             )}
@@ -435,6 +446,23 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         commentsEnabled={post.comments_enabled !== false}
         onCommentsCountChange={setCommentsCount}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 };
