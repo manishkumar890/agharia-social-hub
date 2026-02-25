@@ -34,6 +34,42 @@ const usernameSchema = z.string()
   .max(20, 'Username must be at most 20 characters')
   .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores');
 
+const OTP_REQUEST_TIMEOUT_MS = 20000;
+
+const getOtpRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes('failed to send a request to the edge function') ||
+    normalized.includes('failed to fetch') ||
+    normalized.includes('networkerror') ||
+    normalized.includes('network request failed') ||
+    normalized.includes('timed out')
+  ) {
+    return 'Network issue while sending OTP. Please check internet and try again.';
+  }
+
+  return message;
+};
+
+const invokeFunctionWithTimeout = async <TData = any>(
+  functionName: string,
+  body: unknown,
+  timeoutMs = OTP_REQUEST_TIMEOUT_MS
+): Promise<{ data: TData | null; error: Error | null }> => {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('Request timed out. Please try again.'));
+    }, timeoutMs);
+  });
+
+  return (await Promise.race([
+    supabase.functions.invoke(functionName, { body }),
+    timeoutPromise,
+  ])) as { data: TData | null; error: Error | null };
+};
+
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -77,6 +113,7 @@ const Auth = () => {
   // OTP state
   const [resendTimer, setResendTimer] = useState(0);
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
+  const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && user) {
@@ -150,6 +187,7 @@ const Auth = () => {
 
     setIsLoading(true);
     setDemoOtp(null);
+    setOtpRequestError(null);
 
     try {
       // Check if username already exists
@@ -192,8 +230,8 @@ const Auth = () => {
       }
 
       // Send OTP to phone
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { phone: regPhone }
+      const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
+        phone: regPhone,
       });
 
       if (error) throw error;
@@ -204,11 +242,13 @@ const Auth = () => {
       }
 
       toast.success(data?.message || 'OTP sent successfully!');
+      setOtpRequestError(null);
       setRegStep('otp');
       setResendTimer(60);
     } catch (error: unknown) {
       console.error('Registration Error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      const errorMessage = getOtpRequestErrorMessage(error, 'Failed to send OTP');
+      setOtpRequestError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -391,6 +431,7 @@ const Auth = () => {
 
     setIsLoading(true);
     setDemoOtp(null);
+    setOtpRequestError(null);
 
     try {
       // Find user by phone
@@ -410,8 +451,8 @@ const Auth = () => {
       setForgotEmail(profile.email || '');
 
       // Send OTP
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { phone: forgotPhone }
+      const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
+        phone: forgotPhone,
       });
 
       if (error) throw error;
@@ -422,11 +463,13 @@ const Auth = () => {
       }
 
       toast.success('OTP sent to your phone');
+      setOtpRequestError(null);
       setForgotStep('otp');
       setResendTimer(60);
     } catch (error: unknown) {
       console.error('Forgot Password Error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send OTP';
+      const errorMessage = getOtpRequestErrorMessage(error, 'Failed to send OTP');
+      setOtpRequestError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -513,10 +556,11 @@ const Auth = () => {
   const handleResendOtp = async (phone: string) => {
     setIsLoading(true);
     setDemoOtp(null);
+    setOtpRequestError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { phone }
+      const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
+        phone,
       });
 
       if (error) throw error;
@@ -527,9 +571,11 @@ const Auth = () => {
       }
 
       toast.success('OTP resent successfully!');
+      setOtpRequestError(null);
       setResendTimer(60);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to resend OTP';
+      const errorMessage = getOtpRequestErrorMessage(error, 'Failed to resend OTP');
+      setOtpRequestError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -548,6 +594,7 @@ const Auth = () => {
     setRegAvatarPreview(null);
     setRegOtp('');
     setDemoOtp(null);
+    setOtpRequestError(null);
   };
 
   const resetLogin = () => {
@@ -564,6 +611,7 @@ const Auth = () => {
     setForgotUserId('');
     setForgotEmail('');
     setDemoOtp(null);
+    setOtpRequestError(null);
   };
 
   if (loading) {
@@ -711,10 +759,15 @@ const Auth = () => {
                       Send OTP
                     </Button>
 
+                    {otpRequestError && (
+                      <p className="text-sm text-destructive text-center">{otpRequestError}</p>
+                    )}
+
                     <Button 
                       variant="ghost" 
                       className="w-full text-sm text-muted-foreground hover:text-foreground"
                       onClick={() => {
+                        setOtpRequestError(null);
                         resetForgotPassword();
                         setAuthMode('login');
                       }}
@@ -854,6 +907,7 @@ const Auth = () => {
               // Login/Register Tabs
               <Tabs value={authMode} onValueChange={(v) => {
                 setAuthMode(v as 'register' | 'login');
+                setOtpRequestError(null);
                 resetRegistration();
                 resetLogin();
               }}>
@@ -1098,6 +1152,10 @@ const Auth = () => {
                         )}
                         Send Verification OTP
                       </Button>
+
+                      {otpRequestError && (
+                        <p className="text-sm text-destructive text-center">{otpRequestError}</p>
+                      )}
                     </>
                   ) : (
                     <>
