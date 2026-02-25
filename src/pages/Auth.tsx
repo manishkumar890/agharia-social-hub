@@ -365,14 +365,8 @@ const Auth = () => {
     setDemoOtp(null);
     setOtpRequestError(null);
 
-    // 8-second overall timeout for entire registration flow (same as login)
-    const REG_TIMEOUT = 8000;
-    let didTimeout = false;
-    const timeoutId = setTimeout(() => {
-      didTimeout = true;
-      setIsLoading(false);
-      setLookupFallbackOpen(true);
-    }, REG_TIMEOUT);
+    let didOtpTimeout = false;
+    let otpTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     try {
       // Check if username already exists
@@ -382,10 +376,7 @@ const Auth = () => {
         .eq('username', regUsername.toLowerCase())
         .maybeSingle();
 
-      if (didTimeout) return;
-
       if (existingUsername) {
-        clearTimeout(timeoutId);
         toast.error('Username already taken');
         setIsLoading(false);
         return;
@@ -398,10 +389,7 @@ const Auth = () => {
         .eq('email', regEmail.toLowerCase())
         .maybeSingle();
 
-      if (didTimeout) return;
-
       if (existingEmail) {
-        clearTimeout(timeoutId);
         toast.error('Email already registered');
         setIsLoading(false);
         return;
@@ -414,22 +402,30 @@ const Auth = () => {
         .eq('phone', regPhone)
         .maybeSingle();
 
-      if (didTimeout) return;
-
       if (existingPhone) {
-        clearTimeout(timeoutId);
         toast.error('Phone number already registered');
         setIsLoading(false);
         return;
       }
+
+      // 10-second timeout only for OTP request in register flow
+      const REGISTER_OTP_TIMEOUT_MS = 10000;
+      otpTimeoutId = setTimeout(() => {
+        didOtpTimeout = true;
+        setIsLoading(false);
+        setLookupFallbackOpen(true);
+      }, REGISTER_OTP_TIMEOUT_MS);
 
       // Send OTP to phone
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: regPhone,
       });
 
-      if (didTimeout) return;
-      clearTimeout(timeoutId);
+      if (didOtpTimeout) return;
+      if (otpTimeoutId) {
+        clearTimeout(otpTimeoutId);
+        otpTimeoutId = null;
+      }
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -443,8 +439,11 @@ const Auth = () => {
       setRegStep('otp');
       setResendTimer(60);
     } catch (error: unknown) {
-      if (didTimeout) return;
-      clearTimeout(timeoutId);
+      if (otpTimeoutId) {
+        clearTimeout(otpTimeoutId);
+        otpTimeoutId = null;
+      }
+      if (didOtpTimeout) return;
 
       console.error('Registration Error:', error);
       const message = error instanceof Error ? error.message : 'Failed to send OTP';
@@ -456,8 +455,10 @@ const Auth = () => {
         toast.error(errorMessage);
       }
     } finally {
-      if (!didTimeout) {
-        clearTimeout(timeoutId);
+      if (otpTimeoutId) {
+        clearTimeout(otpTimeoutId);
+      }
+      if (!didOtpTimeout) {
         setIsLoading(false);
       }
     }
