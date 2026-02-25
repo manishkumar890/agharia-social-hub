@@ -416,7 +416,7 @@ const Messages = () => {
       <div className="fixed inset-0 bg-background flex flex-col">
         <Header />
         
-        <main className="pt-14 pb-14 flex-1 flex flex-col overflow-hidden">
+        <main className="pt-14 flex-1 flex flex-col overflow-hidden">
           {/* Chat Header - Sticky */}
           <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
@@ -611,7 +611,6 @@ const Messages = () => {
           </div>
         </main>
 
-        <MobileNav />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!deleteMessageId} onOpenChange={(open) => !open && setDeleteMessageId(null)}>
