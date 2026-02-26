@@ -191,49 +191,67 @@ const signInWithPasswordFallback = async (email: string, password: string) => {
   return { error: new Error('Login failed') };
 };
 
-// Use raw fetch with AbortController for reliable timeout on Android WebViews
+// Use raw fetch with AbortController + retry for reliable OTP on all browsers
 const invokeFunctionWithTimeout = async <TData = any>(
   functionName: string,
   body: unknown,
-  timeoutMs = OTP_REQUEST_TIMEOUT_MS
+  timeoutMs = OTP_REQUEST_TIMEOUT_MS,
+  maxRetries = 2
 ): Promise<{ data: TData | null; error: Error | null }> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const { supabaseUrl, baseHeaders } = getApiBaseConfig();
+  const url = `${supabaseUrl}/functions/v1/${functionName}`;
+  let lastError: Error | null = null;
 
-  try {
-    const { supabaseUrl, baseHeaders } = getApiBaseConfig();
-    const url = `${supabaseUrl}/functions/v1/${functionName}`;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: baseHeaders,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: baseHeaders,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+        // Disable caching to avoid stale responses on some browsers
+        cache: 'no-store',
+      });
 
-    clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      let errorMessage = 'Request failed';
-      try {
-        const parsed = JSON.parse(errorBody);
-        errorMessage = parsed.error || parsed.message || errorMessage;
-      } catch {
-        errorMessage = errorBody || errorMessage;
+      if (!response.ok) {
+        const errorBody = await response.text();
+        let errorMessage = 'Request failed';
+        try {
+          const parsed = JSON.parse(errorBody);
+          errorMessage = parsed.error || parsed.message || errorMessage;
+        } catch {
+          errorMessage = errorBody || errorMessage;
+        }
+        // Don't retry non-network server errors (4xx)
+        if (response.status >= 400 && response.status < 500) {
+          return { data: null, error: new Error(errorMessage) };
+        }
+        lastError = new Error(errorMessage);
+      } else {
+        const data = await response.json();
+        return { data: data as TData, error: null };
       }
-      return { data: null, error: new Error(errorMessage) };
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        lastError = new Error('Request timed out. Please try again.');
+      } else {
+        lastError = err instanceof Error ? err : new Error('Failed to send request. Please try again.');
+      }
     }
 
-    const data = await response.json();
-    return { data: data as TData, error: null };
-  } catch (err: unknown) {
-    clearTimeout(timeoutId);
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      return { data: null, error: new Error('Request timed out. Please try again.') };
+    // Wait before retrying (exponential backoff: 1s, 2s)
+    if (attempt < maxRetries) {
+      await sleep((attempt + 1) * 1000);
     }
-    return { data: null, error: err instanceof Error ? err : new Error('Failed to send request. Please try again.') };
   }
+
+  return { data: null, error: lastError };
 };
 
 const Auth = () => {
