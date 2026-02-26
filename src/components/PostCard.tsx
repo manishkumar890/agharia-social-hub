@@ -300,6 +300,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             src={post.image_url} 
             poster={post.thumbnail_url || undefined}
             className="w-full h-full object-cover"
+            playsInline
+            webkit-playsinline=""
             controls
             controlsList="nodownload noplaybackrate"
             preload="metadata"
