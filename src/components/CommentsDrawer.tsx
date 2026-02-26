@@ -10,6 +10,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Send, Loader2, Heart } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -41,6 +45,7 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -173,7 +178,7 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
                     </p>
                     {(user?.id === comment.user_id || isAdmin) && (
                       <button
-                        onClick={() => handleDeleteComment(comment.id)}
+                        onClick={() => setDeleteCommentId(comment.id)}
                         className="text-xs text-destructive"
                       >
                         Delete
@@ -211,28 +216,61 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
     </div>
   );
 
+  const confirmDialog = (
+    <AlertDialog open={!!deleteCommentId} onOpenChange={(open) => !open && setDeleteCommentId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. Are you sure you want to delete this comment?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (deleteCommentId) {
+                handleDeleteComment(deleteCommentId);
+                setDeleteCommentId(null);
+              }
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="flex flex-col max-h-[85vh]">
-          <DrawerHeader className="border-b border-border pb-3">
-            <DrawerTitle className="text-center">Comments</DrawerTitle>
-          </DrawerHeader>
-          {commentsList}
-        </DrawerContent>
-      </Drawer>
+      <>
+        {confirmDialog}
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="flex flex-col max-h-[85vh]">
+            <DrawerHeader className="border-b border-border pb-3">
+              <DrawerTitle className="text-center">Comments</DrawerTitle>
+            </DrawerHeader>
+            {commentsList}
+          </DrawerContent>
+        </Drawer>
+      </>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0">
-        <DialogHeader className="p-4 border-b border-border">
-          <DialogTitle className="text-center">Comments</DialogTitle>
-        </DialogHeader>
-        {commentsList}
-      </DialogContent>
-    </Dialog>
+    <>
+      {confirmDialog}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0">
+          <DialogHeader className="p-4 border-b border-border">
+            <DialogTitle className="text-center">Comments</DialogTitle>
+          </DialogHeader>
+          {commentsList}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
