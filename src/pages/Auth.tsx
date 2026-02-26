@@ -84,8 +84,6 @@ const getApiBaseConfig = () => {
       'Content-Type': 'application/json',
       apikey: supabaseKey,
       Authorization: `Bearer ${supabaseKey}`,
-      'Cache-Control': 'no-store',
-      Pragma: 'no-cache',
     },
   };
 };
