@@ -308,7 +308,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             onPlay={() => {
               mediaManager.play(() => {
                 videoRef.current?.pause();
-              });
+              }, `video-${post.id}`);
             }}
           />
         ) : post.image_urls && post.image_urls.length > 1 ? (
