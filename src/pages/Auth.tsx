@@ -299,6 +299,8 @@ const Auth = () => {
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
   const [lookupFallbackOpen, setLookupFallbackOpen] = useState(false);
+  const [showRegisterNow, setShowRegisterNow] = useState(false);
+  const [otpSendingInProgress, setOtpSendingInProgress] = useState(false);
 
   // If device was previously marked incompatible, redirect immediately
   useEffect(() => {
@@ -347,6 +349,74 @@ const Auth = () => {
     }
   };
 
+  // Register directly without OTP (for slow devices)
+  const handleRegisterWithoutOtp = async () => {
+    setIsLoading(true);
+    try {
+      // Create the auth user with email/password
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: regEmail,
+        password: regPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            phone: regPhone,
+            username: regUsername.toLowerCase(),
+            full_name: regFullName
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error('Failed to create account');
+
+      // Upload avatar
+      let avatarUrl: string | null = null;
+      if (regAvatar) {
+        const fileExt = regAvatar.name.split('.').pop();
+        const fileName = `${signUpData.user.id}/avatar.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, regAvatar, { upsert: true });
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+          avatarUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      // Create profile
+      await supabase.from('profiles').insert({
+        user_id: signUpData.user.id,
+        phone: regPhone,
+        email: regEmail.toLowerCase(),
+        username: regUsername.toLowerCase(),
+        full_name: regFullName.trim(),
+        avatar_url: avatarUrl
+      });
+
+      // Sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: regEmail,
+        password: regPassword
+      });
+
+      if (signInError) {
+        toast.success('Account created! Please login.');
+        setAuthMode('login');
+        resetRegistration();
+      } else {
+        toast.success('Welcome! Account created successfully.');
+        navigate('/');
+      }
+    } catch (error: unknown) {
+      console.error('Direct Registration Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+      setShowRegisterNow(false);
+    }
+  };
+
   // Registration Step 1: Submit form and send OTP
   const handleRegisterSubmit = async () => {
     // Validate all fields
@@ -380,6 +450,15 @@ const Auth = () => {
     setIsLoading(true);
     setDemoOtp(null);
     setOtpRequestError(null);
+    setShowRegisterNow(false);
+    setOtpSendingInProgress(true);
+
+    // Show "Register Now" fallback after 8 seconds
+    const registerNowTimer = setTimeout(() => {
+      setShowRegisterNow(true);
+      setOtpSendingInProgress(false);
+      setIsLoading(false);
+    }, 8000);
 
     try {
       // Check if username already exists
@@ -391,7 +470,9 @@ const Auth = () => {
 
       if (existingUsername) {
         toast.error('Username already taken');
+        clearTimeout(registerNowTimer);
         setIsLoading(false);
+        setOtpSendingInProgress(false);
         return;
       }
 
@@ -404,7 +485,9 @@ const Auth = () => {
 
       if (existingEmail) {
         toast.error('Email already registered');
+        clearTimeout(registerNowTimer);
         setIsLoading(false);
+        setOtpSendingInProgress(false);
         return;
       }
 
@@ -417,7 +500,9 @@ const Auth = () => {
 
       if (existingPhone) {
         toast.error('Phone number already registered');
+        clearTimeout(registerNowTimer);
         setIsLoading(false);
+        setOtpSendingInProgress(false);
         return;
       }
 
@@ -425,6 +510,9 @@ const Auth = () => {
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: regPhone,
       });
+
+      clearTimeout(registerNowTimer);
+      setOtpSendingInProgress(false);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -435,13 +523,18 @@ const Auth = () => {
 
       toast.success(data?.message || 'OTP sent successfully!');
       setOtpRequestError(null);
+      setShowRegisterNow(false);
       setRegStep('otp');
       setResendTimer(60);
     } catch (error: unknown) {
+      clearTimeout(registerNowTimer);
+      setOtpSendingInProgress(false);
       console.error('Registration Error:', error);
       const errorMessage = getOtpRequestErrorMessage(error, 'Failed to send OTP');
       setOtpRequestError(errorMessage);
       toast.error(errorMessage);
+      // Show Register Now on OTP failure
+      setShowRegisterNow(true);
     } finally {
       setIsLoading(false);
     }
@@ -1386,41 +1479,56 @@ const Auth = () => {
                         </div>
                       </div>
 
-                      <Button 
-                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
-                        onClick={handleRegisterSubmit}
-                        disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <ArrowRight className="w-4 h-4 mr-2" />
-                        )}
-                        Send Verification OTP
-                      </Button>
-
-                      {otpRequestError && (
-                        <p className="text-sm text-destructive text-center">{otpRequestError}</p>
-                      )}
-
-                      <div className="p-3 bg-secondary/30 rounded-xl border border-border text-center">
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          ⚠️ If the verification OTP is taking too long, you can complete your registration using{' '}
-                          <a
-                            href="https://aghariasamaj.netlify.app"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => {
-                              setTimeout(() => {
-                                window.location.reload();
-                              }, 500);
-                            }}
-                            className="text-primary font-semibold underline underline-offset-2 inline-flex items-center gap-1"
+                      {showRegisterNow ? (
+                        <>
+                          <div className="p-3 bg-destructive/10 rounded-xl border border-destructive/20 text-center">
+                            <p className="text-sm text-destructive font-medium mb-1">OTP service is slow on your device</p>
+                            <p className="text-xs text-muted-foreground">You can register directly without OTP verification.</p>
+                          </div>
+                          <Button 
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                            onClick={handleRegisterWithoutOtp}
+                            disabled={isLoading}
                           >
-                            this link <ExternalLink className="w-3 h-3 inline" />
-                          </a>
-                        </p>
-                      </div>
+                            {isLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <ArrowRight className="w-4 h-4 mr-2" />
+                            )}
+                            Register Now
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            className="w-full h-10 rounded-xl"
+                            onClick={() => {
+                              setShowRegisterNow(false);
+                              handleRegisterSubmit();
+                            }}
+                            disabled={isLoading}
+                          >
+                            Retry Send OTP
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button 
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                            onClick={handleRegisterSubmit}
+                            disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <ArrowRight className="w-4 h-4 mr-2" />
+                            )}
+                            {otpSendingInProgress ? 'Sending OTP...' : 'Send Verification OTP'}
+                          </Button>
+
+                          {otpRequestError && (
+                            <p className="text-sm text-destructive text-center">{otpRequestError}</p>
+                          )}
+                        </>
+                      )}
                     </>
                   ) : (
                     <>
