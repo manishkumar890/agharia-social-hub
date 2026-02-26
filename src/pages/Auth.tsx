@@ -369,6 +369,10 @@ const Auth = () => {
       return;
     }
 
+    if (!regAvatar) {
+      toast.error('Please upload a profile picture (required)');
+      return;
+    }
 
     if (regPassword !== regConfirmPassword) {
       toast.error('Passwords do not match');
@@ -1516,7 +1520,7 @@ const Auth = () => {
                       <Button 
                         className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
                         onClick={handleRegisterWithoutOtp}
-                        disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword}
+                        disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword || !regAvatar}
                       >
                         {isLoading ? (
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
