@@ -174,7 +174,7 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
                     {(user?.id === comment.user_id || isAdmin) && (
                       <button
                         onClick={() => handleDeleteComment(comment.id)}
-                        className="text-xs text-destructive opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
+                        className="text-xs text-destructive"
                       >
                         Delete
                       </button>
