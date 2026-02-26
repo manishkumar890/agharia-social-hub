@@ -351,47 +351,8 @@ const Auth = () => {
 
   // Register directly without OTP (for slow devices)
   const handleRegisterWithoutOtp = async () => {
-    // Validate all fields
-    try {
-      usernameSchema.parse(regUsername);
-      emailSchema.parse(regEmail);
-      passwordSchema.parse(regPassword);
-      phoneSchema.parse(regPhone);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
-    }
-
-    if (!regFullName.trim()) {
-      toast.error('Please enter your full name');
-      return;
-    }
-
-    if (!regAvatar) {
-      toast.error('Please upload a profile picture (required)');
-      return;
-    }
-
-    if (regPassword !== regConfirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      // Check uniqueness in parallel
-      const [usernameCheck, emailCheck, phoneCheck] = await Promise.all([
-        supabase.from('profiles').select('id').eq('username', regUsername.toLowerCase()).maybeSingle(),
-        supabase.from('profiles').select('id').eq('email', regEmail.toLowerCase()).maybeSingle(),
-        supabase.from('profiles').select('id').eq('phone', regPhone).maybeSingle(),
-      ]);
-
-      if (usernameCheck.data) { toast.error('Username already taken'); setIsLoading(false); return; }
-      if (emailCheck.data) { toast.error('Email already registered'); setIsLoading(false); return; }
-      if (phoneCheck.data) { toast.error('Phone number already registered'); setIsLoading(false); return; }
-
       // Create the auth user with email/password
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: regEmail,
@@ -448,10 +409,11 @@ const Auth = () => {
         navigate('/');
       }
     } catch (error: unknown) {
-      console.error('Registration Error:', error);
+      console.error('Direct Registration Error:', error);
       toast.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {
       setIsLoading(false);
+      setShowRegisterNow(false);
     }
   };
 
@@ -1517,21 +1479,55 @@ const Auth = () => {
                         </div>
                       </div>
 
-                      <Button 
-                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
-                        onClick={handleRegisterWithoutOtp}
-                        disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword || !regAvatar}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <ArrowRight className="w-4 h-4 mr-2" />
-                        )}
-                        Register Now
-                      </Button>
+                      {showRegisterNow ? (
+                        <>
+                          <div className="p-3 bg-destructive/10 rounded-xl border border-destructive/20 text-center">
+                            <p className="text-sm text-destructive font-medium mb-1">OTP service is slow on your device</p>
+                            <p className="text-xs text-muted-foreground">You can register directly without OTP verification.</p>
+                          </div>
+                          <Button 
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                            onClick={handleRegisterWithoutOtp}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <ArrowRight className="w-4 h-4 mr-2" />
+                            )}
+                            Register Now
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            className="w-full h-10 rounded-xl"
+                            onClick={() => {
+                              setShowRegisterNow(false);
+                              handleRegisterSubmit();
+                            }}
+                            disabled={isLoading}
+                          >
+                            Retry Send OTP
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button 
+                            className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                            onClick={handleRegisterSubmit}
+                            disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <ArrowRight className="w-4 h-4 mr-2" />
+                            )}
+                            {otpSendingInProgress ? 'Sending OTP...' : 'Send Verification OTP'}
+                          </Button>
 
-                      {otpRequestError && (
-                        <p className="text-sm text-destructive text-center">{otpRequestError}</p>
+                          {otpRequestError && (
+                            <p className="text-sm text-destructive text-center">{otpRequestError}</p>
+                          )}
+                        </>
                       )}
                     </>
                   ) : (
