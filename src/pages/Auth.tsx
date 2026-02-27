@@ -320,6 +320,9 @@ const Auth = () => {
     }
   }, [resendTimer]);
 
+  const MAX_AVATAR_SIZE_MB = 5;
+  const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
+
   // Handle avatar file selection
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -328,7 +331,10 @@ const Auth = () => {
         toast.error('Please select an image file');
         return;
       }
-      // No size limit - will be auto-compressed by crop tool
+      if (file.size > MAX_AVATAR_SIZE_BYTES) {
+        toast.error(`Image size must be less than ${MAX_AVATAR_SIZE_MB}MB. Selected: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+        return;
+      }
       const objectUrl = URL.createObjectURL(file);
       setCropImageSrc(objectUrl);
       setCropDialogOpen(true);
@@ -350,16 +356,28 @@ const Auth = () => {
   // Registration Step 1: Submit form and send OTP
   const handleRegisterSubmit = async () => {
     // Validate all fields
-    try {
-      usernameSchema.parse(regUsername);
-      emailSchema.parse(regEmail);
-      passwordSchema.parse(regPassword);
-      phoneSchema.parse(regPhone);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    const usernameResult = usernameSchema.safeParse(regUsername);
+    if (!usernameResult.success) {
+      toast.error(usernameResult.error.errors[0].message);
+      return;
+    }
+
+    const emailResult = emailSchema.safeParse(regEmail);
+    if (!emailResult.success) {
+      toast.error(emailResult.error.errors[0].message);
+      return;
+    }
+
+    const passwordResult = passwordSchema.safeParse(regPassword);
+    if (!passwordResult.success) {
+      toast.error(passwordResult.error.errors[0].message);
+      return;
+    }
+
+    const phoneResult = phoneSchema.safeParse(regPhone);
+    if (!phoneResult.success) {
+      toast.error(phoneResult.error.errors[0].message);
+      return;
     }
 
     if (!regFullName.trim()) {
@@ -449,13 +467,10 @@ const Auth = () => {
 
   // Registration Step 2: Verify OTP and create account
   const handleRegisterVerifyOtp = async () => {
-    try {
-      otpSchema.parse(regOtp);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    const otpResult = otpSchema.safeParse(regOtp);
+    if (!otpResult.success) {
+      toast.error(otpResult.error.errors[0].message);
+      return;
     }
 
     setIsLoading(true);
@@ -555,13 +570,10 @@ const Auth = () => {
       return;
     }
 
-    try {
-      passwordSchema.parse(loginPassword);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    const pwResult = passwordSchema.safeParse(loginPassword);
+    if (!pwResult.success) {
+      toast.error(pwResult.error.errors[0].message);
+      return;
     }
 
     setIsLoading(true);
@@ -666,13 +678,10 @@ const Auth = () => {
 
   // Forgot Password Step 1: Send OTP to phone
   const handleForgotSendOtp = async () => {
-    try {
-      phoneSchema.parse(forgotPhone);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    const phoneResult = phoneSchema.safeParse(forgotPhone);
+    if (!phoneResult.success) {
+      toast.error(phoneResult.error.errors[0].message);
+      return;
     }
 
     setIsLoading(true);
@@ -724,13 +733,10 @@ const Auth = () => {
 
   // Forgot Password Step 2: Verify OTP
   const handleForgotVerifyOtp = async () => {
-    try {
-      otpSchema.parse(forgotOtp);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    const otpResult = otpSchema.safeParse(forgotOtp);
+    if (!otpResult.success) {
+      toast.error(otpResult.error.errors[0].message);
+      return;
     }
 
     setIsLoading(true);
@@ -757,13 +763,10 @@ const Auth = () => {
 
   // Forgot Password Step 3: Set new password
   const handleForgotSetPassword = async () => {
-    try {
-      passwordSchema.parse(forgotNewPassword);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+    const pwResult = passwordSchema.safeParse(forgotNewPassword);
+    if (!pwResult.success) {
+      toast.error(pwResult.error.errors[0].message);
+      return;
     }
 
     if (forgotNewPassword !== forgotConfirmPassword) {
@@ -1262,7 +1265,7 @@ const Auth = () => {
                         </div>
                       </div>
                       <p className="text-center text-xs text-muted-foreground">
-                        Upload Profile Picture *
+                        Upload Profile Picture * <span className="text-muted-foreground/70">(max 5MB)</span>
                       </p>
 
                       {/* Avatar Crop Dialog */}
