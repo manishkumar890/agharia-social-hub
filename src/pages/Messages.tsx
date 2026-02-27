@@ -416,9 +416,9 @@ const Messages = () => {
       <div className="fixed inset-0 bg-background flex flex-col" style={{ height: '100dvh' }}>
         <Header />
         
-        <main className="pt-14 flex-1 flex flex-col overflow-hidden min-h-0">
+        <main className="pt-[56px] flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Chat Header - Sticky */}
-          <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
+          <div className="bg-card border-b border-border px-4 py-2 flex items-center gap-3 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -581,7 +581,7 @@ const Messages = () => {
           </ScrollArea>
 
           {/* Input - Sticky */}
-          <div className="bg-card border-t border-border p-4 flex-shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="bg-card border-t border-border px-4 py-2 flex-shrink-0" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
             {isOtherUserDisabled ? (
               <div className="max-w-2xl mx-auto flex items-center justify-center gap-2 py-2 text-destructive">
                 <Ban className="w-4 h-4" />
