@@ -138,17 +138,11 @@ const Header = () => {
             </Link>
 
             {/* Profile Dropdown */}
-            <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen} modal={false}>
+            <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className="p-1 hover:bg-muted rounded-lg transition-colors"
-                  onPointerDown={(e) => {
-                    if (e.pointerType === 'touch') {
-                      e.preventDefault();
-                    }
-                  }}
-                  onClick={() => setProfileMenuOpen((prev) => !prev)}
                   aria-label="Open profile menu"
                 >
                   <Avatar className="w-7 h-7 border-2 border-primary/30">
