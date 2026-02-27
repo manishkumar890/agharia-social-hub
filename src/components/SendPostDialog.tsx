@@ -8,7 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,6 +55,7 @@ const SendPostDialog = ({
 }: SendPostDialogProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -195,78 +203,96 @@ const SendPostDialog = ({
     }
   };
 
+  const sendContent = (
+    <>
+      <div className="relative px-4">
+        <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      <ScrollArea className="px-4 pb-4" style={{ maxHeight: isMobile ? '60vh' : '50vh' }}>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            {searchQuery ? 'No users found' : 'Follow users to send posts'}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredUsers.map((profile) => (
+              <div
+                key={profile.user_id}
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={profile.avatar_url || undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {profile.full_name?.charAt(0) || profile.username?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-sm flex items-center gap-1">
+                      {profile.full_name || profile.username || 'User'}
+                      {profile.isPremium && (
+                        <BadgeCheck className="w-4 h-4 text-primary fill-primary/20 flex-shrink-0" />
+                      )}
+                    </p>
+                    {profile.username && profile.full_name && (
+                      <p className="text-xs text-muted-foreground">@{profile.username}</p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleSend(profile.user_id)}
+                  disabled={sending === profile.user_id}
+                  className="gradient-maroon text-primary-foreground"
+                >
+                  {sending === profile.user_id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-1" />
+                      Send
+                    </>
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="flex flex-col max-h-[85vh]">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-center">Send to</DrawerTitle>
+          </DrawerHeader>
+          {sendContent}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Send to</DialogTitle>
+      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0">
+        <DialogHeader className="p-4 pb-2">
+          <DialogTitle className="text-center">Send to</DialogTitle>
         </DialogHeader>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        <ScrollArea className="h-[300px] -mx-6 px-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchQuery ? 'No users found' : 'Follow users to send posts'}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredUsers.map((profile) => (
-                <div
-                  key={profile.user_id}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={profile.avatar_url || undefined} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {profile.full_name?.charAt(0) || profile.username?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-sm flex items-center gap-1">
-                        {profile.full_name || profile.username || 'User'}
-                        {profile.isPremium && (
-                          <BadgeCheck className="w-4 h-4 text-primary fill-primary/20 flex-shrink-0" />
-                        )}
-                      </p>
-                      {profile.username && profile.full_name && (
-                        <p className="text-xs text-muted-foreground">@{profile.username}</p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => handleSend(profile.user_id)}
-                    disabled={sending === profile.user_id}
-                    className="gradient-maroon text-primary-foreground"
-                  >
-                    {sending === profile.user_id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-1" />
-                        Send
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+        {sendContent}
       </DialogContent>
     </Dialog>
   );
