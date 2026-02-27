@@ -4,12 +4,25 @@ import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import CategorySlidePopup from '@/components/CategorySlidePopup';
 import MobileNav from '@/components/MobileNav';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import PremiumBadge from '@/components/PremiumBadge';
 import { Search as SearchIcon, Users, TrendingUp, Ban } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 
 interface User {
   id: string;
@@ -31,12 +44,13 @@ interface Post {
 }
 
 const Search = () => {
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [explorePosts, setExplorePosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
 
   useEffect(() => {
     fetchExplorePosts();
@@ -108,13 +122,8 @@ const Search = () => {
 
   const displayUsers = searchTerm.length >= 1 ? users : allUsers;
 
-  const handleFocus = () => {
-    setShowDropdown(true);
-  };
-
-  const handleBlur = () => {
-    // Delay to allow click on dropdown items
-    setTimeout(() => setShowDropdown(false), 200);
+  const handleSearchClick = () => {
+    setShowUsers(true);
   };
 
   const renderUserItem = (user: User) => (
@@ -148,6 +157,7 @@ const Search = () => {
       <Link
         key={user.id}
         to={`/user/${user.user_id}`}
+        onClick={() => setShowUsers(false)}
         className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
       >
         <Avatar className="h-9 w-9">
@@ -169,93 +179,128 @@ const Search = () => {
     )
   );
 
+  const usersContent = (
+    <>
+      <div className="px-4 pb-2">
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+            autoFocus
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 px-4 py-1">
+        <Users className="w-4 h-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">
+          {searchTerm ? 'Search Results' : 'All Users'}
+        </span>
+        <span className="text-xs text-muted-foreground ml-auto">
+          {displayUsers.length} users
+        </span>
+      </div>
+      <ScrollArea className="flex-1 px-2 pb-4" style={{ maxHeight: isMobile ? '60vh' : '50vh' }}>
+        {loading ? (
+          <div className="space-y-2 p-2">
+            {[1,2,3].map(i => (
+              <div key={i} className="flex items-center gap-3 animate-pulse p-3">
+                <div className="w-9 h-9 rounded-full bg-muted" />
+                <div className="flex-1 space-y-1">
+                  <div className="h-3 w-24 bg-muted rounded" />
+                  <div className="h-3 w-16 bg-muted rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : displayUsers.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">No users found</p>
+        ) : (
+          <div className="space-y-0.5">
+            {displayUsers.map(renderUserItem)}
+          </div>
+        )}
+      </ScrollArea>
+    </>
+  );
+
+  const usersDialog = isMobile ? (
+    <Drawer open={showUsers} onOpenChange={setShowUsers}>
+      <DrawerContent className="flex flex-col max-h-[85vh]">
+        <DrawerHeader className="pb-2">
+          <DrawerTitle className="text-center">Users</DrawerTitle>
+        </DrawerHeader>
+        {usersContent}
+      </DrawerContent>
+    </Drawer>
+  ) : (
+    <Dialog open={showUsers} onOpenChange={setShowUsers}>
+      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0">
+        <DialogHeader className="p-4 pb-2">
+          <DialogTitle className="text-center">Users</DialogTitle>
+        </DialogHeader>
+        {usersContent}
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-14 pb-20 md:pb-16">
         <div className="max-w-5xl mx-auto px-4 py-4">
-          {/* Search Bar */}
-          <div className="relative mb-6">
+          {/* Search Bar - opens drawer/dialog */}
+          <div className="relative mb-6" onClick={handleSearchClick}>
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              className="pl-10 h-12 text-base bg-muted"
+              readOnly
+              className="pl-10 h-12 text-base bg-muted cursor-pointer"
             />
-
-            {/* Dropdown List */}
-            {showDropdown && (
-              <div className="fixed inset-0 top-[112px] bottom-[80px] md:bottom-0 bg-background z-50 flex flex-col overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {searchTerm ? 'Search Results' : 'All Users'}
-                  </span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {displayUsers.length} users
-                  </span>
-                </div>
-                <ScrollArea className="flex-1 h-full">
-                  {loading ? (
-                    <p className="text-muted-foreground text-center py-4 text-sm">Searching...</p>
-                  ) : displayUsers.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4 text-sm">No users found</p>
-                  ) : (
-                    <div className="p-1">
-                      {displayUsers.map(renderUserItem)}
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-            )}
           </div>
 
           {/* Explore Grid */}
-          {!showDropdown && (
-            <>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">Explore</span>
-              </div>
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Explore</span>
+          </div>
 
-              {explorePosts.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No posts to explore yet</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-                  {explorePosts.map((post) => (
-                    <Link
-                      key={post.id}
-                      to={`/post/${post.id}`}
-                      state={{ userId: post.user_id }}
-                      className="aspect-square bg-muted overflow-hidden relative"
-                    >
-                      <img
-                        src={post.media_type === 'video' && post.thumbnail_url 
-                          ? post.thumbnail_url 
-                          : post.image_url}
-                        alt=""
-                        className="w-full h-full object-cover hover:opacity-80 transition-opacity"
-                      />
-                      {post.media_type === 'video' && (
-                        <div className="absolute top-1 right-1 bg-black/60 rounded px-1">
-                          <span className="text-white text-xs">▶</span>
-                        </div>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </>
+          {explorePosts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No posts to explore yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+              {explorePosts.map((post) => (
+                <Link
+                  key={post.id}
+                  to={`/post/${post.id}`}
+                  state={{ userId: post.user_id }}
+                  className="aspect-square bg-muted overflow-hidden relative"
+                >
+                  <img
+                    src={post.media_type === 'video' && post.thumbnail_url 
+                      ? post.thumbnail_url 
+                      : post.image_url}
+                    alt=""
+                    className="w-full h-full object-cover hover:opacity-80 transition-opacity"
+                  />
+                  {post.media_type === 'video' && (
+                    <div className="absolute top-1 right-1 bg-black/60 rounded px-1">
+                      <span className="text-white text-xs">▶</span>
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </main>
 
+      {usersDialog}
       <MobileNav />
       <CategorySlidePopup />
     </div>
