@@ -143,8 +143,6 @@ const Admin = () => {
   const [categoryThumbnailPreviews, setCategoryThumbnailPreviews] = useState<Record<string, string>>({});
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
   const [deletingVideo, setDeletingVideo] = useState<string | null>(null);
-  const [uploadingBanner, setUploadingBanner] = useState<string | null>(null);
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const thumbnailInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -580,65 +578,8 @@ const Admin = () => {
     return categoryVideos.filter(v => v.category_id === categoryId);
   };
 
-  const handleBannerUpload = async (categoryId: string, file: File) => {
-    if (file.size > MAX_BANNER_SIZE) {
-      toast.error('Banner image must be less than 3MB');
-      return;
-    }
 
-    setUploadingBanner(categoryId);
-    
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${categoryId}-${Date.now()}.${fileExt}`;
-      
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from('category-banners')
-        .upload(fileName, file, { upsert: true });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('category-banners')
-        .getPublicUrl(fileName);
-      
-      const bannerUrl = urlData.publicUrl;
-      
-      // Save to database
-      const existingSetting = categorySettings.find(cs => cs.category_id === categoryId);
-      
-      if (existingSetting) {
-        const { error } = await supabase
-          .from('category_settings')
-          .update({ banner_url: bannerUrl })
-          .eq('category_id', categoryId);
-        
-        if (error) throw error;
-        
-        setCategorySettings(prev => 
-          prev.map(cs => cs.category_id === categoryId ? { ...cs, banner_url: bannerUrl } : cs)
-        );
-      } else {
-        const { data, error } = await supabase
-          .from('category_settings')
-          .insert({ category_id: categoryId, banner_url: bannerUrl })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        if (data) setCategorySettings(prev => [...prev, data]);
-      }
-      
-      toast.success('Banner uploaded');
-    } catch (error) {
-      console.error('Error uploading banner:', error);
-      toast.error('Failed to upload banner');
-    } finally {
-      setUploadingBanner(null);
-    }
-  };
+
 
   const handleDeleteCategory = async (categoryId: string) => {
     if (!confirm('Are you sure you want to delete this category\'s video and banner permanently?')) return;
@@ -1068,7 +1009,7 @@ const Admin = () => {
                     <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     Category Settings
                   </CardTitle>
-                  <CardDescription>Add video links (Google Drive) and banner images for each category</CardDescription>
+                  <CardDescription>Add video links (Google Drive) with thumbnails for each category</CardDescription>
                 </CardHeader>
                 <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
                   <div className="space-y-4 sm:space-y-6">
@@ -1213,55 +1154,6 @@ const Admin = () => {
                                 </div>
                               </div>
                             )}
-                          </div>
-                          
-                          {/* Banner Image Upload */}
-                          <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-sm">
-                              <Image className="w-4 h-4" />
-                              Banner Image (Max 3MB)
-                            </Label>
-                            <div className="flex items-center gap-3">
-                              {setting?.banner_url ? (
-                                <img 
-                                  src={setting.banner_url} 
-                                  alt={`${category.name} banner`}
-                                  className="w-24 h-14 object-cover rounded-lg border"
-                                />
-                              ) : (
-                                <div className="w-24 h-14 bg-muted rounded-lg border flex items-center justify-center">
-                                  <Image className="w-6 h-6 text-muted-foreground" />
-                                </div>
-                              )}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                ref={(el) => { fileInputRefs.current[category.id] = el; }}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleBannerUpload(category.id, file);
-                                }}
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => fileInputRefs.current[category.id]?.click()}
-                                disabled={uploadingBanner === category.id}
-                              >
-                                {uploadingBanner === category.id ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    Uploading...
-                                  </>
-                                ) : (
-                                  <>
-                                    <FileImage className="w-4 h-4 mr-2" />
-                                    {setting?.banner_url ? 'Change' : 'Upload'}
-                                  </>
-                                )}
-                              </Button>
-                            </div>
                           </div>
                         </div>
                       );
