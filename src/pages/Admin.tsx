@@ -8,6 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -152,6 +162,10 @@ const Admin = () => {
   const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
   const [videoCallEnabled, setVideoCallEnabled] = useState(true);
   const [premiumPopupEnabled, setPremiumPopupEnabled] = useState(false);
+
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [deletingUserName, setDeletingUserName] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -449,6 +463,32 @@ const Admin = () => {
       toast.success('Post deleted');
       setPosts(posts.filter(p => p.id !== postId));
       setStats(prev => ({ ...prev, posts: prev.posts - 1 }));
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUserId) return;
+    setIsDeleting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId: deletingUserId },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('User deleted successfully');
+      setUsers(prev => prev.filter(u => u.user_id !== deletingUserId));
+      setPremiumUsers(prev => prev.filter(p => p.user_id !== deletingUserId));
+      setStats(prev => ({ ...prev, users: prev.users - 1 }));
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Failed to delete user');
+    } finally {
+      setIsDeleting(false);
+      setDeletingUserId(null);
     }
   };
 
@@ -848,6 +888,18 @@ const Admin = () => {
                                     onCheckedChange={() => handleToggleDisabled(user.id, user.user_id, user.is_disabled)}
                                   />
                                 </div>
+                                {/* Delete User */}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive w-8 h-8"
+                                  onClick={() => {
+                                    setDeletingUserId(user.user_id);
+                                    setDeletingUserName(user.full_name || user.username || user.phone);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             )}
                           </div>
@@ -857,6 +909,35 @@ const Admin = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Delete User Confirmation Dialog */}
+              <AlertDialog open={!!deletingUserId} onOpenChange={(open) => !open && setDeletingUserId(null)}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to permanently delete <strong>{deletingUserName}</strong>'s account? This will remove all their posts, comments, messages, and data. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteUser}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete Account'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </TabsContent>
 
             {/* Posts Tab */}
