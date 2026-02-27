@@ -386,7 +386,7 @@ const Auth = () => {
     }
 
     if (!regAvatar) {
-      toast.error('Please upload a profile picture (required)');
+      toast.error('Please upload a profile picture');
       return;
     }
 
