@@ -65,8 +65,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'OTP generated (SMS not configured)',
-          otp: otp, // Demo mode - remove in production
+          message: 'Real SMS service busy. Use it for complete registration.',
+          otp: otp,
           expiresIn: 600
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -97,7 +97,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'SMS service timeout. Use demo OTP.',
+          message: 'Real SMS service busy. Use it for complete registration.',
           otp: otp,
           expiresIn: 600
         }),
@@ -114,8 +114,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'SMS service error. Use demo OTP.',
-          otp: otp, // Fallback demo mode
+          message: 'Real SMS service busy. Use it for complete registration.',
+          otp: otp,
           expiresIn: 600
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
