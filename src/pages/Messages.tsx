@@ -413,10 +413,10 @@ const Messages = () => {
     const isOtherUserDisabled = activeConversation.otherUser?.is_disabled || false;
 
     return (
-      <div className="fixed inset-0 bg-background flex flex-col" style={{ height: '100dvh' }}>
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
         <Header />
         
-        <main className="pt-14 flex-1 flex flex-col overflow-hidden min-h-0">
+        <main className="pt-14 flex-1 flex flex-col overflow-hidden">
           {/* Chat Header - Sticky */}
           <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3 flex-shrink-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
@@ -581,7 +581,7 @@ const Messages = () => {
           </ScrollArea>
 
           {/* Input - Sticky */}
-          <div className="bg-card border-t border-border p-4 flex-shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="bg-card border-t border-border p-4 flex-shrink-0">
             {isOtherUserDisabled ? (
               <div className="max-w-2xl mx-auto flex items-center justify-center gap-2 py-2 text-destructive">
                 <Ban className="w-4 h-4" />
