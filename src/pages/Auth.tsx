@@ -1030,7 +1030,7 @@ const Auth = () => {
                   <>
                     {demoOtp && (
                       <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Demo OTP</p>
+                        <p className="text-xs text-muted-foreground mb-1">Your OTP is</p>
                         <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                       </div>
                     )}
@@ -1429,7 +1429,7 @@ const Auth = () => {
                     <>
                       {demoOtp && (
                         <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Demo OTP</p>
+                          <p className="text-xs text-muted-foreground mb-1">Your OTP is</p>
                           <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                         </div>
                       )}
