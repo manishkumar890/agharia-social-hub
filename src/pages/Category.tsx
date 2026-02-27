@@ -56,6 +56,8 @@ interface CategoryVideo {
   category_id: string;
   video_url: string;
   thumbnail_url: string;
+  title?: string;
+  cc?: string;
   created_at: string;
 }
 
@@ -192,7 +194,7 @@ const Category = () => {
               </div>
             )}
 
-            {/* Video Grid with YouTube-style Thumbnails */}
+            {/* Video Grid */}
             {videos.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold">{category.title} Videos</h2>
@@ -205,26 +207,40 @@ const Category = () => {
                       rel="noopener noreferrer"
                       className="block group"
                     >
-                      <div className="relative rounded-xl overflow-hidden border border-border">
-                        <AspectRatio ratio={16 / 9}>
-                          <img 
-                            src={video.thumbnail_url} 
-                            alt="Video thumbnail"
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          />
-                          {/* Play button overlay */}
-                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center">
-                              <Play className="w-8 h-8 text-primary-foreground ml-1" />
-                            </div>
+                      <div className="rounded-xl overflow-hidden border border-border bg-card shadow-sm">
+                        {/* Title on top for movie */}
+                        {video.title && (
+                          <div className="px-3 py-2 border-b border-border">
+                            <h3 className="font-semibold text-sm truncate">{video.title}</h3>
                           </div>
-                          {/* Center play icon (always visible) */}
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center group-hover:bg-primary/90 transition-colors">
-                              <Play className="w-7 h-7 text-white ml-1" />
+                        )}
+                        <div className="relative">
+                          <AspectRatio ratio={16 / 9}>
+                            <img 
+                              src={video.thumbnail_url} 
+                              alt={video.title || "Video thumbnail"}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            {/* Play button overlay */}
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center">
+                                <Play className="w-8 h-8 text-primary-foreground ml-1" />
+                              </div>
                             </div>
+                            {/* Center play icon (always visible) */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center group-hover:bg-primary/90 transition-colors">
+                                <Play className="w-7 h-7 text-white ml-1" />
+                              </div>
+                            </div>
+                          </AspectRatio>
+                        </div>
+                        {/* CC on bottom-right */}
+                        {video.cc && (
+                          <div className="px-3 py-2 flex justify-end">
+                            <span className="text-xs text-muted-foreground font-medium">{video.cc}</span>
                           </div>
-                        </AspectRatio>
+                        )}
                       </div>
                     </a>
                   ))}
