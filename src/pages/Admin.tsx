@@ -139,6 +139,8 @@ const Admin = () => {
   const [categoryVideos, setCategoryVideos] = useState<CategoryVideo[]>([]);
   const [contactQueries, setContactQueries] = useState<ContactQuery[]>([]);
   const [categoryVideoUrls, setCategoryVideoUrls] = useState<Record<string, string>>({});
+  const [categoryVideoTitles, setCategoryVideoTitles] = useState<Record<string, string>>({});
+  const [categoryVideoCCs, setCategoryVideoCCs] = useState<Record<string, string>>({});
   const [categoryThumbnails, setCategoryThumbnails] = useState<Record<string, File | null>>({});
   const [categoryThumbnailPreviews, setCategoryThumbnailPreviews] = useState<Record<string, string>>({});
   const [savingCategory, setSavingCategory] = useState<string | null>(null);
@@ -480,6 +482,8 @@ const Admin = () => {
   const handleSaveCategoryVideo = async (categoryId: string) => {
     const videoUrl = categoryVideoUrls[categoryId]?.trim();
     const thumbnailFile = categoryThumbnails[categoryId];
+    const title = categoryVideoTitles[categoryId]?.trim();
+    const cc = categoryVideoCCs[categoryId]?.trim();
     
     if (!videoUrl) {
       toast.error('Please enter a video URL');
@@ -488,6 +492,11 @@ const Admin = () => {
     
     if (!thumbnailFile) {
       toast.error('Please select a thumbnail image');
+      return;
+    }
+
+    if (categoryId === 'movie' && (!title || !cc)) {
+      toast.error('Title and CC are required for movies');
       return;
     }
     
@@ -512,13 +521,18 @@ const Admin = () => {
       const thumbnailUrl = urlData.publicUrl;
       
       // Insert into category_videos table with thumbnail
+      const insertData: any = { 
+        category_id: categoryId, 
+        video_url: videoUrl,
+        thumbnail_url: thumbnailUrl,
+      };
+      if (categoryId === 'movie') {
+        insertData.title = title || null;
+        insertData.cc = cc || null;
+      }
       const { data, error } = await supabase
         .from('category_videos')
-        .insert({ 
-          category_id: categoryId, 
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl
-        })
+        .insert(insertData)
         .select()
         .single();
       
@@ -531,6 +545,8 @@ const Admin = () => {
       
       // Clear the input fields
       setCategoryVideoUrls(prev => ({ ...prev, [categoryId]: '' }));
+      setCategoryVideoTitles(prev => ({ ...prev, [categoryId]: '' }));
+      setCategoryVideoCCs(prev => ({ ...prev, [categoryId]: '' }));
       setCategoryThumbnails(prev => ({ ...prev, [categoryId]: null }));
       setCategoryThumbnailPreviews(prev => ({ ...prev, [categoryId]: '' }));
       
@@ -1078,6 +1094,30 @@ const Admin = () => {
                               </Button>
                             </div>
                             
+                            {/* Title & CC for Movie category */}
+                            {category.id === 'movie' && (
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Movie Title *"
+                                  value={categoryVideoTitles[category.id] || ''}
+                                  onChange={(e) => setCategoryVideoTitles(prev => ({
+                                    ...prev,
+                                    [category.id]: e.target.value
+                                  }))}
+                                  className="flex-1"
+                                />
+                                <Input
+                                  placeholder="CC *"
+                                  value={categoryVideoCCs[category.id] || ''}
+                                  onChange={(e) => setCategoryVideoCCs(prev => ({
+                                    ...prev,
+                                    [category.id]: e.target.value
+                                  }))}
+                                  className="w-24"
+                                />
+                              </div>
+                            )}
+                            
                             <div className="flex gap-2">
                               <Input
                                 placeholder="https://drive.google.com/..."
@@ -1091,7 +1131,12 @@ const Admin = () => {
                               <Button
                                 size="sm"
                                 onClick={() => handleSaveCategoryVideo(category.id)}
-                                disabled={savingCategory === category.id || !categoryVideoUrls[category.id]?.trim() || !categoryThumbnails[category.id]}
+                                disabled={
+                                  savingCategory === category.id || 
+                                  !categoryVideoUrls[category.id]?.trim() || 
+                                  !categoryThumbnails[category.id] ||
+                                  (category.id === 'movie' && (!categoryVideoTitles[category.id]?.trim() || !categoryVideoCCs[category.id]?.trim()))
+                                }
                               >
                                 {savingCategory === category.id ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1128,14 +1173,22 @@ const Admin = () => {
                                           </div>
                                         )}
                                       </div>
-                                      <a 
-                                        href={video.video_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-primary truncate flex-1 hover:underline"
-                                      >
-                                        {video.video_url}
-                                      </a>
+                                      <div className="flex-1 min-w-0">
+                                        {(video as any).title && (
+                                          <p className="text-xs font-medium truncate">{(video as any).title}</p>
+                                        )}
+                                        <a 
+                                          href={video.video_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-primary truncate block hover:underline"
+                                        >
+                                          {video.video_url}
+                                        </a>
+                                        {(video as any).cc && (
+                                          <p className="text-xs text-muted-foreground">CC: {(video as any).cc}</p>
+                                        )}
+                                      </div>
                                       <Button
                                         variant="ghost"
                                         size="icon"

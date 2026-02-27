@@ -112,23 +112,29 @@ export type Database = {
       category_videos: {
         Row: {
           category_id: string
+          cc: string | null
           created_at: string
           id: string
           thumbnail_url: string
+          title: string | null
           video_url: string
         }
         Insert: {
           category_id: string
+          cc?: string | null
           created_at?: string
           id?: string
           thumbnail_url: string
+          title?: string | null
           video_url: string
         }
         Update: {
           category_id?: string
+          cc?: string | null
           created_at?: string
           id?: string
           thumbnail_url?: string
+          title?: string | null
           video_url?: string
         }
         Relationships: []
