@@ -12,9 +12,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus } from 'lucide-react';
+import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus, Users, Sparkles, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+
+const COMMUNITY_USER_ID = 'b77ca098-1846-4cd2-961c-7776230485d1';
 
 interface Profile {
   id: string;
@@ -307,53 +309,70 @@ const UserProfile = () => {
     );
   }
 
+  const isCommunityProfile = userId === COMMUNITY_USER_ID;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-14 pb-20 md:pb-16">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          {/* Profile Header */}
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
-            {/* Profile Avatar with Story Ring */}
-            <button
-              onClick={() => {
-                if (userStories.length > 0) {
-                  // Allow viewing if own profile or following
-                  if (isOwnProfile || isFollowing) {
-                    setShowStoryViewer(true);
-                  } else {
-                    setShowFollowPopup(true);
+        {/* Community Profile Hero Banner */}
+        {isCommunityProfile && (
+          <div className="relative overflow-hidden">
+            {/* Decorative background */}
+            <div className="absolute inset-0 gradient-maroon opacity-90" />
+            <div className="absolute inset-0" style={{
+              backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMS41IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxLjUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMTAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDIyMCwxMDAsMC4xNSkiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjMwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyMjAsMTAwLDAuMTUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI3ApIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')",
+            }} />
+            {/* Animated light rays */}
+            <div className="absolute inset-0 opacity-20" style={{
+              background: 'radial-gradient(ellipse at 30% 0%, hsl(43 74% 49% / 0.4) 0%, transparent 60%), radial-gradient(ellipse at 70% 100%, hsl(345 70% 50% / 0.3) 0%, transparent 60%)',
+            }} />
+            
+            <div className="relative z-10 flex flex-col items-center py-10 px-4">
+              {/* Community Avatar */}
+              <button
+                onClick={() => {
+                  if (userStories.length > 0) {
+                    if (isOwnProfile || isFollowing) setShowStoryViewer(true);
+                    else setShowFollowPopup(true);
                   }
-                }
-              }}
-              disabled={userStories.length === 0}
-              className={`w-24 h-24 md:w-36 md:h-36 rounded-full p-1 ${
-                userStories.length > 0 
-                  ? 'bg-gradient-to-tr from-primary to-accent cursor-pointer' 
-                  : 'bg-muted cursor-default'
-              }`}
-            >
-              <Avatar className="w-full h-full border-2 border-card">
-                <AvatarImage src={profile.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
-                  {profile.full_name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </button>
+                }}
+                disabled={userStories.length === 0}
+                className={`w-28 h-28 md:w-36 md:h-36 rounded-full p-1 ${
+                  userStories.length > 0 
+                    ? 'bg-gradient-to-tr from-yellow-400 to-amber-600 cursor-pointer' 
+                    : 'bg-white/20 cursor-default'
+                }`}
+              >
+                <Avatar className="w-full h-full border-3 border-white/90">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
+                    {profile.full_name?.charAt(0) || 'A'}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
 
-            <div className="flex-1 text-center md:text-left">
-              <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-semibold">
-                    {profile.username || profile.full_name}
-                  </h1>
-                  {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
-                </div>
+              {/* Community Name & Badge */}
+              <div className="flex items-center gap-2 mt-4">
+                <h1 className="text-2xl font-bold text-white">
+                  {profile.username || profile.full_name}
+                </h1>
+                {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
+              </div>
+
+              {/* Community Tag */}
+              <div className="flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/20">
+                <Shield className="w-3.5 h-3.5 text-yellow-300" />
+                <span className="text-xs font-semibold text-yellow-200 tracking-wide uppercase">Official Community</span>
+              </div>
+
+              {/* VIP Card & Follow */}
+              <div className="flex items-center gap-3 mt-5">
                 {isPremiumUser && (
                   <Dialog open={vipCardOpen} onOpenChange={setVipCardOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+                      <Button variant="outline" size="sm" className="gap-2 border-yellow-400/50 text-yellow-300 bg-white/10 hover:bg-white/20 backdrop-blur-sm">
                         <Crown className="w-4 h-4" />
                         VIP Card
                       </Button>
@@ -372,64 +391,160 @@ const UserProfile = () => {
                   </Dialog>
                 )}
                 {!isOwnProfile && (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleFollow}
-                      disabled={followLoading}
-                      variant={isFollowing ? 'outline' : 'default'}
-                      className={!isFollowing ? 'gradient-maroon text-primary-foreground' : ''}
-                    >
-                      {followLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : isFollowing ? (
-                        'Following'
-                      ) : (
-                        'Follow'
-                      )}
-                    </Button>
-                    {userId !== 'b77ca098-1846-4cd2-961c-7776230485d1' && (
-                      <Button
-                        onClick={handleMessage}
-                        variant="outline"
-                        className="flex items-center gap-2"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        Message
-                      </Button>
+                  <Button
+                    onClick={handleFollow}
+                    disabled={followLoading}
+                    size="sm"
+                    className={isFollowing 
+                      ? 'bg-white/15 hover:bg-white/25 text-white border border-white/30 backdrop-blur-sm' 
+                      : 'bg-yellow-500 hover:bg-yellow-600 text-yellow-950 font-semibold'}
+                  >
+                    {followLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isFollowing ? (
+                      'Following'
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-1" />
+                        Follow
+                      </>
                     )}
-                  </div>
+                  </Button>
                 )}
               </div>
 
-              {/* Stats */}
-              <div className="flex justify-center md:justify-start gap-8 mb-4">
+              {/* Stats Row */}
+              <div className="flex items-center gap-8 mt-6">
                 <div className="text-center">
-                  <span className="font-bold">{stats.posts}</span>
-                  <p className="text-sm text-muted-foreground">posts</p>
+                  <span className="font-bold text-white text-lg">{stats.posts}</span>
+                  <p className="text-xs text-white/70">posts</p>
                 </div>
-                <button 
-                  onClick={() => setFollowersOpen(true)}
-                  className="text-center hover:opacity-70 transition-opacity"
-                >
-                  <span className="font-bold">{stats.followers}</span>
-                  <p className="text-sm text-muted-foreground">followers</p>
+                <button onClick={() => setFollowersOpen(true)} className="text-center hover:opacity-70 transition-opacity">
+                  <span className="font-bold text-white text-lg">{stats.followers}</span>
+                  <p className="text-xs text-white/70">followers</p>
                 </button>
-                <button 
-                  onClick={() => setFollowingOpen(true)}
-                  className="text-center hover:opacity-70 transition-opacity"
-                >
-                  <span className="font-bold">{stats.following}</span>
-                  <p className="text-sm text-muted-foreground">following</p>
+                <button onClick={() => setFollowingOpen(true)} className="text-center hover:opacity-70 transition-opacity">
+                  <span className="font-bold text-white text-lg">{stats.following}</span>
+                  <p className="text-xs text-white/70">following</p>
                 </button>
               </div>
 
               {/* Bio */}
-              <div>
-                <p className="font-semibold">{profile.full_name}</p>
-                {profile.bio && <p className="text-sm text-muted-foreground">{profile.bio}</p>}
-              </div>
+              {profile.bio && (
+                <p className="text-sm text-white/80 mt-4 text-center max-w-sm">{profile.bio}</p>
+              )}
+              <p className="font-semibold text-white/90 mt-2">{profile.full_name}</p>
             </div>
           </div>
+        )}
+
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          {/* Regular User Profile Header - only for non-community */}
+          {!isCommunityProfile && (
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-12 mb-8">
+              <button
+                onClick={() => {
+                  if (userStories.length > 0) {
+                    if (isOwnProfile || isFollowing) setShowStoryViewer(true);
+                    else setShowFollowPopup(true);
+                  }
+                }}
+                disabled={userStories.length === 0}
+                className={`w-24 h-24 md:w-36 md:h-36 rounded-full p-1 ${
+                  userStories.length > 0 
+                    ? 'bg-gradient-to-tr from-primary to-accent cursor-pointer' 
+                    : 'bg-muted cursor-default'
+                }`}
+              >
+                <Avatar className="w-full h-full border-2 border-card">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-display">
+                    {profile.full_name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-semibold">
+                      {profile.username || profile.full_name}
+                    </h1>
+                    {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
+                  </div>
+                  {isPremiumUser && (
+                    <Dialog open={vipCardOpen} onOpenChange={setVipCardOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+                          <Crown className="w-4 h-4" />
+                          VIP Card
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[340px] bg-transparent border-none shadow-none p-0 overflow-visible [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                        <VIPCard
+                          fullName={profile.full_name || ''}
+                          username={profile.username || ''}
+                          dob={profile.dob}
+                          avatarUrl={profile.avatar_url}
+                          registerNo={profile.register_no}
+                          isOwner={isOwnProfile}
+                          onClose={() => setVipCardOpen(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  {!isOwnProfile && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleFollow}
+                        disabled={followLoading}
+                        variant={isFollowing ? 'outline' : 'default'}
+                        className={!isFollowing ? 'gradient-maroon text-primary-foreground' : ''}
+                      >
+                        {followLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isFollowing ? (
+                          'Following'
+                        ) : (
+                          'Follow'
+                        )}
+                      </Button>
+                      {userId !== COMMUNITY_USER_ID && (
+                        <Button
+                          onClick={handleMessage}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Message
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-center md:justify-start gap-8 mb-4">
+                  <div className="text-center">
+                    <span className="font-bold">{stats.posts}</span>
+                    <p className="text-sm text-muted-foreground">posts</p>
+                  </div>
+                  <button onClick={() => setFollowersOpen(true)} className="text-center hover:opacity-70 transition-opacity">
+                    <span className="font-bold">{stats.followers}</span>
+                    <p className="text-sm text-muted-foreground">followers</p>
+                  </button>
+                  <button onClick={() => setFollowingOpen(true)} className="text-center hover:opacity-70 transition-opacity">
+                    <span className="font-bold">{stats.following}</span>
+                    <p className="text-sm text-muted-foreground">following</p>
+                  </button>
+                </div>
+
+                <div>
+                  <p className="font-semibold">{profile.full_name}</p>
+                  {profile.bio && <p className="text-sm text-muted-foreground">{profile.bio}</p>}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Posts Section with Tabs */}
           <Tabs defaultValue="all" className="w-full">
