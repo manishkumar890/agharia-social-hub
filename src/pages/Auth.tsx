@@ -578,8 +578,8 @@ const Auth = () => {
 
     setIsLoading(true);
 
-    // 8-second overall timeout — if login doesn't finish, show compatibility popup
-    const LOGIN_TIMEOUT = 8000;
+    // 15-second overall timeout — if login doesn't finish, show compatibility popup
+    const LOGIN_TIMEOUT = 15000;
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
       didTimeout = true;
