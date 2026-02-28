@@ -769,13 +769,11 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Use the reset-password edge function to update password
-      const { data, error } = await supabase.functions.invoke('reset-password', {
-        body: { 
-          userId: forgotUserId, 
-          newPassword: forgotNewPassword,
-          phone: forgotPhone
-        }
+      // Use the reset-password edge function with compatibility wrapper
+      const { data, error } = await invokeFunctionWithTimeout<{ error?: string }>('reset-password', {
+        userId: forgotUserId,
+        newPassword: forgotNewPassword,
+        phone: forgotPhone,
       });
 
       if (error) throw error;
