@@ -72,7 +72,8 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
       .in('user_id', userIds);
 
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-    setUsers(userIds.map(id => profileMap.get(id) || { user_id: id, username: null, full_name: null, avatar_url: null }));
+    // Only show users who have a valid profile (skip ghost/incomplete accounts)
+    setUsers(userIds.filter(id => profileMap.has(id) && (profileMap.get(id)!.username || profileMap.get(id)!.full_name)).map(id => profileMap.get(id)!));
     setLoading(false);
   };
 
