@@ -215,7 +215,7 @@ const SendPostDialog = ({
         />
       </div>
 
-      <ScrollArea className="px-4 pb-4" style={{ maxHeight: '448px' }}>
+      <div className="px-4 pb-4 overflow-y-auto" style={{ maxHeight: '448px' }}>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -269,7 +269,7 @@ const SendPostDialog = ({
             ))}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </>
   );
 
