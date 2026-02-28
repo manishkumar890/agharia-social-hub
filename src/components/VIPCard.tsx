@@ -200,20 +200,34 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                     </span>
                   </>
                 ) : (
-                  <div className="px-5 w-full space-y-2">
-                    <div className="flex items-center gap-2 mb-3 justify-center">
-                      <Sparkles style={{ width: '16px', height: '16px', color: '#fde047' }} />
-                      <span className="text-sm font-bold tracking-wide uppercase" style={{
+                  <div className="px-3 w-full">
+                    <div className="text-center mb-2">
+                      <span className="text-xs sm:text-sm font-bold tracking-wider uppercase" style={{
                         background: 'linear-gradient(135deg, #fde047, #f59e0b)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                       }}>Premium Benefits</span>
                     </div>
-                    <div className="space-y-1.5 text-[10px] sm:text-[11px]" style={{ color: 'rgba(254,240,138,0.85)' }}>
-                      <div className="flex items-center gap-2"><BadgeCheck style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>Verified Badge</span></div>
-                      <div className="flex items-center gap-2"><Eye style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>See who viewed your profile</span></div>
-                      <div className="flex items-center gap-2"><Upload style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>HD media uploads</span></div>
-                      <div className="flex items-center gap-2"><Headset style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>Priority support</span></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      {[
+                        { icon: <BadgeCheck style={{ width: '14px', height: '14px', flexShrink: 0, color: '#eab308' }} />, label: 'Verified Badge' },
+                        { icon: <Clock style={{ width: '14px', height: '14px', flexShrink: 0, color: '#eab308' }} />, label: '60s Stories' },
+                        { icon: <Eye style={{ width: '14px', height: '14px', flexShrink: 0, color: '#eab308' }} />, label: '48h Visibility' },
+                        { icon: <Upload style={{ width: '14px', height: '14px', flexShrink: 0, color: '#eab308' }} />, label: '100 MB Uploads' },
+                        { icon: <Headset style={{ width: '14px', height: '14px', flexShrink: 0, color: '#eab308' }} />, label: 'Priority Support' },
+                        { icon: <Sparkles style={{ width: '14px', height: '14px', flexShrink: 0, color: '#eab308' }} />, label: 'AI Assistant' },
+                      ].map((item, i) => (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '6px 10px',
+                          border: '1px solid rgba(234,179,8,0.4)',
+                          borderRadius: '12px',
+                          fontSize: '11px', fontWeight: 500, color: '#eab308',
+                        }}>
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
