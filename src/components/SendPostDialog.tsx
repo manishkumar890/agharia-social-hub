@@ -85,7 +85,8 @@ const SendPostDialog = ({
 
     try {
       let allUsers: Profile[] = [];
-      const excludeIds = new Set<string>([user.id]);
+      const COMMUNITY_USER_ID = 'b77ca098-1846-4cd2-961c-7776230485d1';
+      const excludeIds = new Set<string>([user.id, COMMUNITY_USER_ID]);
 
       // Get users the current user is following
       const { data: followingData } = await supabase
