@@ -387,14 +387,16 @@ const UserProfile = () => {
                         'Follow'
                       )}
                     </Button>
-                    <Button
-                      onClick={handleMessage}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      Message
-                    </Button>
+                    {userId !== 'b77ca098-1846-4cd2-961c-7776230485d1' && (
+                      <Button
+                        onClick={handleMessage}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        Message
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
