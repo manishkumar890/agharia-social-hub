@@ -391,6 +391,7 @@ const UserProfile = () => {
                         avatarUrl={profile.avatar_url}
                         registerNo={profile.register_no}
                         isOwner={isOwnProfile}
+                        isCommunity={isCommunityProfile}
                         onClose={() => setVipCardOpen(false)}
                       />
                     </DialogContent>
@@ -494,6 +495,7 @@ const UserProfile = () => {
                           avatarUrl={profile.avatar_url}
                           registerNo={profile.register_no}
                           isOwner={isOwnProfile}
+                          isCommunity={isCommunityProfile}
                           onClose={() => setVipCardOpen(false)}
                         />
                       </DialogContent>

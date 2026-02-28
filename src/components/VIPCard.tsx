@@ -10,10 +10,11 @@ interface VIPCardProps {
   registerNo?: string | null;
   dob?: string | null;
   isOwner?: boolean;
+  isCommunity?: boolean;
   onClose?: () => void;
 }
 
-const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = false, onClose }: VIPCardProps) => {
+const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = false, isCommunity = false, onClose }: VIPCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -181,20 +182,41 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
               
               {/* Content */}
               <div className="relative z-10 h-full flex flex-col items-center justify-center text-white">
-                <span className="text-2xl sm:text-3xl font-bold tracking-wider uppercase" style={{
-                  background: 'linear-gradient(135deg, #fde047, #f59e0b, #fde047)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  filter: 'drop-shadow(0 0 12px hsl(43 74% 49% / 0.6))',
-                }}>
-                  Agharia Samaj
-                </span>
-                <span className="text-xs sm:text-sm tracking-[0.3em] uppercase mt-1" style={{
-                  color: 'hsl(43 74% 70%)',
-                  textShadow: '0 0 10px hsl(43 74% 49% / 0.5)',
-                }}>
-                  Community
-                </span>
+                {isCommunity ? (
+                  <>
+                    <span className="text-2xl sm:text-3xl font-bold tracking-wider uppercase" style={{
+                      background: 'linear-gradient(135deg, #fde047, #f59e0b, #fde047)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: 'drop-shadow(0 0 12px hsl(43 74% 49% / 0.6))',
+                    }}>
+                      Agharia Samaj
+                    </span>
+                    <span className="text-xs sm:text-sm tracking-[0.3em] uppercase mt-1" style={{
+                      color: 'hsl(43 74% 70%)',
+                      textShadow: '0 0 10px hsl(43 74% 49% / 0.5)',
+                    }}>
+                      Community
+                    </span>
+                  </>
+                ) : (
+                  <div className="px-5 w-full space-y-2">
+                    <div className="flex items-center gap-2 mb-3 justify-center">
+                      <Sparkles style={{ width: '16px', height: '16px', color: '#fde047' }} />
+                      <span className="text-sm font-bold tracking-wide uppercase" style={{
+                        background: 'linear-gradient(135deg, #fde047, #f59e0b)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}>Premium Benefits</span>
+                    </div>
+                    <div className="space-y-1.5 text-[10px] sm:text-[11px]" style={{ color: 'rgba(254,240,138,0.85)' }}>
+                      <div className="flex items-center gap-2"><BadgeCheck style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>Verified Badge</span></div>
+                      <div className="flex items-center gap-2"><Eye style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>See who viewed your profile</span></div>
+                      <div className="flex items-center gap-2"><Upload style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>HD media uploads</span></div>
+                      <div className="flex items-center gap-2"><Headset style={{ width: '12px', height: '12px', flexShrink: 0, color: '#fde047' }} /><span>Priority support</span></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
