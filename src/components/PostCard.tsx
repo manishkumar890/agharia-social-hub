@@ -16,8 +16,6 @@ import SendPostDialog from '@/components/SendPostDialog';
 import LikesDialog from '@/components/LikesDialog';
 import CommentsDrawer from '@/components/CommentsDrawer';
 import ImageCarousel from '@/components/posts/ImageCarousel';
-import ImageZoomOverlay from '@/components/posts/ImageZoomOverlay';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,10 +57,8 @@ interface PostCardProps {
 
 const PostCard = ({ post, onDelete }: PostCardProps) => {
   const { user, isAdmin } = useAuth();
-  const isMobile = useIsMobile();
   const [liked, setLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [zoomOpen, setZoomOpen] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [animateLike, setAnimateLike] = useState(false);
@@ -76,8 +72,6 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const postRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTriggered = useRef(false);
   const likeInProgressRef = useRef(false);
 
   // IntersectionObserver to detect when post is visible
@@ -299,26 +293,6 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
       <div 
         className="relative bg-muted cursor-pointer"
         onDoubleClick={handleLike}
-        onTouchStart={() => {
-          if (!isMobile || post.media_type === 'video') return;
-          longPressTriggered.current = false;
-          longPressTimer.current = setTimeout(() => {
-            longPressTriggered.current = true;
-            setZoomOpen(true);
-          }, 2500);
-        }}
-        onTouchEnd={() => {
-          if (longPressTimer.current) {
-            clearTimeout(longPressTimer.current);
-            longPressTimer.current = null;
-          }
-        }}
-        onTouchMove={() => {
-          if (longPressTimer.current) {
-            clearTimeout(longPressTimer.current);
-            longPressTimer.current = null;
-          }
-        }}
       >
         {post.media_type === 'video' ? (
           <video 
@@ -492,14 +466,6 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {isMobile && post.media_type !== 'video' && (
-        <ImageZoomOverlay
-          src={post.image_urls && post.image_urls.length > 1 ? post.image_url : post.image_url}
-          alt={post.caption || 'Post image'}
-          open={zoomOpen}
-          onClose={() => setZoomOpen(false)}
-        />
-      )}
     </article>
   );
 };
