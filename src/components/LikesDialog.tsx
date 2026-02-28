@@ -115,7 +115,7 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
           />
         </div>
       </div>
-      <ScrollArea className="flex-1 px-4 pb-4" style={{ maxHeight: '60vh' }}>
+      <ScrollArea className="flex-1 px-4 pb-4" style={{ maxHeight: '448px' }}>
         {loading ? (
           <div className="space-y-3">
             {[1,2,3].map(i => (

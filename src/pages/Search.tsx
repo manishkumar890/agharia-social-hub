@@ -202,7 +202,7 @@ const Search = () => {
           {displayUsers.length} users
         </span>
       </div>
-      <ScrollArea className="flex-1 px-2 pb-4" style={{ maxHeight: isMobile ? '60vh' : '50vh' }}>
+      <ScrollArea className="flex-1 px-2 pb-4" style={{ maxHeight: '448px' }}>
         {loading ? (
           <div className="space-y-2 p-2">
             {[1,2,3].map(i => (
