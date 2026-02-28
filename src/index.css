@@ -314,10 +314,10 @@
 
 @keyframes communityGlow {
   0%, 100% {
-    opacity: 0.3;
+    opacity: 0.15;
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.35;
   }
 }
 
