@@ -107,10 +107,12 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                     {/* Rotating ring around avatar */}
                     <div style={{
                       position: 'absolute',
-                      inset: '-4px',
+                      inset: '-5px',
                       borderRadius: '9999px',
-                      background: 'conic-gradient(from 0deg, hsl(43 74% 49%), hsl(345 70% 35%), hsl(43 80% 65%), hsl(345 65% 50%), hsl(43 74% 49%))',
+                      background: 'conic-gradient(from 0deg, hsl(43 80% 58%), hsl(345 70% 35%), hsl(43 85% 68%), hsl(345 65% 50%), hsl(43 80% 58%))',
                       animation: 'vipAvatarSpin 8s linear infinite',
+                      filter: 'brightness(1.3)',
+                      boxShadow: '0 0 12px 3px rgba(234, 179, 8, 0.5)',
                     }} />
                     <div style={{
                       position: 'absolute',
