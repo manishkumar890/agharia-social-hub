@@ -179,7 +179,12 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
               <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-amber-900 to-yellow-900" />
               {/* Animated glow */}
               <div className="absolute inset-0 animate-community-glow" style={{
-                background: 'radial-gradient(ellipse at center, hsl(43 74% 49% / 0.25) 0%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, hsl(43 80% 55% / 0.5) 0%, hsl(43 74% 49% / 0.2) 50%, transparent 80%)',
+              }} />
+              {/* Extra animated shine sweep */}
+              <div className="animate-shine" style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(105deg, transparent 30%, rgba(253,224,71,0.25) 45%, rgba(253,224,71,0.4) 50%, rgba(253,224,71,0.25) 55%, transparent 70%)',
               }} />
               
               {/* Content */}
