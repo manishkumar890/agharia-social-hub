@@ -80,7 +80,7 @@ const FollowCommunityPopup = () => {
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent 
-        className="sm:max-w-[380px] p-0 overflow-hidden border-none [&>button]:hidden"
+        className="max-w-[340px] w-[90%] p-0 overflow-hidden border-none rounded-2xl [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
