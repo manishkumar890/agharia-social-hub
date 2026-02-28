@@ -16,6 +16,8 @@ import SendPostDialog from '@/components/SendPostDialog';
 import LikesDialog from '@/components/LikesDialog';
 import CommentsDrawer from '@/components/CommentsDrawer';
 import ImageCarousel from '@/components/posts/ImageCarousel';
+import ImageZoomOverlay from '@/components/posts/ImageZoomOverlay';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,8 +59,10 @@ interface PostCardProps {
 
 const PostCard = ({ post, onDelete }: PostCardProps) => {
   const { user, isAdmin } = useAuth();
+  const isMobile = useIsMobile();
   const [liked, setLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
   const [animateLike, setAnimateLike] = useState(false);
@@ -331,8 +335,14 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             <img 
               src={post.image_url} 
               alt={post.caption || 'Post image'} 
-              className={cn("w-full h-full object-cover", !imageLoaded && "hidden")}
+              className={cn("w-full h-full object-cover", !imageLoaded && "hidden", isMobile && "cursor-zoom-in")}
               onLoad={() => setImageLoaded(true)}
+              onClick={(e) => {
+                if (isMobile) {
+                  e.stopPropagation();
+                  setZoomOpen(true);
+                }
+              }}
             />
           </>
         )}
@@ -465,6 +475,15 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {isMobile && post.media_type !== 'video' && (
+        <ImageZoomOverlay
+          src={post.image_urls && post.image_urls.length > 1 ? post.image_url : post.image_url}
+          alt={post.caption || 'Post image'}
+          open={zoomOpen}
+          onClose={() => setZoomOpen(false)}
+        />
+      )}
     </article>
   );
 };
