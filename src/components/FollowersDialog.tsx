@@ -112,7 +112,7 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
   };
 
   const userList = (
-    <ScrollArea className="flex-1 px-4 pb-4" style={{ maxHeight: '60vh' }}>
+    <ScrollArea className="flex-1 px-4 pb-4" style={{ maxHeight: '448px' }}>
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
