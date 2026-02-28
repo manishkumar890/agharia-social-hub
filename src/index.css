@@ -311,3 +311,29 @@
     filter: drop-shadow(0 0 8px hsl(345 70% 35% / 0.8));
   }
 }
+
+@keyframes communityGlow {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes communityShimmer {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-community-glow {
+  animation: communityGlow 3s ease-in-out infinite;
+}
+
+.animate-community-shimmer {
+  animation: communityShimmer 12s linear infinite;
+}

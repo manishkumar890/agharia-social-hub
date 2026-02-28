@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus, Users, Sparkles, Shield } from 'lucide-react';
+import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus, Users, Sparkles, Shield, BadgeCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -318,16 +318,22 @@ const UserProfile = () => {
       <main className="pt-14 pb-20 md:pb-16">
         {/* Community Profile Hero Banner */}
         {isCommunityProfile && (
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden mx-3 mt-2 rounded-2xl">
             {/* Decorative background */}
-            <div className="absolute inset-0 gradient-maroon opacity-90" />
-            <div className="absolute inset-0" style={{
+            <div className="absolute inset-0 gradient-maroon opacity-90 rounded-2xl" />
+            <div className="absolute inset-0 rounded-2xl" style={{
               backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMS41IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxLjUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMTAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDIyMCwxMDAsMC4xNSkiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjMwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyMjAsMTAwLDAuMTUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI3ApIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')",
             }} />
             {/* Animated light rays */}
-            <div className="absolute inset-0 opacity-20" style={{
+            <div className="absolute inset-0 opacity-20 animate-community-glow rounded-2xl" style={{
               background: 'radial-gradient(ellipse at 30% 0%, hsl(43 74% 49% / 0.4) 0%, transparent 60%), radial-gradient(ellipse at 70% 100%, hsl(345 70% 50% / 0.3) 0%, transparent 60%)',
             }} />
+            {/* Floating shimmer */}
+            <div className="absolute inset-0 overflow-hidden rounded-2xl">
+              <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-community-shimmer" style={{
+                background: 'conic-gradient(from 0deg, transparent, hsl(43 74% 49% / 0.08), transparent, hsl(43 74% 49% / 0.05), transparent)',
+              }} />
+            </div>
             
             <div className="relative z-10 flex flex-col items-center py-10 px-4">
               {/* Community Avatar */}
@@ -358,7 +364,7 @@ const UserProfile = () => {
                 <h1 className="text-2xl font-bold text-white">
                   {profile.username || profile.full_name}
                 </h1>
-                {isPremiumUser && <VerificationBadge isPremium={true} isOwnProfile={false} size="lg" />}
+                {isPremiumUser && <BadgeCheck className="w-6 h-6 text-yellow-400 fill-yellow-400/20 inline-block flex-shrink-0" />}
               </div>
 
               {/* Community Tag */}
