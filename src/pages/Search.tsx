@@ -141,7 +141,7 @@ const Search = () => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="font-medium text-sm text-muted-foreground line-through truncate">
-              {user.full_name || 'User'}
+              {user.full_name || 'Unknown'}
             </p>
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
               <Ban className="w-2.5 h-2.5 mr-0.5" />

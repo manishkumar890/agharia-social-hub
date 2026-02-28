@@ -263,7 +263,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
           </Avatar>
           <div>
             <p className="font-medium text-sm text-foreground flex items-center gap-1">
-              {post.profiles?.full_name || post.profiles?.username || 'User'}
+              {post.profiles?.full_name || post.profiles?.username || 'Unknown'}
               {isAuthorPremium && <PremiumBadge size="sm" />}
             </p>
             {post.location && (
@@ -404,7 +404,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         {post.caption && (
           <p className="text-sm">
             <span className="font-semibold mr-1">
-              {post.profiles?.username || post.profiles?.full_name || 'User'}
+              {post.profiles?.username || post.profiles?.full_name || 'Unknown'}
             </span>
             {post.caption}
           </p>

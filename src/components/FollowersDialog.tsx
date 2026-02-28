@@ -168,7 +168,7 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
                 </Avatar>
                 <div>
                   <p className="font-medium text-sm flex items-center gap-1">
-                    {user.username || user.full_name || 'User'}
+                    {user.username || user.full_name || 'Unknown'}
                     {user.isPremium && <PremiumBadge size="sm" />}
                   </p>
                   {user.full_name && user.username && (

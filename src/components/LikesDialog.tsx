@@ -143,7 +143,7 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
                   </Avatar>
                 </Link>
                 <Link to={`/user/${u.user_id}`} onClick={() => onOpenChange(false)} className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{u.username || 'User'}</p>
+                  <p className="font-semibold text-sm truncate">{u.username || u.full_name || 'Unknown'}</p>
                   {u.full_name && <p className="text-xs text-muted-foreground truncate">{u.full_name}</p>}
                 </Link>
                 {user && u.user_id !== user.id && (

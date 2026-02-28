@@ -436,7 +436,7 @@ const Messages = () => {
               </Link>
               <Link to={`/user/${otherUserId}`} className="flex-1">
                 <p className="font-semibold text-sm flex items-center gap-1">
-                  {activeConversation.otherUser?.full_name || activeConversation.otherUser?.username || 'User'}
+                  {activeConversation.otherUser?.full_name || activeConversation.otherUser?.username || 'Unknown'}
                   {activeConversation.otherUser?.isPremium && (
                     <BadgeCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
                   )}
@@ -522,7 +522,7 @@ const Messages = () => {
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-xs font-medium">
-                          {msg.shared_from_username || 'User'}
+                          {msg.shared_from_username || 'Unknown'}
                         </span>
                       </Link>
                     )}
@@ -683,7 +683,7 @@ const Messages = () => {
                     </Link>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate flex items-center gap-1">
-                        {conv.otherUser?.full_name || conv.otherUser?.username || 'User'}
+                        {conv.otherUser?.full_name || conv.otherUser?.username || 'Unknown'}
                         {conv.otherUser?.isPremium && (
                           <BadgeCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
                         )}

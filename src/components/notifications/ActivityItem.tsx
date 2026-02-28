@@ -130,7 +130,7 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
     return undefined;
   };
 
-  const userName = activity.user.full_name || activity.user.username || 'User';
+  const userName = activity.user.full_name || activity.user.username || 'Unknown';
 
   return (
     <Link
