@@ -518,7 +518,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
           </Avatar>
           <div>
             <p className="text-white font-medium text-sm">
-              {storyUser.username || storyUser.full_name || 'User'}
+              {storyUser.username || storyUser.full_name || 'Unknown'}
             </p>
             <p className="text-white/70 text-xs">
               {formatDistanceToNow(new Date(currentStory.created_at), { addSuffix: true })}
@@ -759,7 +759,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                     </Avatar>
                     <div>
                       <p className="text-white text-sm font-medium">
-                        {viewer.username || viewer.full_name || 'User'}
+                        {viewer.username || viewer.full_name || 'Unknown'}
                       </p>
                     </div>
                   </div>
@@ -804,7 +804,7 @@ const StoryViewer = ({ storyUser, onClose, onRefresh }: StoryViewerProps) => {
                     </Avatar>
                     <div>
                       <p className="text-white text-sm font-medium">
-                        {liker.username || liker.full_name || 'User'}
+                        {liker.username || liker.full_name || 'Unknown'}
                       </p>
                     </div>
                   </div>

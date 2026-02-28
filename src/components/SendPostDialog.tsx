@@ -241,7 +241,7 @@ const SendPostDialog = ({
                   </Avatar>
                   <div>
                     <p className="font-medium text-sm flex items-center gap-1">
-                      {profile.full_name || profile.username || 'User'}
+                      {profile.full_name || profile.username || 'Unknown'}
                       {profile.isPremium && (
                         <BadgeCheck className="w-4 h-4 text-primary fill-primary/20 flex-shrink-0" />
                       )}

@@ -168,7 +168,7 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
                       className="font-semibold mr-1 hover:underline"
                       onClick={() => onOpenChange(false)}
                     >
-                      {comment.profiles?.username || comment.profiles?.full_name || 'User'}
+                      {comment.profiles?.username || comment.profiles?.full_name || 'Unknown'}
                     </Link>
                     {comment.content}
                   </p>
