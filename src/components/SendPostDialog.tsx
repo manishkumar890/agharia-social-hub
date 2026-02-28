@@ -95,7 +95,7 @@ const SendPostDialog = ({
         .eq('follower_id', user.id);
 
       if (followingData && followingData.length > 0) {
-        const followingIds = followingData.map(f => f.following_id);
+        const followingIds = followingData.map(f => f.following_id).filter(id => id !== COMMUNITY_USER_ID);
         
         const { data: profilesData } = await supabase
           .from('profiles')
