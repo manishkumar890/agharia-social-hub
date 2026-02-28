@@ -10,6 +10,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MessageProvider } from "@/contexts/MessageContext";
 import { CallProvider } from "@/components/calls/CallProvider";
 import PremiumPopup from "@/components/PremiumPopup";
+import FollowCommunityPopup from "@/components/FollowCommunityPopup";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -111,8 +112,9 @@ const App = () => (
               <MessageProvider>
                 <SubscriptionProvider>
                   <CallProvider>
-                  <PremiumPopup />
-                  <AppRoutes />
+                   <PremiumPopup />
+                   <FollowCommunityPopup />
+                   <AppRoutes />
                   </CallProvider>
                 </SubscriptionProvider>
               </MessageProvider>

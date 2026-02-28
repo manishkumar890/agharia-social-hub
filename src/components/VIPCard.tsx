@@ -91,12 +91,12 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Crown className="animate-pulse" style={{ width: '20px', height: '20px', flexShrink: 0, color: '#fde047' }} />
-                    <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '0.05em', lineHeight: '20px' }}>
+                   <span style={{ fontWeight: 700, fontSize: '14px', letterSpacing: '0.05em', lineHeight: '20px' }}>
                       AGHARIA SAMAJ
                     </span>
                   </div>
                   <div style={{ padding: '2px 8px', backgroundColor: 'rgba(234,179,8,0.3)', borderRadius: '4px', fontSize: '10px', fontWeight: 600, border: '1px solid rgba(250,204,21,0.3)', lineHeight: '16px', whiteSpace: 'nowrap' }}>
-                    VIP MEMBER
+                    COMMUNITY
                   </div>
                 </div>
 
@@ -129,7 +129,7 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontWeight: 700, fontSize: '16px', lineHeight: '22px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px', display: 'block' }}>
-                        {fullName || 'Member'}
+                        {fullName || 'Community'}
                       </span>
                       <BadgeCheck style={{ width: '16px', height: '16px', flexShrink: 0, color: '#fde047' }} />
                     </div>
