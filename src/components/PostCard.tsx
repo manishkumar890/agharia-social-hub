@@ -76,6 +76,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const postRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
   const likeInProgressRef = useRef(false);
 
   // IntersectionObserver to detect when post is visible
@@ -297,6 +299,26 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
       <div 
         className="relative bg-muted cursor-pointer"
         onDoubleClick={handleLike}
+        onTouchStart={() => {
+          if (!isMobile || post.media_type === 'video') return;
+          longPressTriggered.current = false;
+          longPressTimer.current = setTimeout(() => {
+            longPressTriggered.current = true;
+            setZoomOpen(true);
+          }, 2500);
+        }}
+        onTouchEnd={() => {
+          if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
+        }}
+        onTouchMove={() => {
+          if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
+        }}
       >
         {post.media_type === 'video' ? (
           <video 
@@ -335,14 +357,8 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
             <img 
               src={post.image_url} 
               alt={post.caption || 'Post image'} 
-              className={cn("w-full h-full object-cover", !imageLoaded && "hidden", isMobile && "cursor-zoom-in")}
+              className={cn("w-full h-full object-cover", !imageLoaded && "hidden")}
               onLoad={() => setImageLoaded(true)}
-              onClick={(e) => {
-                if (isMobile) {
-                  e.stopPropagation();
-                  setZoomOpen(true);
-                }
-              }}
             />
           </>
         )}
