@@ -84,6 +84,9 @@ const SendPostDialog = ({
     setLoading(true);
 
     try {
+      let allUsers: Profile[] = [];
+      const excludeIds = new Set<string>([user.id]);
+
       // Get users the current user is following
       const { data: followingData } = await supabase
         .from('followers')
@@ -99,30 +102,27 @@ const SendPostDialog = ({
           .in('user_id', followingIds);
 
         const enriched = await enrichWithPremium(profilesData || []);
-        setUsers(enriched);
-      } else {
-        // If not following anyone, show recent conversations
-        const { data: convData } = await supabase
-          .from('conversations')
-          .select('participant_1, participant_2')
-          .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
-          .order('last_message_at', { ascending: false })
-          .limit(20);
+        allUsers = enriched;
+        enriched.forEach(u => excludeIds.add(u.user_id));
+      }
 
-        if (convData && convData.length > 0) {
-          const userIds = convData.map(c => 
-            c.participant_1 === user.id ? c.participant_2 : c.participant_1
-          );
-          
-          const { data: profilesData } = await supabase
-            .from('profiles')
-            .select('user_id, full_name, username, avatar_url')
-            .in('user_id', userIds);
+      // If less than 20 users, fetch suggested users to fill the list
+      if (allUsers.length < 20) {
+        const remaining = 20 - allUsers.length;
+        const { data: suggestedData } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, username, avatar_url')
+          .not('user_id', 'in', `(${Array.from(excludeIds).join(',')})`)
+          .eq('is_disabled', false)
+          .limit(remaining);
 
-          const enriched = await enrichWithPremium(profilesData || []);
-          setUsers(enriched);
+        if (suggestedData && suggestedData.length > 0) {
+          const enrichedSuggested = await enrichWithPremium(suggestedData);
+          allUsers = [...allUsers, ...enrichedSuggested];
         }
       }
+
+      setUsers(allUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
