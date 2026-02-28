@@ -1,4 +1,8 @@
-// Load polyfills FIRST before anything else
+// Load core-js & regenerator-runtime FIRST for full ES5 compatibility
+import "core-js/stable";
+import "regenerator-runtime/runtime";
+
+// Load app-specific polyfills
 import "./lib/polyfills";
 
 import React from "react";
