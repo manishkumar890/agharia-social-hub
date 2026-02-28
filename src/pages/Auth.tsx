@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { safeNormalize, safeStorage, compatFetch } from '@/lib/polyfills';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,39 +89,37 @@ const getApiBaseConfig = () => {
   };
 };
 
-const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit, timeoutMs: number) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+const fetchWithTimeout = async (input: string, init: RequestInit & { headers?: Record<string, string> }, timeoutMs: number) => {
+  return compatFetch(input, {
+    method: init.method || 'GET',
+    headers: (init.headers || {}) as Record<string, string>,
+    body: init.body as string | undefined,
+    timeoutMs,
+  });
 };
 
 const resolveEmailFromIdentifier = async (identifier: string, isPhone: boolean): Promise<string | null> => {
   const { supabaseUrl, baseHeaders } = getApiBaseConfig();
   const column = isPhone ? 'phone' : 'username';
 
-  for (let attempt = 0; attempt <= LOGIN_RETRY_COUNT; attempt += 1) {
+  for (var attempt = 0; attempt <= LOGIN_RETRY_COUNT; attempt++) {
     try {
       const query = new URLSearchParams({
         select: 'email',
-        [column]: `eq.${identifier}`,
+        [column]: 'eq.' + identifier,
         limit: '1',
       });
 
-      const response = await fetchWithTimeout(
-        `${supabaseUrl}/rest/v1/profiles?${query.toString()}`,
+      const response = await compatFetch(
+        supabaseUrl + '/rest/v1/profiles?' + query.toString(),
         {
           method: 'GET',
           headers: {
             ...baseHeaders,
             Accept: 'application/json',
           },
-        },
-        LOGIN_REQUEST_TIMEOUT_MS
+          timeoutMs: LOGIN_REQUEST_TIMEOUT_MS,
+        }
       );
 
       if (!response.ok) {
@@ -129,7 +128,7 @@ const resolveEmailFromIdentifier = async (identifier: string, isPhone: boolean):
       }
 
       const rows = (await response.json()) as Array<{ email: string | null }>;
-      return rows?.[0]?.email || null;
+      return (rows && rows[0] && rows[0].email) || null;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Identifier lookup failed';
       if (!isLikelyNetworkError(message) || attempt === LOGIN_RETRY_COUNT) {
@@ -145,27 +144,28 @@ const resolveEmailFromIdentifier = async (identifier: string, isPhone: boolean):
 const signInWithPasswordFallback = async (email: string, password: string) => {
   const { supabaseUrl, baseHeaders } = getApiBaseConfig();
 
-  for (let attempt = 0; attempt <= LOGIN_RETRY_COUNT; attempt += 1) {
+  for (var attempt = 0; attempt <= LOGIN_RETRY_COUNT; attempt++) {
     try {
-      const response = await fetchWithTimeout(
-        `${supabaseUrl}/auth/v1/token?grant_type=password`,
+      const response = await compatFetch(
+        supabaseUrl + '/auth/v1/token?grant_type=password',
         {
           method: 'POST',
           headers: baseHeaders,
-          body: JSON.stringify({ email, password }),
-        },
-        LOGIN_REQUEST_TIMEOUT_MS
+          body: JSON.stringify({ email: email, password: password }),
+          timeoutMs: LOGIN_REQUEST_TIMEOUT_MS,
+        }
       );
 
       const bodyText = await response.text();
-      const payload = bodyText ? JSON.parse(bodyText) : {};
+      var payload: any = {};
+      try { payload = bodyText ? JSON.parse(bodyText) : {}; } catch { payload = {}; }
 
       if (!response.ok) {
-        const description = payload?.error_description || payload?.msg || payload?.message || 'Login failed';
+        const description = payload.error_description || payload.msg || payload.message || 'Login failed';
         return { error: new Error(description) };
       }
 
-      if (!payload?.access_token || !payload?.refresh_token) {
+      if (!payload.access_token || !payload.refresh_token) {
         return { error: new Error('Login response is missing session tokens') };
       }
 
@@ -199,28 +199,21 @@ const invokeFunctionWithTimeout = async <TData = any>(
   maxRetries = 2
 ): Promise<{ data: TData | null; error: Error | null }> => {
   const { supabaseUrl, baseHeaders } = getApiBaseConfig();
-  const url = `${supabaseUrl}/functions/v1/${functionName}`;
-  let lastError: Error | null = null;
+  const url = supabaseUrl + '/functions/v1/' + functionName;
+  var lastError: Error | null = null;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+  for (var attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, {
+      const response = await compatFetch(url, {
         method: 'POST',
         headers: baseHeaders,
         body: JSON.stringify(body),
-        signal: controller.signal,
-        // Disable caching to avoid stale responses on some browsers
-        cache: 'no-store',
+        timeoutMs: timeoutMs,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorBody = await response.text();
-        let errorMessage = 'Request failed';
+        var errorMessage = 'Request failed';
         try {
           const parsed = JSON.parse(errorBody);
           errorMessage = parsed.error || parsed.message || errorMessage;
@@ -237,7 +230,6 @@ const invokeFunctionWithTimeout = async <TData = any>(
         return { data: data as TData, error: null };
       }
     } catch (err: unknown) {
-      clearTimeout(timeoutId);
       if (err instanceof DOMException && err.name === 'AbortError') {
         lastError = new Error('Request timed out. Please try again.');
       } else {
@@ -302,7 +294,7 @@ const Auth = () => {
 
   // If device was previously marked incompatible, redirect immediately
   useEffect(() => {
-    if (localStorage.getItem('device_incompatible') === 'true') {
+    if (safeStorage.getItem('device_incompatible') === 'true') {
       window.location.href = 'https://aghariasamaj.netlify.app';
     }
   }, []);
@@ -588,8 +580,8 @@ const Auth = () => {
     }, LOGIN_TIMEOUT);
 
     try {
-      const identifier = loginIdentifier.normalize('NFKC').trim().toLowerCase();
-      const password = loginPassword.normalize('NFKC');
+      const identifier = safeNormalize(loginIdentifier, 'NFKC').trim().toLowerCase();
+      const password = safeNormalize(loginPassword, 'NFKC');
       const isEmail = identifier.includes('@');
       const isPhone = /^\d{10}$/.test(identifier);
 
@@ -1492,7 +1484,7 @@ const Auth = () => {
           setLookupFallbackOpen(open);
           if (!open) {
             // Mark device as incompatible so next visit auto-redirects
-            localStorage.setItem('device_incompatible', 'true');
+            safeStorage.setItem('device_incompatible', 'true');
             window.location.href = 'https://aghariasamaj.netlify.app';
           }
         }}>
@@ -1517,7 +1509,7 @@ const Auth = () => {
             </div>
             <AlertDialogFooter>
               <AlertDialogAction onClick={() => {
-                localStorage.setItem('device_incompatible', 'true');
+                safeStorage.setItem('device_incompatible', 'true');
                 window.location.href = 'https://aghariasamaj.netlify.app';
               }}>
                 Continue to Website
