@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import PremiumBadge from '@/components/PremiumBadge';
 import {
@@ -9,7 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Ban } from 'lucide-react';
 
 interface FollowUser {
@@ -31,6 +39,7 @@ interface FollowersDialogProps {
 const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogProps) => {
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (open) {
@@ -102,82 +111,98 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
     }
   };
 
+  const userList = (
+    <ScrollArea className="flex-1 px-4 pb-4" style={{ maxHeight: '60vh' }}>
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-24 mb-1" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : users.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">
+          {type === 'followers' ? 'No followers yet' : 'Not following anyone'}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {users.map((user) => (
+            user.is_disabled ? (
+              <div
+                key={user.user_id}
+                className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 opacity-60"
+              >
+                <Avatar className="w-10 h-10 grayscale">
+                  <AvatarImage src={user.avatar_url || undefined} />
+                  <AvatarFallback className="bg-muted text-muted-foreground">
+                    <Ban className="w-5 h-5" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium text-sm text-muted-foreground flex items-center gap-1">
+                    <Ban className="w-3 h-3" />
+                    Account Disabled
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This user is disabled from Agharia Samaj
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <Link
+                key={user.user_id}
+                to={`/user/${user.user_id}`}
+                onClick={() => onOpenChange(false)}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={user.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user.full_name?.charAt(0) || user.username?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium text-sm flex items-center gap-1">
+                    {user.username || user.full_name || 'User'}
+                    {user.isPremium && <PremiumBadge size="sm" />}
+                  </p>
+                  {user.full_name && user.username && (
+                    <p className="text-xs text-muted-foreground">{user.full_name}</p>
+                  )}
+                </div>
+              </Link>
+            )
+          ))}
+        </div>
+      )}
+    </ScrollArea>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="flex flex-col max-h-[85vh]">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-center capitalize">{type}</DrawerTitle>
+          </DrawerHeader>
+          {userList}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="capitalize">{type}</DialogTitle>
+      <DialogContent className="sm:max-w-md max-h-[70vh] flex flex-col p-0">
+        <DialogHeader className="p-4 pb-2">
+          <DialogTitle className="text-center capitalize">{type}</DialogTitle>
         </DialogHeader>
-        
-        <div className="max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="w-10 h-10 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-24 mb-1" />
-                    <Skeleton className="h-3 w-16" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : users.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              {type === 'followers' ? 'No followers yet' : 'Not following anyone'}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {users.map((user) => (
-                user.is_disabled ? (
-                  <div
-                    key={user.user_id}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 opacity-60"
-                  >
-                    <Avatar className="w-10 h-10 grayscale">
-                      <AvatarImage src={user.avatar_url || undefined} />
-                      <AvatarFallback className="bg-muted text-muted-foreground">
-                        <Ban className="w-5 h-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-sm text-muted-foreground flex items-center gap-1">
-                        <Ban className="w-3 h-3" />
-                        Account Disabled
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        This user is disabled from Agharia Samaj
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <Link
-                    key={user.user_id}
-                    to={`/user/${user.user_id}`}
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={user.avatar_url || undefined} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user.full_name?.charAt(0) || user.username?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-sm flex items-center gap-1">
-                        {user.username || user.full_name || 'User'}
-                        {user.isPremium && <PremiumBadge size="sm" />}
-                      </p>
-                      {user.full_name && user.username && (
-                        <p className="text-xs text-muted-foreground">{user.full_name}</p>
-                      )}
-                    </div>
-                  </Link>
-                )
-              ))}
-            </div>
-          )}
-        </div>
+        {userList}
       </DialogContent>
     </Dialog>
   );
