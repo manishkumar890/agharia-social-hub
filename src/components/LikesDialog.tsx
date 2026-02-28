@@ -72,8 +72,13 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
       .in('user_id', userIds);
 
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-    // Show all users who have a profile entry, use fallback name for incomplete ones
-    setUsers(userIds.filter(id => profileMap.has(id)).map(id => profileMap.get(id)!));
+    // Show ALL users including those without profiles (ghost users)
+    setUsers(userIds.map(id => profileMap.get(id) || {
+      user_id: id,
+      username: null,
+      full_name: null,
+      avatar_url: null,
+    }));
     setLoading(false);
   };
 
