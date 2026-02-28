@@ -95,10 +95,10 @@ const FollowCommunityPopup = () => {
               </Avatar>
             </div>
             <DialogTitle className="text-xl font-display">
-              Join Agharia Samaj
+              Agharia Samaj
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
-              Follow the <span className="font-semibold text-foreground">@{COMMUNITY_USERNAME}</span> community to access the app and stay updated with the latest posts, events, and community news.
+              Follow <span className="font-semibold text-foreground">@{COMMUNITY_USERNAME}</span> to stay updated with the latest posts, events, and community news.
             </DialogDescription>
           </DialogHeader>
 
