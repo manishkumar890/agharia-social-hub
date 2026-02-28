@@ -174,36 +174,27 @@ const VIPCard = ({ fullName, username, avatarUrl, registerNo, dob, isOwner = fal
             <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl">
               {/* Background */}
               <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-amber-900 to-yellow-900" />
+              {/* Animated glow */}
+              <div className="absolute inset-0 animate-community-glow" style={{
+                background: 'radial-gradient(ellipse at center, hsl(43 74% 49% / 0.25) 0%, transparent 70%)',
+              }} />
               
               {/* Content */}
-              <div className="relative z-10 p-2.5 sm:p-3 h-full flex flex-col justify-center text-white">
-                <h4 className="text-[10px] sm:text-xs font-bold text-yellow-300 tracking-wider text-center mb-1.5 uppercase">Premium Benefits</h4>
-                <div className="grid grid-cols-2 gap-1 sm:gap-1.5 flex-1">
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <BadgeCheck className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">Verified Badge</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Clock className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">60s Stories</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Eye className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">48h Visibility</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Upload className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">100 MB Uploads</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Headset className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">Priority Support</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10">
-                    <Sparkles className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] text-yellow-200 leading-tight">AI Assistant</span>
-                  </div>
-                </div>
+              <div className="relative z-10 h-full flex flex-col items-center justify-center text-white">
+                <span className="text-2xl sm:text-3xl font-bold tracking-wider uppercase" style={{
+                  background: 'linear-gradient(135deg, #fde047, #f59e0b, #fde047)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 0 12px hsl(43 74% 49% / 0.6))',
+                }}>
+                  Agharia Samaj
+                </span>
+                <span className="text-xs sm:text-sm tracking-[0.3em] uppercase mt-1" style={{
+                  color: 'hsl(43 74% 70%)',
+                  textShadow: '0 0 10px hsl(43 74% 49% / 0.5)',
+                }}>
+                  Community
+                </span>
               </div>
             </div>
           </div>
