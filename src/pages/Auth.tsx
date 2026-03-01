@@ -290,14 +290,6 @@ const Auth = () => {
   const [resendTimer, setResendTimer] = useState(0);
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
-  const [lookupFallbackOpen, setLookupFallbackOpen] = useState(false);
-
-  // If device was previously marked incompatible, redirect immediately
-  useEffect(() => {
-    if (safeStorage.getItem('device_incompatible') === 'true') {
-      window.location.href = 'https://aghariasamaj.netlify.app';
-    }
-  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -601,13 +593,13 @@ const Auth = () => {
 
     setIsLoading(true);
 
-    // 15-second overall timeout — if login doesn't finish, show compatibility popup
+    // 15-second overall timeout
     const LOGIN_TIMEOUT = 15000;
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
       didTimeout = true;
       setIsLoading(false);
-      setLookupFallbackOpen(true);
+      toast.error('Login is taking too long. Please check your connection and try again.');
     }, LOGIN_TIMEOUT);
 
     try {
@@ -638,7 +630,7 @@ const Auth = () => {
           const message = lookupError instanceof Error ? lookupError.message : 'Unable to connect.';
 
           if (isLikelyNetworkError(message)) {
-            setLookupFallbackOpen(true);
+            toast.error('Network error. Please check your connection and try again.');
           } else {
             toast.error('Unable to verify username. Please try again.');
           }
@@ -667,7 +659,7 @@ const Auth = () => {
           if (fallback.error) {
             const fallbackMessage = fallback.error.message || 'Login failed';
             if (isLikelyNetworkError(fallbackMessage)) {
-              setLookupFallbackOpen(true);
+              toast.error('Network error. Please check your connection and try again.');
             } else {
               toast.error(fallbackMessage);
             }
@@ -687,7 +679,7 @@ const Auth = () => {
       console.error('Login Error:', error);
       const msg = error instanceof Error ? error.message : '';
       if (isLikelyNetworkError(msg)) {
-        setLookupFallbackOpen(true);
+        toast.error('Network error. Please check your connection and try again.');
       } else {
         toast.error(msg || 'Login failed. Please try again.');
       }
@@ -1491,43 +1483,6 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        <AlertDialog open={lookupFallbackOpen} onOpenChange={(open) => {
-          setLookupFallbackOpen(open);
-          if (!open) {
-            // Mark device as incompatible so next visit auto-redirects
-            safeStorage.setItem('device_incompatible', 'true');
-            window.location.href = 'https://aghariasamaj.netlify.app';
-          }
-        }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Device Compatibility Notice</AlertDialogTitle>
-              <AlertDialogDescription>
-                We are from Agharia Samaj AI, and after checking your device, it appears that it is not fully compatible to run this app.
-                You will now be redirected to our trusted website where you can access all features smoothly.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
-              <a
-                href="https://aghariasamaj.netlify.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-              >
-                https://aghariasamaj.netlify.app
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={() => {
-                safeStorage.setItem('device_incompatible', 'true');
-                window.location.href = 'https://aghariasamaj.netlify.app';
-              }}>
-                Continue to Website
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Footer */}
         <div className="mt-6 text-center">
