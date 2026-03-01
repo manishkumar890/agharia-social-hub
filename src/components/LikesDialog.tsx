@@ -71,14 +71,8 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
       .select('user_id, username, full_name, avatar_url')
       .in('user_id', userIds);
 
-    const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-    // Show ALL users including those without profiles (ghost users)
-    setUsers(userIds.map(id => profileMap.get(id) || {
-      user_id: id,
-      username: null,
-      full_name: null,
-      avatar_url: null,
-    }));
+    // Only show users who have a profile (exclude ghost users)
+    setUsers(profiles || []);
     setLoading(false);
   };
 
