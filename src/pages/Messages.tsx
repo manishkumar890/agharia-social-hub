@@ -298,7 +298,8 @@ const Messages = () => {
         })
       );
 
-      setConversations(convWithProfiles);
+      // Filter out conversations where other user has no profile (ghost/unknown users)
+      setConversations(convWithProfiles.filter(c => c.otherUser));
     }
     setLoading(false);
   };
