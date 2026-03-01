@@ -118,13 +118,22 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   };
 
   const fetchLikesAndComments = async () => {
-    // Fetch likes count
-    const { count: likesTotal } = await supabase
+    // Fetch likes and count only those with existing profiles
+    const { data: likesData } = await supabase
       .from('likes')
-      .select('*', { count: 'exact', head: true })
+      .select('user_id')
       .eq('post_id', post.id);
-    
-    setLikesCount(likesTotal || 0);
+
+    if (likesData && likesData.length > 0) {
+      const userIds = likesData.map(l => l.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .in('user_id', userIds);
+      setLikesCount(profiles?.length || 0);
+    } else {
+      setLikesCount(0);
+    }
 
     // Check if user liked this post
     if (user) {
