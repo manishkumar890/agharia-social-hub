@@ -468,6 +468,28 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      // Final validation before account creation — prevent ghost users
+      if (!regFullName.trim()) {
+        toast.error('Full name is required');
+        setIsLoading(false);
+        return;
+      }
+      if (!regUsername.trim()) {
+        toast.error('Username is required');
+        setIsLoading(false);
+        return;
+      }
+      if (!regEmail.trim()) {
+        toast.error('Email is required');
+        setIsLoading(false);
+        return;
+      }
+      if (!regAvatar) {
+        toast.error('Profile picture is required');
+        setIsLoading(false);
+        return;
+      }
+
       // Verify OTP
       const { data: verifyData, error: verifyError } = await invokeFunctionWithTimeout<{ success?: boolean; error?: string; isNewUser?: boolean; userId?: string; email?: string; password?: string }>('verify-otp', {
         phone: regPhone, otp: regOtp
@@ -496,25 +518,28 @@ const Auth = () => {
         throw new Error('Failed to create account');
       }
 
-      // Upload avatar if provided
-      let avatarUrl: string | null = null;
-      if (regAvatar) {
-        const fileExt = regAvatar.name.split('.').pop();
-        const fileName = `${signUpData.user.id}/avatar.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, regAvatar, { upsert: true });
+      // Upload avatar — required, fail registration if upload fails
+      const fileExt = regAvatar.name.split('.').pop();
+      const fileName = `${signUpData.user.id}/avatar.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, regAvatar, { upsert: true });
 
-        if (uploadError) {
-          console.error('Avatar upload error:', uploadError);
-        } else {
-          const { data: publicUrlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-          avatarUrl = publicUrlData.publicUrl;
-        }
+      if (uploadError) {
+        console.error('Avatar upload error:', uploadError);
+        await supabase.auth.signOut();
+        toast.error('Failed to upload profile picture. Please try again.');
+        resetRegistration();
+        setAuthMode('register');
+        setIsLoading(false);
+        return;
       }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      const avatarUrl = publicUrlData.publicUrl;
 
       // Create profile
       const { error: profileError } = await supabase.from('profiles').insert({
