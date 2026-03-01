@@ -106,6 +106,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setProfile(profileData);
                 setIsDisabled(profileData.is_disabled || false);
                 checkAdminRole(session.user.id, profileData.phone);
+              } else {
+                // Ghost user detected: auth exists but no profile — sign them out
+                console.warn('Ghost user detected, signing out:', session.user.id);
+                supabase.auth.signOut();
+                setUser(null);
+                setSession(null);
+                setProfile(null);
+                setIsAdmin(false);
+                setIsDisabled(false);
               }
               setLoading(false);
             });
@@ -130,6 +139,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(profileData);
             setIsDisabled(profileData.is_disabled || false);
             checkAdminRole(session.user.id, profileData.phone);
+          } else {
+            // Ghost user detected: auth exists but no profile — sign them out
+            console.warn('Ghost user detected on init, signing out:', session.user.id);
+            supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            setProfile(null);
+            setIsAdmin(false);
+            setIsDisabled(false);
           }
           setLoading(false);
         });
