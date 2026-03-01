@@ -528,7 +528,13 @@ const Auth = () => {
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
-        // Even if profile fails, auth user was created
+        // Profile creation failed — sign out to prevent ghost account
+        await supabase.auth.signOut();
+        toast.error('Registration failed. Please try again.');
+        resetRegistration();
+        setAuthMode('register');
+        setIsLoading(false);
+        return;
       }
 
       // Sign in the user
