@@ -195,15 +195,43 @@ if (typeof globalThis === 'undefined') {
   (window as any).globalThis = window;
 }
 
-// 8. Supabase proxy interceptor — routes API calls through Vercel proxy
+// 8. In-memory response cache for proxy requests (reduces Jio latency)
+const _responseCache = new Map<string, { data: string; status: number; headers: Record<string, string>; ts: number }>();
+const CACHE_TTL_MS = 30_000; // 30s cache for GET requests
+const MAX_CACHE_SIZE = 50;
+
+function getCacheKey(url: string, init?: RequestInit): string | null {
+  const method = (init?.method || 'GET').toUpperCase();
+  if (method !== 'GET') return null;
+  // Only cache REST API calls, not auth
+  if (url.includes('/auth/')) return null;
+  // Include Authorization header in cache key for user-specific data
+  const authHeader = (init?.headers as Record<string, string>)?.['Authorization'] ||
+    (init?.headers as Record<string, string>)?.['authorization'] || '';
+  return url + '|' + authHeader.slice(-20);
+}
+
+function pruneCache() {
+  if (_responseCache.size <= MAX_CACHE_SIZE) return;
+  const entries = Array.from(_responseCache.entries());
+  entries.sort((a, b) => a[1].ts - b[1].ts);
+  const toRemove = entries.slice(0, entries.length - MAX_CACHE_SIZE);
+  for (const [key] of toRemove) _responseCache.delete(key);
+}
+
+function makeCachedResponse(cached: { data: string; status: number; headers: Record<string, string> }): Response {
+  return new Response(cached.data, {
+    status: cached.status,
+    headers: cached.headers,
+  });
+}
+
+// 9. Supabase proxy interceptor — routes API calls through Vercel proxy
 // to bypass ISP blocking of supabase.co domains (e.g., Jio in India)
-// Only activate on the published custom domain, not on Lovable preview
 const isLovablePreview = window.location.hostname.endsWith('.lovable.app') || window.location.hostname === 'localhost';
 
 if (!isLovablePreview) {
   const SUPABASE_ORIGIN = 'https://rtkcegudtndzxcqkukew.supabase.co';
-  // UPDATE THIS to your Vercel proxy URL after deployment
-  // Example: 'https://supabase-proxy-xxxxx.vercel.app/api/proxy'
   const PROXY_ORIGIN = 'https://supabase-proxy-theta.vercel.app/api/proxy';
 
   const _originalFetch = window.fetch.bind(window);
@@ -220,9 +248,18 @@ if (!isLovablePreview) {
     }
 
     if (url.startsWith(SUPABASE_ORIGIN)) {
-      // Replace origin with proxy, keeping the path
       const path = url.substring(SUPABASE_ORIGIN.length);
       const proxiedUrl = PROXY_ORIGIN + path;
+
+      // Check in-memory cache first (instant, no network)
+      const cacheKey = getCacheKey(url, init);
+      if (cacheKey) {
+        const cached = _responseCache.get(cacheKey);
+        if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+          return Promise.resolve(makeCachedResponse(cached));
+        }
+      }
+
       const doProxyFetch = () => {
         if (input instanceof Request) {
           const newRequest = new Request(proxiedUrl, input);
@@ -231,28 +268,46 @@ if (!isLovablePreview) {
         return _originalFetch(proxiedUrl, init);
       };
 
-      // Try proxy first, fall back to direct Supabase if proxy fails
-      return doProxyFetch().catch(function(err: any) {
-        if (
-          err.name === 'TypeError' ||
-          (err.message && (
-            err.message.indexOf('Failed to fetch') >= 0 ||
-            err.message.indexOf('NetworkError') >= 0 ||
-            err.message.indexOf('ERR_NAME_NOT_RESOLVED') >= 0
-          ))
-        ) {
-          console.warn('[Compat] Proxy failed, falling back to direct:', err.message);
-          return _originalFetch(input, init);
-        }
-        throw err;
-      });
+      return doProxyFetch()
+        .then(function(response: Response) {
+          // Cache successful GET responses
+          if (cacheKey && response.ok) {
+            const cloned = response.clone();
+            cloned.text().then(function(text) {
+              const hdrs: Record<string, string> = {};
+              response.headers.forEach(function(v, k) { hdrs[k] = v; });
+              _responseCache.set(cacheKey, { data: text, status: response.status, headers: hdrs, ts: Date.now() });
+              pruneCache();
+            });
+          }
+          return response;
+        })
+        .catch(function(err: any) {
+          if (
+            err.name === 'TypeError' ||
+            (err.message && (
+              err.message.indexOf('Failed to fetch') >= 0 ||
+              err.message.indexOf('NetworkError') >= 0 ||
+              err.message.indexOf('ERR_NAME_NOT_RESOLVED') >= 0
+            ))
+          ) {
+            console.warn('[Compat] Proxy failed, falling back to direct:', err.message);
+            return _originalFetch(input, init);
+          }
+          throw err;
+        });
     }
 
     return _originalFetch(input, init);
   };
-  console.log('[Compat] Supabase proxy ENABLED via Vercel with fallback.');
+  console.log('[Compat] Supabase proxy ENABLED with response cache.');
 } else {
   console.log('[Compat] Supabase proxy SKIPPED (Lovable preview).');
+}
+
+// Export cache invalidator for mutations
+export function invalidateProxyCache() {
+  _responseCache.clear();
 }
 
 console.log('[Compat] Polyfills loaded. UA:', navigator.userAgent);
