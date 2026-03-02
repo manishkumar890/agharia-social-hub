@@ -459,25 +459,38 @@ const Auth = () => {
 
     setIsLoading(true);
 
+    // Overall timeout — prevents infinite loading on Android devices
+    const REG_VERIFY_TIMEOUT = 60000; // 60 seconds for entire flow
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      setIsLoading(false);
+      toast.error('Registration is taking too long. Please check your connection and try again.');
+    }, REG_VERIFY_TIMEOUT);
+
     try {
       // Final validation before account creation — prevent ghost users
       if (!regFullName.trim()) {
         toast.error('Full name is required');
+        clearTimeout(timeoutId);
         setIsLoading(false);
         return;
       }
       if (!regUsername.trim()) {
         toast.error('Username is required');
+        clearTimeout(timeoutId);
         setIsLoading(false);
         return;
       }
       if (!regEmail.trim()) {
         toast.error('Email is required');
+        clearTimeout(timeoutId);
         setIsLoading(false);
         return;
       }
       if (!regAvatar) {
         toast.error('Profile picture is required');
+        clearTimeout(timeoutId);
         setIsLoading(false);
         return;
       }
@@ -487,43 +500,78 @@ const Auth = () => {
         phone: regPhone, otp: regOtp
       });
 
+      if (didTimeout) return;
       if (verifyError) throw verifyError;
       if (verifyData?.error) throw new Error(verifyData.error);
 
-      // Create the auth user with email/password
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: regEmail,
-        password: regPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            phone: regPhone,
-            username: regUsername.toLowerCase(),
-            full_name: regFullName
+      // Create the auth user with email/password — use raw API with timeout for Android reliability
+      const { supabaseUrl, baseHeaders } = getApiBaseConfig();
+      
+      let signUpUserId: string | null = null;
+
+      try {
+        const signUpResponse = await compatFetch(
+          supabaseUrl + '/auth/v1/signup',
+          {
+            method: 'POST',
+            headers: baseHeaders,
+            body: JSON.stringify({
+              email: regEmail,
+              password: regPassword,
+              data: {
+                phone: regPhone,
+                username: regUsername.toLowerCase(),
+                full_name: regFullName
+              }
+            }),
+            timeoutMs: 20000,
           }
+        );
+
+        if (didTimeout) return;
+
+        const signUpBody = await signUpResponse.json();
+
+        if (!signUpResponse.ok) {
+          const errMsg = signUpBody?.error_description || signUpBody?.msg || signUpBody?.message || 'Failed to create account';
+          throw new Error(errMsg);
         }
-      });
 
-      if (signUpError) throw signUpError;
-
-      if (!signUpData.user) {
-        throw new Error('Failed to create account');
+        signUpUserId = signUpBody?.id || signUpBody?.user?.id;
+        if (!signUpUserId) {
+          throw new Error('Failed to create account — no user ID returned');
+        }
+      } catch (signUpErr) {
+        if (didTimeout) return;
+        throw signUpErr;
       }
+
+      if (didTimeout) return;
 
       // Upload avatar — required, fail registration if upload fails
       const fileExt = regAvatar.name.split('.').pop();
-      const fileName = `${signUpData.user.id}/avatar.${fileExt}`;
+      const fileName = `${signUpUserId}/avatar.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
+      // Use SDK upload but with a racing timeout
+      const uploadPromise = supabase.storage
         .from('avatars')
         .upload(fileName, regAvatar, { upsert: true });
 
-      if (uploadError) {
-        console.error('Avatar upload error:', uploadError);
-        await supabase.auth.signOut();
+      const uploadTimeoutPromise = new Promise<{ error: Error }>((resolve) =>
+        setTimeout(() => resolve({ error: new Error('Avatar upload timed out') }), 20000)
+      );
+
+      const uploadResult = await Promise.race([uploadPromise, uploadTimeoutPromise]) as any;
+
+      if (didTimeout) return;
+
+      if (uploadResult.error) {
+        console.error('Avatar upload error:', uploadResult.error);
+        await supabase.auth.signOut().catch(() => {});
         toast.error('Failed to upload profile picture. Please try again.');
         resetRegistration();
         setAuthMode('register');
+        clearTimeout(timeoutId);
         setIsLoading(false);
         return;
       }
@@ -533,35 +581,63 @@ const Auth = () => {
         .getPublicUrl(fileName);
       const avatarUrl = publicUrlData.publicUrl;
 
-      // Create profile
-      const { error: profileError } = await supabase.from('profiles').insert({
-        user_id: signUpData.user.id,
-        phone: regPhone,
-        email: regEmail.toLowerCase(),
-        username: regUsername.toLowerCase(),
-        full_name: regFullName.trim(),
-        avatar_url: avatarUrl
-      });
+      // Create profile — use raw API with timeout for Android reliability
+      try {
+        const profileResponse = await compatFetch(
+          supabaseUrl + '/rest/v1/profiles',
+          {
+            method: 'POST',
+            headers: {
+              ...baseHeaders,
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              user_id: signUpUserId,
+              phone: regPhone,
+              email: regEmail.toLowerCase(),
+              username: regUsername.toLowerCase(),
+              full_name: regFullName.trim(),
+              avatar_url: avatarUrl
+            }),
+            timeoutMs: 15000,
+          }
+        );
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        // Profile creation failed — sign out to prevent ghost account
-        await supabase.auth.signOut();
+        if (didTimeout) return;
+
+        if (!profileResponse.ok) {
+          const profileErrText = await profileResponse.text();
+          console.error('Profile creation error:', profileErrText);
+          await supabase.auth.signOut().catch(() => {});
+          toast.error('Registration failed. Please try again.');
+          resetRegistration();
+          setAuthMode('register');
+          clearTimeout(timeoutId);
+          setIsLoading(false);
+          return;
+        }
+      } catch (profileErr) {
+        if (didTimeout) return;
+        console.error('Profile creation error:', profileErr);
+        await supabase.auth.signOut().catch(() => {});
         toast.error('Registration failed. Please try again.');
         resetRegistration();
         setAuthMode('register');
+        clearTimeout(timeoutId);
         setIsLoading(false);
         return;
       }
 
-      // Sign in the user
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: regEmail,
-        password: regPassword
-      });
+      if (didTimeout) return;
 
-      if (signInError) {
-        console.error('Auto sign-in error:', signInError);
+      // Sign in the user — use fallback method for Android reliability
+      const signInResult = await signInWithPasswordFallback(regEmail, regPassword);
+
+      if (didTimeout) return;
+      clearTimeout(timeoutId);
+
+      if (signInResult.error) {
+        console.error('Auto sign-in error:', signInResult.error);
         toast.success('Account created! Please login.');
         setAuthMode('login');
         resetRegistration();
@@ -570,11 +646,20 @@ const Auth = () => {
         navigate('/');
       }
     } catch (error: unknown) {
+      if (didTimeout) return;
+      clearTimeout(timeoutId);
       console.error('Registration Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      toast.error(errorMessage);
+      if (isLikelyNetworkError(errorMessage)) {
+        toast.error('Network error during registration. Please check your connection and try again.');
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
-      setIsLoading(false);
+      if (!didTimeout) {
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+      }
     }
   };
 
