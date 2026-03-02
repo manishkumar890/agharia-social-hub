@@ -246,7 +246,7 @@ const Auth = () => {
   const [authMode, setAuthMode] = useState<'register' | 'login' | 'forgot'>('login');
   
   // Registration state
-  const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
+  const [regStep, setRegStep] = useState<'info' | 'password' | 'phone' | 'otp' | 'avatar'>('info');
   const [regPhone, setRegPhone] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regUsername, setRegUsername] = useState('');
@@ -329,45 +329,70 @@ const Auth = () => {
     }
   };
 
-  // Registration Step 1: Submit form and send OTP
-  const handleRegisterSubmit = async () => {
-    // Validate all fields
+  // Registration Step 1: Validate info and check uniqueness
+  const handleRegInfoNext = async () => {
+    if (!regFullName.trim()) {
+      toast.error('Please enter your full name');
+      return;
+    }
     const usernameResult = usernameSchema.safeParse(regUsername);
     if (!usernameResult.success) {
       toast.error(usernameResult.error.errors[0].message);
       return;
     }
-
     const emailResult = emailSchema.safeParse(regEmail);
     if (!emailResult.success) {
       toast.error(emailResult.error.errors[0].message);
       return;
     }
 
+    setIsLoading(true);
+    try {
+      const { data: existingUsername } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', regUsername.toLowerCase())
+        .maybeSingle();
+      if (existingUsername) {
+        toast.error('Username already taken');
+        return;
+      }
+      const { data: existingEmail } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', regEmail.toLowerCase())
+        .maybeSingle();
+      if (existingEmail) {
+        toast.error('Email already registered');
+        return;
+      }
+      setRegStep('password');
+    } catch (error: unknown) {
+      toast.error('Failed to validate. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Registration Step 2: Validate password
+  const handleRegPasswordNext = () => {
     const passwordResult = passwordSchema.safeParse(regPassword);
     if (!passwordResult.success) {
       toast.error(passwordResult.error.errors[0].message);
       return;
     }
+    if (regPassword !== regConfirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setRegStep('phone');
+  };
 
+  // Registration Step 3: Validate phone and send OTP
+  const handleRegPhoneSendOtp = async () => {
     const phoneResult = phoneSchema.safeParse(regPhone);
     if (!phoneResult.success) {
       toast.error(phoneResult.error.errors[0].message);
-      return;
-    }
-
-    if (!regFullName.trim()) {
-      toast.error('Please enter your full name');
-      return;
-    }
-
-    if (!regAvatar) {
-      toast.error('Please upload a profile picture');
-      return;
-    }
-
-    if (regPassword !== regConfirmPassword) {
-      toast.error('Passwords do not match');
       return;
     }
 
@@ -377,46 +402,17 @@ const Auth = () => {
     setOtpRequestError(null);
 
     try {
-      // Check if username already exists
-      const { data: existingUsername } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', regUsername.toLowerCase())
-        .maybeSingle();
-
-      if (existingUsername) {
-        toast.error('Username already taken');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if email already exists
-      const { data: existingEmail } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', regEmail.toLowerCase())
-        .maybeSingle();
-
-      if (existingEmail) {
-        toast.error('Email already registered');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if phone already exists
       const { data: existingPhone } = await supabase
         .from('profiles')
         .select('id')
         .eq('phone', regPhone)
         .maybeSingle();
-
       if (existingPhone) {
         toast.error('Phone number already registered');
         setIsLoading(false);
         return;
       }
 
-      // Send OTP to phone
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: regPhone,
       }, OTP_SEND_TIMEOUT_MS, 0);
@@ -426,7 +422,6 @@ const Auth = () => {
 
       if (data?.otp) {
         setDemoOtp(data.otp);
-        // Show fallback OTP after 10 seconds if SMS is slow
         setTimeout(() => setShowDemoOtp(true), 10000);
       }
 
@@ -444,7 +439,7 @@ const Auth = () => {
     }
   };
 
-  // Registration Step 2: Verify OTP and create account
+  // Registration Step 4: Verify OTP only — then go to avatar step
   const handleRegisterVerifyOtp = async () => {
     const otpResult = otpSchema.safeParse(regOtp);
     if (!otpResult.success) {
@@ -453,10 +448,36 @@ const Auth = () => {
     }
 
     setIsLoading(true);
+    try {
+      const { data: verifyData, error: verifyError } = await invokeFunctionWithTimeout<{ success?: boolean; error?: string }>('verify-otp', {
+        phone: regPhone, otp: regOtp
+      });
+
+      if (verifyError) throw verifyError;
+      if (verifyData?.error) throw new Error(verifyData.error);
+
+      toast.success('Phone verified! Now add your profile photo.');
+      setRegStep('avatar');
+    } catch (error: unknown) {
+      console.error('OTP Verification Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Invalid OTP';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Registration Step 5: Upload avatar and create account
+  const handleAvatarSubmitAndCreateAccount = async () => {
+    if (!regAvatar) {
+      toast.error('Please upload a profile picture');
+      return;
+    }
+
+    setIsLoading(true);
     setRegistrationInProgress(true);
 
-    // Overall timeout — prevents infinite loading on Android devices
-    const REG_VERIFY_TIMEOUT = 60000; // 60 seconds for entire flow
+    const REG_VERIFY_TIMEOUT = 60000;
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
       didTimeout = true;
@@ -465,44 +486,8 @@ const Auth = () => {
     }, REG_VERIFY_TIMEOUT);
 
     try {
-      // Final validation before account creation — prevent ghost users
-      if (!regFullName.trim()) {
-        toast.error('Full name is required');
-        clearTimeout(timeoutId);
-        setIsLoading(false);
-        return;
-      }
-      if (!regUsername.trim()) {
-        toast.error('Username is required');
-        clearTimeout(timeoutId);
-        setIsLoading(false);
-        return;
-      }
-      if (!regEmail.trim()) {
-        toast.error('Email is required');
-        clearTimeout(timeoutId);
-        setIsLoading(false);
-        return;
-      }
-      if (!regAvatar) {
-        toast.error('Profile picture is required');
-        clearTimeout(timeoutId);
-        setIsLoading(false);
-        return;
-      }
-
-      // Verify OTP
-      const { data: verifyData, error: verifyError } = await invokeFunctionWithTimeout<{ success?: boolean; error?: string; isNewUser?: boolean; userId?: string; email?: string; password?: string }>('verify-otp', {
-        phone: regPhone, otp: regOtp
-      });
-
-      if (didTimeout) return;
-      if (verifyError) throw verifyError;
-      if (verifyData?.error) throw new Error(verifyData.error);
-
-      // Create the auth user with email/password — use raw API with timeout for Android reliability
+      // Create the auth user
       const { supabaseUrl, baseHeaders } = getApiBaseConfig();
-      
       let signUpUserId: string | null = null;
 
       try {
@@ -525,7 +510,6 @@ const Auth = () => {
         );
 
         if (didTimeout) return;
-
         const signUpBody = await signUpResponse.json();
 
         if (!signUpResponse.ok) {
@@ -544,11 +528,10 @@ const Auth = () => {
 
       if (didTimeout) return;
 
-      // Upload avatar — required, fail registration if upload fails
+      // Upload avatar
       const fileExt = regAvatar.name.split('.').pop();
       const fileName = `${signUpUserId}/avatar.${fileExt}`;
       
-      // Use SDK upload but with a racing timeout
       const uploadPromise = supabase.storage
         .from('avatars')
         .upload(fileName, regAvatar, { upsert: true });
@@ -565,8 +548,6 @@ const Auth = () => {
         console.error('Avatar upload error:', uploadResult.error);
         await supabase.auth.signOut().catch(() => {});
         toast.error('Failed to upload profile picture. Please try again.');
-        resetRegistration();
-        setAuthMode('register');
         clearTimeout(timeoutId);
         setIsLoading(false);
         return;
@@ -577,7 +558,7 @@ const Auth = () => {
         .getPublicUrl(fileName);
       const avatarUrl = publicUrlData.publicUrl;
 
-      // Create profile — use raw API with timeout for Android reliability
+      // Create profile
       try {
         const profileResponse = await compatFetch(
           supabaseUrl + '/rest/v1/profiles',
@@ -626,7 +607,7 @@ const Auth = () => {
 
       if (didTimeout) return;
 
-      // Sign in the user — use fallback method for Android reliability
+      // Sign in the user
       const signInResult = await signInWithPasswordFallback(regEmail, regPassword);
 
       if (didTimeout) return;
@@ -931,7 +912,7 @@ const Auth = () => {
   };
 
   const resetRegistration = () => {
-    setRegStep('form');
+    setRegStep('info');
     setRegPhone('');
     setRegEmail('');
     setRegUsername('');
@@ -1045,7 +1026,11 @@ const Auth = () => {
             </div>
             <CardTitle className="text-xl font-semibold text-foreground">
               {authMode === 'register' 
-                ? (regStep === 'form' ? 'Create Account' : 'Verify Mobile')
+                ? regStep === 'info' ? 'Create Account'
+                  : regStep === 'password' ? 'Set Password'
+                  : regStep === 'phone' ? 'Verify Mobile'
+                  : regStep === 'otp' ? 'Enter OTP'
+                  : 'Profile Photo'
                 : authMode === 'forgot'
                   ? (forgotStep === 'phone' 
                       ? 'Forgot Password' 
@@ -1057,9 +1042,15 @@ const Auth = () => {
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               {authMode === 'register'
-                ? (regStep === 'form' 
+                ? regStep === 'info'
                     ? 'Join the Agharia community' 
-                    : `Enter the 6-digit code sent to +91 ${regPhone}`)
+                    : regStep === 'password'
+                    ? 'Create a secure password'
+                    : regStep === 'phone'
+                    ? 'Enter your mobile number for verification'
+                    : regStep === 'otp'
+                    ? `Enter the 6-digit code sent to +91 ${regPhone}`
+                    : 'Add a profile photo to complete setup'
                 : authMode === 'forgot'
                   ? (forgotStep === 'phone' 
                       ? 'Enter your registered mobile number' 
@@ -1336,55 +1327,25 @@ const Auth = () => {
 
                 {/* Register Tab */}
                 <TabsContent value="register" className="space-y-4">
-                  {regStep === 'form' ? (
-                    <>
-                      {/* Avatar Upload */}
-                      <div className="flex justify-center">
-                        <div className="relative">
-                          <Avatar className={`w-24 h-24 border-4 ${regAvatarPreview ? 'border-secondary/50' : 'border-destructive/50'} shadow-lg`}>
-                            {regAvatarPreview ? (
-                              <AvatarImage src={regAvatarPreview} alt="Avatar preview" />
-                            ) : (
-                              <AvatarFallback className="bg-muted">
-                                <User className="w-8 h-8 text-muted-foreground" />
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <label 
-                            htmlFor="avatarUpload" 
-                            className="absolute bottom-0 right-0 bg-secondary text-secondary-foreground rounded-full p-2.5 cursor-pointer hover:bg-secondary/90 transition-colors shadow-md"
-                          >
-                            <Camera className="w-4 h-4" />
-                          </label>
-                          <input 
-                            id="avatarUpload" 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleAvatarChange}
-                            className="hidden" 
-                          />
-                        </div>
+                  {/* Step indicator */}
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {['info', 'password', 'phone', 'otp', 'avatar'].map((step, i) => (
+                      <div key={step} className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                          ['info', 'password', 'phone', 'otp', 'avatar'].indexOf(regStep) >= i 
+                            ? 'bg-primary' : 'bg-muted'
+                        }`} />
+                        {i < 4 && <div className={`w-6 h-0.5 transition-colors ${
+                          ['info', 'password', 'phone', 'otp', 'avatar'].indexOf(regStep) > i 
+                            ? 'bg-primary' : 'bg-muted'
+                        }`} />}
                       </div>
-                      <p className="text-center text-xs text-muted-foreground">
-                        Upload Profile Picture * <span className="text-muted-foreground/70">(max 5MB)</span>
-                      </p>
+                    ))}
+                  </div>
 
-                      {/* Avatar Crop Dialog */}
-                      {cropImageSrc && (
-                        <AvatarCropDialog
-                          open={cropDialogOpen}
-                          onClose={() => {
-                            setCropDialogOpen(false);
-                            if (cropImageSrc) {
-                              URL.revokeObjectURL(cropImageSrc);
-                              setCropImageSrc(null);
-                            }
-                          }}
-                          imageSrc={cropImageSrc}
-                          onCropComplete={handleCropComplete}
-                        />
-                      )}
-
+                  {/* Step 1: Basic Info */}
+                  {regStep === 'info' && (
+                    <>
                       <div className="space-y-2">
                         <Label htmlFor="regFullName" className="text-sm font-medium">Full Name *</Label>
                         <Input
@@ -1427,32 +1388,27 @@ const Auth = () => {
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="regPhone" className="text-sm font-medium">Mobile Number *</Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
-                            +91
-                          </span>
-                          <Input
-                            id="regPhone"
-                            type="tel"
-                            placeholder="Enter 10 digit number"
-                            value={regPhone}
-                            onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            className="pl-12 h-12 rounded-xl border-2 focus:border-primary/50"
-                            maxLength={10}
-                          />
-                          <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        </div>
-                      </div>
+                      <Button 
+                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                        onClick={handleRegInfoNext}
+                        disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail}
+                      >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowRight className="w-4 h-4 mr-2" />}
+                        Next
+                      </Button>
+                    </>
+                  )}
 
+                  {/* Step 2: Password */}
+                  {regStep === 'password' && (
+                    <>
                       <div className="space-y-2">
                         <Label htmlFor="regPassword" className="text-sm font-medium">Password *</Label>
                         <div className="relative">
                           <Input
                             id="regPassword"
                             type={showRegPassword ? 'text' : 'password'}
-                            placeholder="Create a password"
+                            placeholder="Create a password (min 6 chars)"
                             value={regPassword}
                             onChange={(e) => setRegPassword(e.target.value)}
                             className="pl-10 pr-10 h-12 rounded-xl border-2 focus:border-primary/50"
@@ -1490,25 +1446,66 @@ const Auth = () => {
                         </div>
                       </div>
 
-                      <Button 
-                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
-                        onClick={handleRegisterSubmit}
-                        disabled={isLoading || !regFullName.trim() || !regUsername || !regEmail || !regPhone || !regPassword || !regConfirmPassword}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setRegStep('info')}>
+                          Back
+                        </Button>
+                        <Button 
+                          className="flex-1 h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                          onClick={handleRegPasswordNext}
+                          disabled={!regPassword || !regConfirmPassword}
+                        >
                           <ArrowRight className="w-4 h-4 mr-2" />
-                        )}
-                        Send Verification OTP
-                      </Button>
+                          Next
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 3: Phone Number */}
+                  {regStep === 'phone' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="regPhone" className="text-sm font-medium">Mobile Number *</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
+                            +91
+                          </span>
+                          <Input
+                            id="regPhone"
+                            type="tel"
+                            placeholder="Enter 10 digit number"
+                            value={regPhone}
+                            onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            className="pl-12 h-12 rounded-xl border-2 focus:border-primary/50"
+                            maxLength={10}
+                          />
+                          <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
 
                       {otpRequestError && (
                         <p className="text-sm text-destructive text-center">{otpRequestError}</p>
                       )}
 
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => setRegStep('password')}>
+                          Back
+                        </Button>
+                        <Button 
+                          className="flex-1 h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                          onClick={handleRegPhoneSendOtp}
+                          disabled={isLoading || regPhone.length !== 10}
+                        >
+                          {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowRight className="w-4 h-4 mr-2" />}
+                          Send OTP
+                        </Button>
+                      </div>
                     </>
-                  ) : (
+                  )}
+
+                  {/* Step 4: OTP Verification */}
+                  {regStep === 'otp' && (
                     <>
                       {demoOtp && showDemoOtp && (
                         <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
@@ -1518,7 +1515,7 @@ const Auth = () => {
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="regOtp" className="text-sm font-medium">Enter OTP</Label>
+                        <Label htmlFor="regOtp" className="text-sm font-medium">Enter OTP sent to +91 {regPhone}</Label>
                         <div className="relative">
                           <Input
                             id="regOtp"
@@ -1539,16 +1536,16 @@ const Auth = () => {
                         disabled={isLoading || regOtp.length !== 6}
                       >
                         {isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                        Verify & Create Account
+                        Verify OTP
                       </Button>
 
                       <div className="text-center space-y-2">
                         <Button 
                           variant="ghost" 
                           className="text-sm text-muted-foreground hover:text-foreground"
-                          onClick={resetRegistration}
+                          onClick={() => { setRegStep('phone'); setRegOtp(''); }}
                         >
-                          Back to form
+                          Change number
                         </Button>
                         {resendTimer > 0 ? (
                           <p className="text-sm text-muted-foreground">Resend OTP in {resendTimer}s</p>
@@ -1563,6 +1560,72 @@ const Auth = () => {
                           </Button>
                         )}
                       </div>
+                    </>
+                  )}
+
+                  {/* Step 5: Profile Photo */}
+                  {regStep === 'avatar' && (
+                    <>
+                      <div className="flex justify-center">
+                        <div className="relative">
+                          <Avatar className={`w-28 h-28 border-4 ${regAvatarPreview ? 'border-secondary/50' : 'border-destructive/50'} shadow-lg`}>
+                            {regAvatarPreview ? (
+                              <AvatarImage src={regAvatarPreview} alt="Avatar preview" />
+                            ) : (
+                              <AvatarFallback className="bg-muted">
+                                <Camera className="w-10 h-10 text-muted-foreground" />
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                          <label 
+                            htmlFor="avatarUpload" 
+                            className="absolute bottom-0 right-0 bg-secondary text-secondary-foreground rounded-full p-2.5 cursor-pointer hover:bg-secondary/90 transition-colors shadow-md"
+                          >
+                            <Camera className="w-4 h-4" />
+                          </label>
+                          <input 
+                            id="avatarUpload" 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleAvatarChange}
+                            className="hidden" 
+                          />
+                        </div>
+                      </div>
+                      <p className="text-center text-sm text-muted-foreground">
+                        Add a profile photo <span className="text-destructive">*</span>
+                      </p>
+                      <p className="text-center text-xs text-muted-foreground/70">Max 5MB</p>
+
+                      {cropImageSrc && (
+                        <AvatarCropDialog
+                          open={cropDialogOpen}
+                          onClose={() => {
+                            setCropDialogOpen(false);
+                            if (cropImageSrc) {
+                              URL.revokeObjectURL(cropImageSrc);
+                              setCropImageSrc(null);
+                            }
+                          }}
+                          imageSrc={cropImageSrc}
+                          onCropComplete={handleCropComplete}
+                        />
+                      )}
+
+                      <Button 
+                        className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium shadow-md"
+                        onClick={handleAvatarSubmitAndCreateAccount}
+                        disabled={isLoading || !regAvatar}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Creating Account...
+                          </>
+                        ) : (
+                          'Complete Registration'
+                        )}
+                      </Button>
                     </>
                   )}
                 </TabsContent>
