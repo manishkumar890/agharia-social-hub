@@ -8,6 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 3000,
+    allowedHosts: [
+      "agharia-hub.cluster-0.preview.emergentcf.cloud",
+      ".emergentagent.com",
+      ".emergentcf.cloud",
+      "localhost"
+    ],
     hmr: {
       overlay: false,
     },
