@@ -450,7 +450,7 @@ const Auth = () => {
     setIsLoading(true);
     try {
       const { data: verifyData, error: verifyError } = await invokeFunctionWithTimeout<{ success?: boolean; error?: string }>('verify-otp', {
-        phone: regPhone, otp: regOtp
+        phone: regPhone, otp: regOtp, mode: 'register'
       });
 
       if (verifyError) throw verifyError;
@@ -486,116 +486,156 @@ const Auth = () => {
     }, REG_VERIFY_TIMEOUT);
 
     try {
-      // Create the auth user
+      // Step A: Create auth user via signup API
       const { supabaseUrl, baseHeaders } = getApiBaseConfig();
       let signUpUserId: string | null = null;
 
-      try {
-        const signUpResponse = await compatFetch(
-          supabaseUrl + '/auth/v1/signup',
-          {
-            method: 'POST',
-            headers: baseHeaders,
-            body: JSON.stringify({
-              email: regEmail,
-              password: regPassword,
-              data: {
-                phone: regPhone,
-                username: regUsername.toLowerCase(),
-                full_name: regFullName
-              }
-            }),
-            timeoutMs: 20000,
-          }
-        );
-
-        if (didTimeout) return;
-        const signUpBody = await signUpResponse.json();
-
-        if (!signUpResponse.ok) {
-          const errMsg = signUpBody?.error_description || signUpBody?.msg || signUpBody?.message || 'Failed to create account';
-          throw new Error(errMsg);
+      const signUpResponse = await compatFetch(
+        supabaseUrl + '/auth/v1/signup',
+        {
+          method: 'POST',
+          headers: baseHeaders,
+          body: JSON.stringify({
+            email: regEmail,
+            password: regPassword,
+            data: {
+              phone: regPhone,
+              username: regUsername.toLowerCase(),
+              full_name: regFullName
+            }
+          }),
+          timeoutMs: 20000,
         }
+      );
 
-        signUpUserId = signUpBody?.id || signUpBody?.user?.id;
-        if (!signUpUserId) {
-          throw new Error('Failed to create account — no user ID returned');
+      if (didTimeout) return;
+      const signUpBody = await signUpResponse.json();
+
+      if (!signUpResponse.ok) {
+        const errMsg = signUpBody?.error_description || signUpBody?.msg || signUpBody?.message || 'Failed to create account';
+        // If user already exists, provide clear message and reset
+        if (errMsg.toLowerCase().includes('already') || errMsg.toLowerCase().includes('registered')) {
+          toast.error('This email is already registered. Please login instead.');
+          resetRegistration();
+          setAuthMode('login');
+          clearTimeout(timeoutId);
+          setIsLoading(false);
+          setRegistrationInProgress(false);
+          return;
         }
-      } catch (signUpErr) {
-        if (didTimeout) return;
-        throw signUpErr;
+        throw new Error(errMsg);
+      }
+
+      signUpUserId = signUpBody?.id || signUpBody?.user?.id;
+      if (!signUpUserId) {
+        throw new Error('Failed to create account — no user ID returned');
       }
 
       if (didTimeout) return;
 
-      // Upload avatar
-      const fileExt = regAvatar.name.split('.').pop();
+      // Step B: Sign in immediately to get an active session (needed for storage upload)
+      const signInResult = await signInWithPasswordFallback(regEmail, regPassword);
+      if (didTimeout) return;
+
+      if (signInResult.error) {
+        console.error('Post-signup sign-in failed:', signInResult.error);
+        // Continue anyway — try uploading with anon key (bucket is public)
+      }
+
+      // Step C: Upload avatar with active session
+      const fileExt = regAvatar.name.split('.').pop() || 'jpg';
       const fileName = `${signUpUserId}/avatar.${fileExt}`;
       
-      const uploadPromise = supabase.storage
+      let avatarUrl: string | null = null;
+      
+      // Try upload with SDK first
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, regAvatar, { upsert: true });
 
-      const uploadTimeoutPromise = new Promise<{ error: Error }>((resolve) =>
-        setTimeout(() => resolve({ error: new Error('Avatar upload timed out') }), 20000)
-      );
-
-      const uploadResult = await Promise.race([uploadPromise, uploadTimeoutPromise]) as any;
-
       if (didTimeout) return;
 
-      if (uploadResult.error) {
-        console.error('Avatar upload error:', uploadResult.error);
-        await supabase.auth.signOut().catch(() => {});
-        toast.error('Failed to upload profile picture. Please try again.');
-        clearTimeout(timeoutId);
-        setIsLoading(false);
-        return;
+      if (uploadError) {
+        console.warn('SDK avatar upload failed, trying raw upload:', uploadError.message);
+        
+        // Fallback: raw fetch upload
+        try {
+          const formData = new FormData();
+          formData.append('', regAvatar, fileName);
+          
+          // Get current session token
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token || baseHeaders.Authorization.replace('Bearer ', '');
+          
+          const rawUploadResponse = await fetch(
+            `${supabaseUrl}/storage/v1/object/avatars/${fileName}`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'apikey': baseHeaders.apikey,
+                'x-upsert': 'true',
+              },
+              body: regAvatar,
+            }
+          );
+
+          if (didTimeout) return;
+
+          if (!rawUploadResponse.ok) {
+            const errText = await rawUploadResponse.text();
+            console.error('Raw upload also failed:', errText);
+            // Don't block registration — create profile without avatar
+            console.warn('Proceeding without avatar');
+          }
+        } catch (rawErr) {
+          if (didTimeout) return;
+          console.error('Raw upload error:', rawErr);
+          // Proceed without avatar
+        }
       }
 
+      // Get public URL
       const { data: publicUrlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
-      const avatarUrl = publicUrlData.publicUrl;
+      avatarUrl = publicUrlData.publicUrl;
 
-      // Create profile
-      try {
-        const profileResponse = await compatFetch(
-          supabaseUrl + '/rest/v1/profiles',
-          {
-            method: 'POST',
-            headers: {
-              ...baseHeaders,
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              user_id: signUpUserId,
-              phone: regPhone,
-              email: regEmail.toLowerCase(),
-              username: regUsername.toLowerCase(),
-              full_name: regFullName.trim(),
-              avatar_url: avatarUrl
-            }),
-            timeoutMs: 15000,
-          }
-        );
+      if (didTimeout) return;
 
-        if (didTimeout) return;
-
-        if (!profileResponse.ok) {
-          const profileErrText = await profileResponse.text();
-          console.error('Profile creation error:', profileErrText);
-          await supabase.auth.signOut().catch(() => {});
-          toast.error('Registration failed. Please try again.');
-          resetRegistration();
-          setAuthMode('register');
-          clearTimeout(timeoutId);
-          setIsLoading(false);
-          return;
+      // Step D: Create profile
+      const profileResponse = await compatFetch(
+        supabaseUrl + '/rest/v1/profiles',
+        {
+          method: 'POST',
+          headers: {
+            ...baseHeaders,
+            'Prefer': 'return=minimal',
+            // Use session token if available
+            ...(await (async () => {
+              const { data: s } = await supabase.auth.getSession();
+              return s?.session?.access_token
+                ? { 'Authorization': `Bearer ${s.session.access_token}` }
+                : {};
+            })()),
+          },
+          body: JSON.stringify({
+            user_id: signUpUserId,
+            phone: regPhone,
+            email: regEmail.toLowerCase(),
+            username: regUsername.toLowerCase(),
+            full_name: regFullName.trim(),
+            avatar_url: avatarUrl
+          }),
+          timeoutMs: 15000,
         }
-      } catch (profileErr) {
-        if (didTimeout) return;
-        console.error('Profile creation error:', profileErr);
+      );
+
+      if (didTimeout) return;
+
+      if (!profileResponse.ok) {
+        const profileErrText = await profileResponse.text();
+        console.error('Profile creation error:', profileErrText);
         await supabase.auth.signOut().catch(() => {});
         toast.error('Registration failed. Please try again.');
         resetRegistration();
@@ -606,21 +646,24 @@ const Auth = () => {
       }
 
       if (didTimeout) return;
-
-      // Sign in the user
-      const signInResult = await signInWithPasswordFallback(regEmail, regPassword);
-
-      if (didTimeout) return;
       clearTimeout(timeoutId);
 
-      if (signInResult.error) {
-        console.error('Auto sign-in error:', signInResult.error);
-        toast.success('Account created! Please login.');
-        setAuthMode('login');
-        resetRegistration();
-      } else {
+      // Already signed in from Step B
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (currentSession?.session) {
         toast.success('Welcome! Account created successfully.');
         navigate('/');
+      } else {
+        // Try signing in again
+        const finalSignIn = await signInWithPasswordFallback(regEmail, regPassword);
+        if (finalSignIn.error) {
+          toast.success('Account created! Please login.');
+          setAuthMode('login');
+          resetRegistration();
+        } else {
+          toast.success('Welcome! Account created successfully.');
+          navigate('/');
+        }
       }
     } catch (error: unknown) {
       if (didTimeout) return;

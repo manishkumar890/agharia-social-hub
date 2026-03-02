@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, otp } = await req.json();
+    const { phone, otp, mode } = await req.json();
 
     if (!phone || !/^\d{10}$/.test(phone)) {
       return new Response(
@@ -63,7 +63,16 @@ serve(async (req) => {
       .update({ verified: true })
       .eq('id', otpRecord.id);
 
-    // Check if user exists with this phone in profiles
+    // If mode is 'register', just verify OTP — don't create/find auth user
+    if (mode === 'register') {
+      console.log(`OTP verified (register mode) for phone: ${phone}`);
+      return new Response(
+        JSON.stringify({ success: true, verified: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Legacy mode: check if user exists with this phone in profiles
     const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('user_id')
@@ -99,7 +108,7 @@ serve(async (req) => {
       );
     }
 
-    // Try to create new auth user — if already exists, update password instead
+    // Try to create new auth user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
@@ -107,33 +116,7 @@ serve(async (req) => {
     });
 
     if (createError) {
-      // If user already exists in auth (but no profile), try updating password
       if (createError.message?.includes('already been registered') || createError.message?.includes('already exists')) {
-        // Look up existing auth user by email efficiently using invite/signin approach
-        // Use signInWithPassword with admin-set password won't work, so use listUsers with email filter
-        const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
-          perPage: 1,
-          page: 1,
-        });
-        
-        // Since listUsers doesn't filter by email efficiently, 
-        // just try creating with a slightly different approach
-        // Actually, the safest approach: use the REST API to find user by email
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        
-        const lookupResponse = await fetch(
-          `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${serviceKey}`,
-              'apikey': serviceKey,
-            },
-          }
-        );
-        
-        // Fallback: just report as new user needing profile creation
         console.log(`Auth user may already exist for phone: ${phone}, treating as new user`);
         
         return new Response(
