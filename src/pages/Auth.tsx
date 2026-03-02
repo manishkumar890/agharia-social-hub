@@ -35,8 +35,9 @@ const usernameSchema = z.string()
   .max(20, 'Username must be at most 20 characters')
   .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores');
 
-const OTP_REQUEST_TIMEOUT_MS = 25000;
-const LOGIN_REQUEST_TIMEOUT_MS = 20000;
+const OTP_REQUEST_TIMEOUT_MS = 12000;
+const OTP_SEND_TIMEOUT_MS = 8000;
+const LOGIN_REQUEST_TIMEOUT_MS = 15000;
 const LOGIN_RETRY_COUNT = 1;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -416,7 +417,7 @@ const Auth = () => {
       // Send OTP to phone
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: regPhone,
-      });
+      }, OTP_SEND_TIMEOUT_MS, 0);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -800,7 +801,7 @@ const Auth = () => {
       // Send OTP
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone: forgotPhone,
-      });
+      }, OTP_SEND_TIMEOUT_MS, 0);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -900,7 +901,7 @@ const Auth = () => {
     try {
       const { data, error } = await invokeFunctionWithTimeout<{ message?: string; otp?: string; error?: string }>('send-otp', {
         phone,
-      });
+      }, OTP_SEND_TIMEOUT_MS, 0);
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
