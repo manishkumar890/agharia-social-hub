@@ -65,8 +65,6 @@ const Search = () => {
     }
   }, [searchTerm]);
 
-  const ADMIN_PHONE = '7326937200';
-
   const enrichWithPremium = async (profiles: User[]): Promise<User[]> => {
     const activeUserIds = profiles.filter(p => !p.is_disabled).map(p => p.user_id);
     if (activeUserIds.length === 0) return profiles;
@@ -82,7 +80,7 @@ const Search = () => {
 
     return profiles.map(p => ({
       ...p,
-      isPremium: p.is_disabled ? false : (p.phone === ADMIN_PHONE || premiumUserIds.has(p.user_id)),
+      isPremium: p.is_disabled ? false : premiumUserIds.has(p.user_id),
     }));
   };
 
