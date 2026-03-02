@@ -1,5 +1,5 @@
 // API Service - Replaces Supabase client for all backend communication
-const API_BASE_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 // Token storage
 const TOKEN_KEY = 'auth_token';
