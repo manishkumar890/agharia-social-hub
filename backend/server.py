@@ -607,37 +607,54 @@ async def get_posts(
     
     posts = await db.posts.find(query).sort('created_at', -1).skip(offset).limit(limit).to_list(limit)
     
-    # Get user profiles
+    if not posts:
+        return []
+    
+    # Get user profiles with projection
     user_ids = list(set(p['user_id'] for p in posts))
-    profiles = await db.profiles.find({'user_id': {'$in': user_ids}}).to_list(len(user_ids))
+    profiles = await db.profiles.find(
+        {'user_id': {'$in': user_ids}},
+        {'user_id': 1, 'full_name': 1, 'username': 1, 'avatar_url': 1}
+    ).to_list(len(user_ids))
     profiles_map = {p['user_id']: p for p in profiles}
     
     # Get current user for checking likes
     current_user = await get_optional_user(authorization)
     
+    # Batch fetch likes and comments counts using aggregation
+    post_ids = [p['id'] for p in posts]
+    
+    likes_pipeline = await db.likes.aggregate([
+        {'$match': {'post_id': {'$in': post_ids}}},
+        {'$group': {'_id': '$post_id', 'count': {'$sum': 1}}}
+    ]).to_list(None)
+    likes_map = {item['_id']: item['count'] for item in likes_pipeline}
+    
+    comments_pipeline = await db.comments.aggregate([
+        {'$match': {'post_id': {'$in': post_ids}}},
+        {'$group': {'_id': '$post_id', 'count': {'$sum': 1}}}
+    ]).to_list(None)
+    comments_map = {item['_id']: item['count'] for item in comments_pipeline}
+    
+    # Batch check user likes and saves
+    user_liked_posts = set()
+    user_saved_posts = set()
+    if current_user:
+        user_likes = await db.likes.find(
+            {'post_id': {'$in': post_ids}, 'user_id': current_user['user_id']},
+            {'post_id': 1}
+        ).to_list(len(post_ids))
+        user_liked_posts = {l['post_id'] for l in user_likes}
+        
+        user_saves = await db.saved_posts.find(
+            {'post_id': {'$in': post_ids}, 'user_id': current_user['user_id']},
+            {'post_id': 1}
+        ).to_list(len(post_ids))
+        user_saved_posts = {s['post_id'] for s in user_saves}
+    
     result = []
     for post in posts:
         profile = profiles_map.get(post['user_id'], {})
-        
-        # Get likes and comments count
-        likes_count = await db.likes.count_documents({'post_id': post['id']})
-        comments_count = await db.comments.count_documents({'post_id': post['id']})
-        
-        # Check if current user liked
-        is_liked = False
-        is_saved = False
-        if current_user:
-            like = await db.likes.find_one({
-                'post_id': post['id'],
-                'user_id': current_user['user_id']
-            })
-            is_liked = like is not None
-            
-            saved = await db.saved_posts.find_one({
-                'post_id': post['id'],
-                'user_id': current_user['user_id']
-            })
-            is_saved = saved is not None
         
         result.append({
             **{k: v for k, v in post.items() if k != '_id'},
@@ -646,10 +663,10 @@ async def get_posts(
                 'username': profile.get('username'),
                 'avatar_url': profile.get('avatar_url')
             },
-            'likes_count': likes_count,
-            'comments_count': comments_count,
-            'is_liked': is_liked,
-            'is_saved': is_saved
+            'likes_count': likes_map.get(post['id'], 0),
+            'comments_count': comments_map.get(post['id'], 0),
+            'is_liked': post['id'] in user_liked_posts,
+            'is_saved': post['id'] in user_saved_posts
         })
     
     return result
@@ -1385,62 +1402,95 @@ async def get_notifications(authorization: str = None, limit: int = 50):
     """Get notifications for current user"""
     profile = await get_current_user(authorization)
     
-    # Get recent activity: new followers, likes on posts, comments
     notifications = []
     
-    # New followers
+    # New followers - batch fetch profiles
     followers = await db.followers.find({'following_id': profile['user_id']}).sort('created_at', -1).limit(20).to_list(20)
-    for f in followers:
-        follower_profile = await db.profiles.find_one({'user_id': f['follower_id']})
-        if follower_profile:
-            notifications.append({
-                'id': f['id'],
-                'type': 'follow',
-                'user_id': f['follower_id'],
-                'username': follower_profile.get('username'),
-                'full_name': follower_profile.get('full_name'),
-                'avatar_url': follower_profile.get('avatar_url'),
-                'message': 'started following you',
-                'created_at': f['created_at']
-            })
+    if followers:
+        follower_ids = [f['follower_id'] for f in followers]
+        follower_profiles = await db.profiles.find(
+            {'user_id': {'$in': follower_ids}},
+            {'user_id': 1, 'username': 1, 'full_name': 1, 'avatar_url': 1}
+        ).to_list(len(follower_ids))
+        follower_map = {p['user_id']: p for p in follower_profiles}
+        
+        for f in followers:
+            fp = follower_map.get(f['follower_id'])
+            if fp:
+                notifications.append({
+                    'id': f['id'],
+                    'type': 'follow',
+                    'user_id': f['follower_id'],
+                    'username': fp.get('username'),
+                    'full_name': fp.get('full_name'),
+                    'avatar_url': fp.get('avatar_url'),
+                    'message': 'started following you',
+                    'created_at': f['created_at']
+                })
     
-    # Likes on user's posts
-    user_posts = await db.posts.find({'user_id': profile['user_id']}).to_list(100)
+    # Get user's post IDs with projection
+    user_posts = await db.posts.find(
+        {'user_id': profile['user_id']},
+        {'id': 1}
+    ).to_list(100)
     post_ids = [p['id'] for p in user_posts]
     
     if post_ids:
-        likes = await db.likes.find({'post_id': {'$in': post_ids}, 'user_id': {'$ne': profile['user_id']}}).sort('created_at', -1).limit(20).to_list(20)
-        for l in likes:
-            liker_profile = await db.profiles.find_one({'user_id': l['user_id']})
-            if liker_profile:
-                notifications.append({
-                    'id': l['id'],
-                    'type': 'like',
-                    'user_id': l['user_id'],
-                    'username': liker_profile.get('username'),
-                    'full_name': liker_profile.get('full_name'),
-                    'avatar_url': liker_profile.get('avatar_url'),
-                    'post_id': l['post_id'],
-                    'message': 'liked your post',
-                    'created_at': l['created_at']
-                })
+        # Likes on user's posts - batch fetch profiles
+        likes = await db.likes.find(
+            {'post_id': {'$in': post_ids}, 'user_id': {'$ne': profile['user_id']}}
+        ).sort('created_at', -1).limit(20).to_list(20)
         
-        # Comments on user's posts
-        comments = await db.comments.find({'post_id': {'$in': post_ids}, 'user_id': {'$ne': profile['user_id']}}).sort('created_at', -1).limit(20).to_list(20)
-        for c in comments:
-            commenter_profile = await db.profiles.find_one({'user_id': c['user_id']})
-            if commenter_profile:
-                notifications.append({
-                    'id': c['id'],
-                    'type': 'comment',
-                    'user_id': c['user_id'],
-                    'username': commenter_profile.get('username'),
-                    'full_name': commenter_profile.get('full_name'),
-                    'avatar_url': commenter_profile.get('avatar_url'),
-                    'post_id': c['post_id'],
-                    'message': f'commented: {c["content"][:50]}...' if len(c['content']) > 50 else f'commented: {c["content"]}',
-                    'created_at': c['created_at']
-                })
+        if likes:
+            liker_ids = list(set(l['user_id'] for l in likes))
+            liker_profiles = await db.profiles.find(
+                {'user_id': {'$in': liker_ids}},
+                {'user_id': 1, 'username': 1, 'full_name': 1, 'avatar_url': 1}
+            ).to_list(len(liker_ids))
+            liker_map = {p['user_id']: p for p in liker_profiles}
+            
+            for l in likes:
+                lp = liker_map.get(l['user_id'])
+                if lp:
+                    notifications.append({
+                        'id': l['id'],
+                        'type': 'like',
+                        'user_id': l['user_id'],
+                        'username': lp.get('username'),
+                        'full_name': lp.get('full_name'),
+                        'avatar_url': lp.get('avatar_url'),
+                        'post_id': l['post_id'],
+                        'message': 'liked your post',
+                        'created_at': l['created_at']
+                    })
+        
+        # Comments on user's posts - batch fetch profiles
+        comments = await db.comments.find(
+            {'post_id': {'$in': post_ids}, 'user_id': {'$ne': profile['user_id']}}
+        ).sort('created_at', -1).limit(20).to_list(20)
+        
+        if comments:
+            commenter_ids = list(set(c['user_id'] for c in comments))
+            commenter_profiles = await db.profiles.find(
+                {'user_id': {'$in': commenter_ids}},
+                {'user_id': 1, 'username': 1, 'full_name': 1, 'avatar_url': 1}
+            ).to_list(len(commenter_ids))
+            commenter_map = {p['user_id']: p for p in commenter_profiles}
+            
+            for c in comments:
+                cp = commenter_map.get(c['user_id'])
+                if cp:
+                    notifications.append({
+                        'id': c['id'],
+                        'type': 'comment',
+                        'user_id': c['user_id'],
+                        'username': cp.get('username'),
+                        'full_name': cp.get('full_name'),
+                        'avatar_url': cp.get('avatar_url'),
+                        'post_id': c['post_id'],
+                        'message': f'commented: {c["content"][:50]}...' if len(c['content']) > 50 else f'commented: {c["content"]}',
+                        'created_at': c['created_at']
+                    })
     
     # Sort by date
     notifications.sort(key=lambda x: x['created_at'], reverse=True)
