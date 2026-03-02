@@ -75,7 +75,7 @@ serve(async (req) => {
 
     // 2Factor API - Send our own OTP using the template
     // API Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp}/{template_name}
-    const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/91${phone}/${otp}/OTP1`;
+    const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/${otp}/OTP1`;
     
     const maskedPhone = `${'*'.repeat(6)}${phone.slice(-4)}`;
     console.log('Sending SMS OTP to:', maskedPhone);
