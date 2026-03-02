@@ -21,6 +21,8 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
+const ADMIN_PHONE = '7326937200';
+
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user, profile } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -56,7 +58,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     fetchSubscription();
   }, [user]);
 
-  const isPremium = subscription?.plan_type === 'premium';
+  const isAdminPhone = profile?.phone === ADMIN_PHONE;
+  const isPremium = isAdminPhone || subscription?.plan_type === 'premium';
 
   return (
     <SubscriptionContext.Provider value={{

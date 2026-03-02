@@ -261,12 +261,16 @@ const Messages = () => {
             .single();
 
           // Check premium status
-          const { data: sub } = await supabase
-            .from('user_subscriptions')
-            .select('plan_type')
-            .eq('user_id', otherUserId)
-            .maybeSingle();
-          const isPremium = sub?.plan_type === 'premium';
+          const isAdminPhone = profile?.phone === '7326937200';
+          let isPremium = isAdminPhone;
+          if (!isPremium) {
+            const { data: sub } = await supabase
+              .from('user_subscriptions')
+              .select('plan_type')
+              .eq('user_id', otherUserId)
+              .maybeSingle();
+            isPremium = sub?.plan_type === 'premium';
+          }
 
           // Get last message
           const { data: lastMsg } = await supabase
