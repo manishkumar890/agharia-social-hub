@@ -23,17 +23,32 @@ serve(async (req) => {
       );
     }
 
+    // Rate limiting: max 3 OTPs per phone per minute
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: recentOtps } = await supabaseAdmin
+      .from('phone_otps')
+      .select('created_at')
+      .eq('phone', phone)
+      .gte('created_at', new Date(Date.now() - 60000).toISOString());
+
+    if (recentOtps && recentOtps.length >= 3) {
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
     // OTP expires in 10 minutes
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    // Create Supabase client with service role
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    // Reuse supabaseAdmin created above for rate limiting
 
     // Delete any existing OTPs for this phone
     await supabaseAdmin

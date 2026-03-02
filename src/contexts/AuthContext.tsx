@@ -29,8 +29,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_PHONE = '7326937200';
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -65,25 +63,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const checkAdminRole = async (userId: string, phone: string) => {
+  const checkAdminRole = async (userId: string) => {
     try {
       const { data: roleData } = await supabase
         .from('user_roles')
-        .select('*')
+        .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')
         .single();
       
-      if (roleData) {
-        setIsAdmin(true);
-      } else if (phone === ADMIN_PHONE) {
-        await supabase
-          .from('user_roles')
-          .insert({ user_id: userId, role: 'admin' });
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
+      setIsAdmin(!!roleData);
     } catch (error) {
       console.error('Error checking admin role:', error);
       setIsAdmin(false);
@@ -96,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (profileData) {
         setProfile(profileData);
         setIsDisabled(profileData.is_disabled || false);
-        await checkAdminRole(user.id, profileData.phone);
+        await checkAdminRole(user.id);
       }
     }
   };
@@ -118,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setProfile(profileData);
                 setIsDisabled(profileData.is_disabled || false);
                 // Fire and forget — don't await
-                checkAdminRole(userId, profileData.phone);
+                checkAdminRole(userId);
               } else if (!registrationInProgressRef.current) {
                 // Ghost user: auth exists but no profile AND not registering
                 // Add a grace period — retry once after 3 seconds before signing out
@@ -127,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     if (retryData) {
                       setProfile(retryData);
                       setIsDisabled(retryData.is_disabled || false);
-                      checkAdminRole(userId, retryData.phone);
+                      checkAdminRole(userId);
                     } else if (!registrationInProgressRef.current) {
                       console.warn('Ghost user detected, signing out:', userId);
                       supabase.auth.signOut();
@@ -164,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (profileData) {
             setProfile(profileData);
             setIsDisabled(profileData.is_disabled || false);
-            checkAdminRole(session.user.id, profileData.phone);
+            checkAdminRole(session.user.id);
           }
           // Don't sign out ghost users on init — let onAuthStateChange handle it
           setLoading(false);

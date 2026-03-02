@@ -46,8 +46,6 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
-const ADMIN_PHONE = '7326937200';
-
 interface User {
   id: string;
   user_id: string;
@@ -140,7 +138,7 @@ const MAX_BANNER_SIZE = 3 * 1024 * 1024; // 3MB
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -866,7 +864,7 @@ const Admin = () => {
                             <Badge variant="secondary" className="text-xs">
                               {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
                             </Badge>
-                            {user.phone === ADMIN_PHONE ? (
+                            {user.user_id === currentUser?.id ? (
                               <Badge variant="outline" className="text-xs">
                                 <Shield className="w-3 h-3 mr-1" />
                                 Admin

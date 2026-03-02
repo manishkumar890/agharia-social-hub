@@ -113,8 +113,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
         .single(),
     ]);
 
-    const isAdminPhone = profileData?.phone === '7326937200';
-    setIsAuthorPremium(isAdminPhone || subData?.plan_type === 'premium');
+    setIsAuthorPremium(subData?.plan_type === 'premium');
   };
 
   const fetchLikesAndComments = async () => {

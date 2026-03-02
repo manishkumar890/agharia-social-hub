@@ -97,10 +97,9 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
           .map(s => s.user_id)
       );
 
-      const ADMIN_PHONE = '7326937200';
       const usersWithPremium = (profiles || []).map(profile => ({
         ...profile,
-        isPremium: profile.is_disabled ? false : (profile.phone === ADMIN_PHONE || premiumUserIds.has(profile.user_id)),
+        isPremium: profile.is_disabled ? false : premiumUserIds.has(profile.user_id),
       }));
 
       setUsers(usersWithPremium);
