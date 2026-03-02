@@ -1,0 +1,6 @@
+{
+  "name": "supabase-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel proxy to bypass ISP blocking of Supabase"
+}
