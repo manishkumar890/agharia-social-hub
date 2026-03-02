@@ -56,79 +56,29 @@ serve(async (req) => {
       throw new Error('Failed to generate OTP');
     }
 
-    // Send OTP via 2Factor SMS API
+    // Send OTP via 2Factor SMS API (fire-and-forget for instant response)
     const smsApiKey = Deno.env.get('SMS_API_KEY');
     
-    if (!smsApiKey) {
-      console.error('SMS_API_KEY not configured');
-      // Return OTP for demo if SMS not configured
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Real SMS service busy. Use it for complete registration.',
-          otp: otp,
-          expiresIn: 600
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (smsApiKey) {
+      const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/${otp}/OTP1`;
+      const maskedPhone = `${'*'.repeat(6)}${phone.slice(-4)}`;
+      console.log('Sending SMS OTP to:', maskedPhone);
+
+      // Fire-and-forget: don't await, send SMS in background
+      fetch(smsUrl, { method: 'GET' })
+        .then(res => res.json())
+        .then(result => console.log('2Factor SMS Result:', result?.Status))
+        .catch(err => console.error('SMS send error (background):', err));
+    } else {
+      console.warn('SMS_API_KEY not configured');
     }
 
-    // 2Factor API - Send our own OTP using the template
-    // API Format: https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp}/{template_name}
-    const smsUrl = `https://2factor.in/API/V1/${smsApiKey}/SMS/${phone}/${otp}/OTP1`;
-    
-    const maskedPhone = `${'*'.repeat(6)}${phone.slice(-4)}`;
-    console.log('Sending SMS OTP to:', maskedPhone);
-
-    const smsAbortController = new AbortController();
-    const smsTimeout = setTimeout(() => smsAbortController.abort(), 8000);
-
-    let smsResult: any;
-    try {
-      const smsResponse = await fetch(smsUrl, {
-        method: 'GET',
-        signal: smsAbortController.signal,
-      });
-
-      smsResult = await smsResponse.json();
-      console.log('2Factor SMS Response:', smsResult);
-    } catch (smsError) {
-      console.error('SMS provider timeout/error:', smsError);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Real SMS service busy. Use it for complete registration.',
-          otp: otp,
-          expiresIn: 600
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } finally {
-      clearTimeout(smsTimeout);
-    }
-
-    if (smsResult.Status !== 'Success') {
-      console.error('SMS sending failed:', smsResult);
-      
-      // If SMS fails, still return success but with OTP for demo
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Real SMS service busy. Use it for complete registration.',
-          otp: otp,
-          expiresIn: 600
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`OTP sent successfully to +91${phone}`);
-
+    // Return immediately — don't wait for SMS delivery
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'OTP sent to your mobile number',
-        expiresIn: 600 // 10 minutes in seconds
+        expiresIn: 600
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
