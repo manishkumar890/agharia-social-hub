@@ -195,4 +195,34 @@ if (typeof globalThis === 'undefined') {
   (window as any).globalThis = window;
 }
 
-console.log('[Compat] Polyfills loaded. UA:', navigator.userAgent);
+// 8. Supabase proxy interceptor — routes API calls through Cloudflare Worker
+// to bypass ISP blocking of supabase.co domains
+const SUPABASE_ORIGIN = 'https://rtkcegudtndzxcqkukew.supabase.co';
+const PROXY_ORIGIN = 'https://api.aghariasamaj.com';
+
+const _originalFetch = window.fetch.bind(window);
+window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  let url: string;
+  if (typeof input === 'string') {
+    url = input;
+  } else if (input instanceof URL) {
+    url = input.toString();
+  } else if (input instanceof Request) {
+    url = input.url;
+  } else {
+    return _originalFetch(input, init);
+  }
+
+  if (url.startsWith(SUPABASE_ORIGIN)) {
+    const proxiedUrl = url.replace(SUPABASE_ORIGIN, PROXY_ORIGIN);
+    if (input instanceof Request) {
+      const newRequest = new Request(proxiedUrl, input);
+      return _originalFetch(newRequest, init);
+    }
+    return _originalFetch(proxiedUrl, init);
+  }
+
+  return _originalFetch(input, init);
+};
+
+console.log('[Compat] Polyfills loaded with Supabase proxy. UA:', navigator.userAgent);
