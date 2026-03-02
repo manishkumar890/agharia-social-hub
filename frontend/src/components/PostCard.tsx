@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MessageSquare, Send, Bookmark, MoreHorizontal } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { postsApi, uploadApi, subscriptionApi, profileApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,10 @@ interface Post {
   created_at: string;
   media_type?: string;
   thumbnail_url?: string | null;
+  likes_count?: number;
+  comments_count?: number;
+  is_liked?: boolean;
+  is_saved?: boolean;
   profiles?: {
     full_name: string | null;
     username: string | null;
@@ -56,16 +60,16 @@ interface PostCardProps {
 }
 
 const PostCard = ({ post, onDelete }: PostCardProps) => {
-  const { user, isAdmin } = useAuth();
-  const [liked, setLiked] = useState(false);
+  const { user, profile, isAdmin } = useAuth();
+  const [liked, setLiked] = useState(post.is_liked || false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-  const [commentsCount, setCommentsCount] = useState(0);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [animateLike, setAnimateLike] = useState(false);
   const [animateUnlike, setAnimateUnlike] = useState(false);
   const [isAuthorPremium, setIsAuthorPremium] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(post.is_saved || false);
   const [likesDialogOpen, setLikesDialogOpen] = useState(false);
   const [commentsDrawerOpen, setCommentsDrawerOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -94,80 +98,12 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
   }, [isVisible]);
 
   useEffect(() => {
-    fetchLikesAndComments();
-    fetchAuthorPremiumStatus();
-    fetchSavedStatus();
-  }, [post.id, user]);
-
-  const fetchAuthorPremiumStatus = async () => {
-    const [{ data: subData }, { data: profileData }] = await Promise.all([
-      supabase
-        .from('user_subscriptions')
-        .select('plan_type')
-        .eq('user_id', post.user_id)
-        .single(),
-      supabase
-        .from('profiles')
-        .select('phone')
-        .eq('user_id', post.user_id)
-        .single(),
-    ]);
-
-    const isAdminPhone = profileData?.phone === '7326937200';
-    setIsAuthorPremium(isAdminPhone || subData?.plan_type === 'premium');
-  };
-
-  const fetchLikesAndComments = async () => {
-    // Fetch likes and count only those with existing profiles
-    const { data: likesData } = await supabase
-      .from('likes')
-      .select('user_id')
-      .eq('post_id', post.id);
-
-    if (likesData && likesData.length > 0) {
-      const userIds = likesData.map(l => l.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .in('user_id', userIds);
-      setLikesCount(profiles?.length || 0);
-    } else {
-      setLikesCount(0);
-    }
-
-    // Check if user liked this post
-    if (user) {
-      const { data: userLike } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('post_id', post.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      setLiked(!!userLike);
-    }
-
-    // Fetch comments count
-    const { count: commentsTotal } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('post_id', post.id);
-    
-    setCommentsCount(commentsTotal || 0);
-  };
-
-  const fetchSavedStatus = async () => {
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from('saved_posts')
-      .select('id')
-      .eq('post_id', post.id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    setSaved(!!data);
-  };
+    // Set initial values from post data
+    if (post.likes_count !== undefined) setLikesCount(post.likes_count);
+    if (post.comments_count !== undefined) setCommentsCount(post.comments_count);
+    if (post.is_liked !== undefined) setLiked(post.is_liked);
+    if (post.is_saved !== undefined) setSaved(post.is_saved);
+  }, [post]);
 
   const handleSave = async () => {
     if (!user) {
@@ -175,30 +111,12 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
       return;
     }
 
-    if (saved) {
-      const { error } = await supabase
-        .from('saved_posts')
-        .delete()
-        .eq('post_id', post.id)
-        .eq('user_id', user.id);
-      
-      if (error) {
-        toast.error('Failed to unsave post');
-      } else {
-        setSaved(false);
-        toast.success('Post unsaved');
-      }
-    } else {
-      const { error } = await supabase
-        .from('saved_posts')
-        .insert({ post_id: post.id, user_id: user.id });
-      
-      if (error) {
-        toast.error('Failed to save post');
-      } else {
-        setSaved(true);
-        toast.success('Post saved');
-      }
+    try {
+      const result = await postsApi.toggleSave(post.id);
+      setSaved(result.saved);
+      toast.success(result.saved ? 'Post saved' : 'Post unsaved');
+    } catch (error) {
+      toast.error('Failed to save post');
     }
   };
 
@@ -206,46 +124,33 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
     if (!user) return;
     if (likeInProgressRef.current) return;
     likeInProgressRef.current = true;
+    
     try {
       if (liked) {
         setAnimateUnlike(true);
         setTimeout(() => setAnimateUnlike(false), 900);
-
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', post.id)
-          .eq('user_id', user.id);
-        
-        setLiked(false);
-        setLikesCount(prev => prev - 1);
       } else {
         setAnimateLike(true);
         setTimeout(() => setAnimateLike(false), 300);
-
-        await supabase
-          .from('likes')
-          .insert({ post_id: post.id, user_id: user.id });
-        
-        setLiked(true);
-        setLikesCount(prev => prev + 1);
       }
+
+      const result = await postsApi.toggleLike(post.id);
+      setLiked(result.liked);
+      setLikesCount(result.likes_count);
+    } catch (error) {
+      console.error('Error toggling like:', error);
     } finally {
       likeInProgressRef.current = false;
     }
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', post.id);
-    
-    if (error) {
-      toast.error('Failed to delete post');
-    } else {
+    try {
+      await postsApi.deletePost(post.id);
       toast.success('Post deleted');
       onDelete?.();
+    } catch (error) {
+      toast.error('Failed to delete post');
     }
   };
 
@@ -257,7 +162,7 @@ const PostCard = ({ post, onDelete }: PostCardProps) => {
     setSendDialogOpen(true);
   };
 
-  const canDelete = user?.id === post.user_id || isAdmin;
+  const canDelete = profile?.user_id === post.user_id || isAdmin;
 
   return (
     <article ref={postRef} className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in shadow-sm">

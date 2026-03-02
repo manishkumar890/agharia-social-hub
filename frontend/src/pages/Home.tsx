@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
+import { postsApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -13,9 +13,15 @@ interface Post {
   id: string;
   user_id: string;
   image_url: string;
+  image_urls?: string[];
   caption: string | null;
   location: string | null;
   created_at: string;
+  media_type?: string;
+  likes_count?: number;
+  comments_count?: number;
+  is_liked?: boolean;
+  is_saved?: boolean;
   profiles?: {
     full_name: string | null;
     username: string | null;
@@ -28,70 +34,37 @@ const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
-      // Fetch posts and profiles in parallel to reduce waterfall
-      const postsPromise = supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30); // Reduced from 50 to speed up initial load
-
-      // Pre-fetch commonly needed profiles in parallel
-      const [postsResult] = await Promise.all([postsPromise]);
+      const data = await postsApi.getPosts({ limit: 30 });
       
-      const { data: postsData, error } = postsResult;
-      if (error) throw error;
-      
-      if (!postsData || postsData.length === 0) {
-        setPosts([]);
-        return;
-      }
-
-      // Show posts immediately without profiles, then enrich
-      const quickPosts: Post[] = postsData.map(post => ({ ...post }));
-      setPosts(quickPosts);
-      setLoading(false);
-
-      // Fetch profiles in background and update
-      const userIds = [...new Set(postsData.map(p => p.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, username, avatar_url')
-        .in('user_id', userIds);
-
-      const profilesMap = new Map(
-        (profilesData || []).map(p => [p.user_id, p])
-      );
-
-      setPosts(postsData.map(post => ({
+      // Transform URLs for local storage
+      const transformedPosts = data.map((post: Post) => ({
         ...post,
-        profiles: profilesMap.get(post.user_id) || undefined
-      })));
+        image_url: uploadApi.getFileUrl(post.image_url),
+        image_urls: post.image_urls?.map((url: string) => uploadApi.getFileUrl(url)),
+        profiles: post.profiles ? {
+          ...post.profiles,
+          avatar_url: post.profiles.avatar_url ? uploadApi.getFileUrl(post.profiles.avatar_url) : null
+        } : undefined
+      }));
+      
+      setPosts(transformedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPosts();
-
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel('posts-feed')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'posts' },
-        () => fetchPosts()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchPosts, 30000);
+    
+    return () => clearInterval(interval);
+  }, [fetchPosts]);
 
   const handleDeletePost = (postId: string) => {
     setPosts(posts.filter(p => p.id !== postId));

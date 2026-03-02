@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { postsApi, followApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,7 +35,7 @@ interface LikesDialogProps {
 }
 
 const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const isMobile = useIsMobile();
   const [users, setUsers] = useState<LikeUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,54 +45,52 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
   useEffect(() => {
     if (open) {
       fetchLikedUsers();
-      if (user) fetchFollowing();
+      if (profile?.user_id) fetchFollowing();
     } else {
       setSearch('');
     }
-  }, [open, postId]);
+  }, [open, postId, profile?.user_id]);
 
   const fetchLikedUsers = async () => {
     setLoading(true);
-    const { data: likes } = await supabase
-      .from('likes')
-      .select('user_id')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: false });
-
-    if (!likes || likes.length === 0) {
-      setUsers([]);
+    try {
+      const likes = await postsApi.getLikes(postId);
+      
+      // Transform avatar URLs
+      const transformedUsers = likes.map((u: any) => ({
+        ...u,
+        avatar_url: u.avatar_url ? uploadApi.getFileUrl(u.avatar_url) : null
+      }));
+      
+      setUsers(transformedUsers);
+    } catch (error) {
+      console.error('Error fetching likes:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const userIds = likes.map(l => l.user_id);
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('user_id, username, full_name, avatar_url')
-      .in('user_id', userIds);
-
-    // Only show users who have a profile (exclude ghost users)
-    setUsers(profiles || []);
-    setLoading(false);
   };
 
   const fetchFollowing = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('followers')
-      .select('following_id')
-      .eq('follower_id', user.id);
-    setFollowingIds(new Set(data?.map(f => f.following_id) || []));
+    if (!profile?.user_id) return;
+    try {
+      const following = await followApi.getFollowing(profile.user_id);
+      setFollowingIds(new Set(following.map((f: any) => f.user_id)));
+    } catch (error) {
+      console.error('Error fetching following:', error);
+    }
   };
 
   const handleFollow = async (targetId: string) => {
-    if (!user) return;
-    if (followingIds.has(targetId)) {
-      await supabase.from('followers').delete().eq('follower_id', user.id).eq('following_id', targetId);
-      setFollowingIds(prev => { const s = new Set(prev); s.delete(targetId); return s; });
-    } else {
-      await supabase.from('followers').insert({ follower_id: user.id, following_id: targetId });
-      setFollowingIds(prev => new Set(prev).add(targetId));
+    if (!profile?.user_id) return;
+    try {
+      const result = await followApi.toggleFollow(targetId);
+      if (result.following) {
+        setFollowingIds(prev => new Set(prev).add(targetId));
+      } else {
+        setFollowingIds(prev => { const s = new Set(prev); s.delete(targetId); return s; });
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
     }
   };
 
@@ -146,7 +144,7 @@ const LikesDialog = ({ open, onOpenChange, postId }: LikesDialogProps) => {
                   <p className="font-semibold text-sm truncate">{u.username || u.full_name || 'Unknown'}</p>
                   {u.full_name && <p className="text-xs text-muted-foreground truncate">{u.full_name}</p>}
                 </Link>
-                {user && u.user_id !== user.id && (
+                {profile && u.user_id !== profile.user_id && (
                   <Button
                     size="sm"
                     variant={followingIds.has(u.user_id) ? 'outline' : 'default'}

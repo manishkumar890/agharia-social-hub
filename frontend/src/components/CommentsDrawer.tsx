@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { commentsApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,7 +38,7 @@ interface CommentsDrawerProps {
 }
 
 const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, onCommentsCountChange }: CommentsDrawerProps) => {
-  const { user, isAdmin } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -55,81 +55,69 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
 
   const fetchComments = async () => {
     setLoading(true);
-    const { data: commentsData } = await supabase
-      .from('comments')
-      .select('*')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true });
-
-    if (!commentsData || commentsData.length === 0) {
-      setComments([]);
+    try {
+      const data = await commentsApi.getComments(postId);
+      
+      // Transform avatar URLs
+      const enriched: Comment[] = data.map((c: any) => ({
+        ...c,
+        profiles: c.profiles ? {
+          ...c.profiles,
+          avatar_url: c.profiles.avatar_url ? uploadApi.getFileUrl(c.profiles.avatar_url) : null
+        } : undefined
+      }));
+      
+      setComments(enriched);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const userIds = [...new Set(commentsData.map(c => c.user_id))];
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, username, avatar_url')
-      .in('user_id', userIds);
-
-    const profilesMap = new Map(
-      (profilesData || []).map(p => [p.user_id, p])
-    );
-
-    const enriched: Comment[] = commentsData.map(c => ({
-      ...c,
-      profiles: profilesMap.get(c.user_id) || undefined,
-    }));
-
-    setComments(enriched);
-    setLoading(false);
   };
 
   const handleComment = async () => {
     if (!user || !newComment.trim()) return;
 
     setSubmitting(true);
-    const { data, error } = await supabase
-      .from('comments')
-      .insert({ post_id: postId, user_id: user.id, content: newComment.trim() })
-      .select('*')
-      .single();
-
-    if (error) {
-      toast.error('Failed to post comment');
-    } else if (data) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, username, avatar_url')
-        .eq('user_id', user.id)
-        .single();
-
-      const newC: Comment = { ...data, profiles: profile || undefined };
+    try {
+      const data = await commentsApi.createComment(postId, newComment.trim());
+      
+      const newC: Comment = {
+        ...data,
+        profiles: data.profiles ? {
+          ...data.profiles,
+          avatar_url: data.profiles.avatar_url ? uploadApi.getFileUrl(data.profiles.avatar_url) : null
+        } : undefined
+      };
+      
       setComments(prev => {
         const updated = [...prev, newC];
         onCommentsCountChange?.(updated.length);
         return updated;
       });
       setNewComment('');
+      
       // Scroll to bottom
       setTimeout(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
       }, 100);
+    } catch (error) {
+      toast.error('Failed to post comment');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    const { error } = await supabase.from('comments').delete().eq('id', commentId);
-    if (error) {
-      toast.error('Failed to delete comment');
-    } else {
+    try {
+      await commentsApi.deleteComment(commentId);
       setComments(prev => {
         const updated = prev.filter(c => c.id !== commentId);
         onCommentsCountChange?.(updated.length);
         return updated;
       });
+    } catch (error) {
+      toast.error('Failed to delete comment');
     }
   };
 
@@ -176,7 +164,7 @@ const CommentsDrawer = ({ open, onOpenChange, postId, commentsEnabled = true, on
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                     </p>
-                    {(user?.id === comment.user_id || isAdmin) && (
+                    {(profile?.user_id === comment.user_id || isAdmin) && (
                       <button
                         onClick={() => setDeleteCommentId(comment.id)}
                         className="text-xs text-destructive"
