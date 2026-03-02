@@ -195,14 +195,16 @@ if (typeof globalThis === 'undefined') {
   (window as any).globalThis = window;
 }
 
-// 8. Supabase proxy interceptor — routes API calls through Cloudflare Worker
-// to bypass ISP blocking of supabase.co domains
+// 8. Supabase proxy interceptor — routes API calls through Vercel proxy
+// to bypass ISP blocking of supabase.co domains (e.g., Jio in India)
 // Only activate on the published custom domain, not on Lovable preview
 const isLovablePreview = window.location.hostname.endsWith('.lovable.app') || window.location.hostname === 'localhost';
 
 if (!isLovablePreview) {
   const SUPABASE_ORIGIN = 'https://rtkcegudtndzxcqkukew.supabase.co';
-  const PROXY_ORIGIN = 'https://api.aghariasamaj.com';
+  // UPDATE THIS to your Vercel proxy URL after deployment
+  // Example: 'https://supabase-proxy-xxxxx.vercel.app/api/proxy'
+  const PROXY_ORIGIN = 'https://api.aghariasamaj.com/api/proxy';
 
   const _originalFetch = window.fetch.bind(window);
   window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -218,7 +220,9 @@ if (!isLovablePreview) {
     }
 
     if (url.startsWith(SUPABASE_ORIGIN)) {
-      const proxiedUrl = url.replace(SUPABASE_ORIGIN, PROXY_ORIGIN);
+      // Replace origin with proxy, keeping the path
+      const path = url.substring(SUPABASE_ORIGIN.length);
+      const proxiedUrl = PROXY_ORIGIN + path;
       const doProxyFetch = () => {
         if (input instanceof Request) {
           const newRequest = new Request(proxiedUrl, input);
@@ -227,7 +231,7 @@ if (!isLovablePreview) {
         return _originalFetch(proxiedUrl, init);
       };
 
-      // Try proxy first, fall back to direct Supabase if proxy DNS fails
+      // Try proxy first, fall back to direct Supabase if proxy fails
       return doProxyFetch().catch(function(err: any) {
         if (
           err.name === 'TypeError' ||
@@ -246,7 +250,7 @@ if (!isLovablePreview) {
 
     return _originalFetch(input, init);
   };
-  console.log('[Compat] Supabase proxy ENABLED with fallback for custom domain.');
+  console.log('[Compat] Supabase proxy ENABLED via Vercel with fallback.');
 } else {
   console.log('[Compat] Supabase proxy SKIPPED (Lovable preview).');
 }
