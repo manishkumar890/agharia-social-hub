@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { safeNormalize, safeStorage, compatFetch } from '@/lib/polyfills';
+import { safeNormalize, compatFetch } from '@/lib/polyfills';
 import sambalpuriPattern from '@/assets/sambalpuri-pattern.jpg';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,19 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Phone, Shield, ArrowRight, Loader2, Mail, Lock, User, Camera, Eye, EyeOff, KeyRound, ExternalLink } from 'lucide-react';
+import { Phone, Shield, ArrowRight, Loader2, Mail, Lock, User, Camera, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AvatarCropDialog from '@/components/AvatarCropDialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 // Validation schemas
 const phoneSchema = z.string()
@@ -248,7 +238,7 @@ const invokeFunctionWithTimeout = async <TData = any>(
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, setRegistrationInProgress } = useAuth();
   
   // Common state
   const [isLoading, setIsLoading] = useState(false);
@@ -458,6 +448,7 @@ const Auth = () => {
     }
 
     setIsLoading(true);
+    setRegistrationInProgress(true);
 
     // Overall timeout — prevents infinite loading on Android devices
     const REG_VERIFY_TIMEOUT = 60000; // 60 seconds for entire flow
@@ -656,6 +647,7 @@ const Auth = () => {
         toast.error(errorMessage);
       }
     } finally {
+      setRegistrationInProgress(false);
       if (!didTimeout) {
         clearTimeout(timeoutId);
         setIsLoading(false);
