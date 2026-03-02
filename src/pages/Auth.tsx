@@ -280,6 +280,7 @@ const Auth = () => {
   // OTP state
   const [resendTimer, setResendTimer] = useState(0);
   const [demoOtp, setDemoOtp] = useState<string | null>(null);
+  const [showDemoOtp, setShowDemoOtp] = useState(false);
   const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -372,6 +373,7 @@ const Auth = () => {
 
     setIsLoading(true);
     setDemoOtp(null);
+    setShowDemoOtp(false);
     setOtpRequestError(null);
 
     try {
@@ -424,6 +426,8 @@ const Auth = () => {
 
       if (data?.otp) {
         setDemoOtp(data.otp);
+        // Show fallback OTP after 10 seconds if SMS is slow
+        setTimeout(() => setShowDemoOtp(true), 10000);
       }
 
       toast.success(data?.message || 'OTP sent successfully!');
@@ -779,6 +783,7 @@ const Auth = () => {
 
     setIsLoading(true);
     setDemoOtp(null);
+    setShowDemoOtp(false);
     setOtpRequestError(null);
 
     try {
@@ -808,6 +813,7 @@ const Auth = () => {
 
       if (data?.otp) {
         setDemoOtp(data.otp);
+        setTimeout(() => setShowDemoOtp(true), 10000);
       }
 
       toast.success('OTP sent to your phone');
@@ -896,6 +902,7 @@ const Auth = () => {
   const handleResendOtp = async (phone: string) => {
     setIsLoading(true);
     setDemoOtp(null);
+    setShowDemoOtp(false);
     setOtpRequestError(null);
 
     try {
@@ -908,6 +915,7 @@ const Auth = () => {
 
       if (data?.otp) {
         setDemoOtp(data.otp);
+        setTimeout(() => setShowDemoOtp(true), 10000);
       }
 
       toast.success('OTP resent successfully!');
@@ -934,6 +942,7 @@ const Auth = () => {
     setRegAvatarPreview(null);
     setRegOtp('');
     setDemoOtp(null);
+    setShowDemoOtp(false);
     setOtpRequestError(null);
   };
 
@@ -951,6 +960,7 @@ const Auth = () => {
     setForgotUserId('');
     setForgotEmail('');
     setDemoOtp(null);
+    setShowDemoOtp(false);
     setOtpRequestError(null);
   };
 
@@ -1119,9 +1129,9 @@ const Auth = () => {
 
                 {forgotStep === 'otp' && (
                   <>
-                    {demoOtp && (
+                    {demoOtp && showDemoOtp && (
                       <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Your OTP is</p>
+                        <p className="text-xs text-muted-foreground mb-1">SMS delayed? Use this OTP</p>
                         <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                       </div>
                     )}
@@ -1500,9 +1510,9 @@ const Auth = () => {
                     </>
                   ) : (
                     <>
-                      {demoOtp && (
+                      {demoOtp && showDemoOtp && (
                         <div className="p-4 bg-secondary/20 rounded-xl border border-secondary/30 text-center">
-                          <p className="text-xs text-muted-foreground mb-1">Your OTP is</p>
+                          <p className="text-xs text-muted-foreground mb-1">SMS delayed? Use this OTP</p>
                           <p className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">{demoOtp}</p>
                         </div>
                       )}
