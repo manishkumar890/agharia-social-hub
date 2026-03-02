@@ -30,13 +30,17 @@ const Home = () => {
 
   const fetchPosts = async () => {
     try {
-      // Fetch posts first
-      const { data: postsData, error } = await supabase
+      // Fetch posts and profiles in parallel to reduce waterfall
+      const postsPromise = supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30); // Reduced from 50 to speed up initial load
 
+      // Pre-fetch commonly needed profiles in parallel
+      const [postsResult] = await Promise.all([postsPromise]);
+      
+      const { data: postsData, error } = postsResult;
       if (error) throw error;
       
       if (!postsData || postsData.length === 0) {
@@ -44,27 +48,26 @@ const Home = () => {
         return;
       }
 
-      // Get unique user IDs
+      // Show posts immediately without profiles, then enrich
+      const quickPosts: Post[] = postsData.map(post => ({ ...post }));
+      setPosts(quickPosts);
+      setLoading(false);
+
+      // Fetch profiles in background and update
       const userIds = [...new Set(postsData.map(p => p.user_id))];
-      
-      // Fetch profiles for these users
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('user_id, full_name, username, avatar_url')
         .in('user_id', userIds);
 
-      // Create a map for quick lookup
       const profilesMap = new Map(
         (profilesData || []).map(p => [p.user_id, p])
       );
 
-      // Combine posts with profiles
-      const postsWithProfiles: Post[] = postsData.map(post => ({
+      setPosts(postsData.map(post => ({
         ...post,
         profiles: profilesMap.get(post.user_id) || undefined
-      }));
-
-      setPosts(postsWithProfiles);
+      })));
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {

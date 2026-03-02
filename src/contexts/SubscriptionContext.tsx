@@ -55,7 +55,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    fetchSubscription();
+    // Defer subscription check to not block initial render
+    const timer = setTimeout(() => fetchSubscription(), 500);
+    return () => clearTimeout(timer);
   }, [user]);
 
   const isAdminPhone = profile?.phone === ADMIN_PHONE;
