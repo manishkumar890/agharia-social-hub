@@ -204,7 +204,7 @@ if (!isLovablePreview) {
   const SUPABASE_ORIGIN = 'https://rtkcegudtndzxcqkukew.supabase.co';
   // UPDATE THIS to your Vercel proxy URL after deployment
   // Example: 'https://supabase-proxy-xxxxx.vercel.app/api/proxy'
-  const PROXY_ORIGIN = 'https://supabase-proxy-rho.vercel.app/api/proxy';
+  const PROXY_ORIGIN = 'https://supabase-proxy-theta.vercel.app/api/proxy';
 
   const _originalFetch = window.fetch.bind(window);
   window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
