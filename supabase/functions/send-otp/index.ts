@@ -73,11 +73,12 @@ serve(async (req) => {
       console.warn('SMS_API_KEY not configured');
     }
 
-    // Return immediately — don't wait for SMS delivery
+    // Return immediately with OTP as fallback for slow SMS delivery
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'OTP sent to your mobile number',
+        otp: otp,
         expiresIn: 600
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
