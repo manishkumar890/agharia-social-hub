@@ -219,16 +219,34 @@ if (!isLovablePreview) {
 
     if (url.startsWith(SUPABASE_ORIGIN)) {
       const proxiedUrl = url.replace(SUPABASE_ORIGIN, PROXY_ORIGIN);
-      if (input instanceof Request) {
-        const newRequest = new Request(proxiedUrl, input);
-        return _originalFetch(newRequest, init);
-      }
-      return _originalFetch(proxiedUrl, init);
+      const doProxyFetch = () => {
+        if (input instanceof Request) {
+          const newRequest = new Request(proxiedUrl, input);
+          return _originalFetch(newRequest, init);
+        }
+        return _originalFetch(proxiedUrl, init);
+      };
+
+      // Try proxy first, fall back to direct Supabase if proxy DNS fails
+      return doProxyFetch().catch(function(err: any) {
+        if (
+          err.name === 'TypeError' ||
+          (err.message && (
+            err.message.indexOf('Failed to fetch') >= 0 ||
+            err.message.indexOf('NetworkError') >= 0 ||
+            err.message.indexOf('ERR_NAME_NOT_RESOLVED') >= 0
+          ))
+        ) {
+          console.warn('[Compat] Proxy failed, falling back to direct:', err.message);
+          return _originalFetch(input, init);
+        }
+        throw err;
+      });
     }
 
     return _originalFetch(input, init);
   };
-  console.log('[Compat] Supabase proxy ENABLED for custom domain.');
+  console.log('[Compat] Supabase proxy ENABLED with fallback for custom domain.');
 } else {
   console.log('[Compat] Supabase proxy SKIPPED (Lovable preview).');
 }
