@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { messagesApi, uploadApi } from '@/lib/api';
 import { BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessages } from '@/contexts/MessageContext';
@@ -20,8 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban, Phone, Video, Check, CheckCheck } from 'lucide-react';
-import { useCall } from '@/components/calls/CallProvider';
+import { ArrowLeft, Send, Loader2, MessageCircle, Trash2, Ban, Check, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -32,7 +31,6 @@ interface Profile {
   username: string | null;
   avatar_url: string | null;
   is_disabled?: boolean;
-  phone?: string;
   isPremium?: boolean;
 }
 
@@ -41,9 +39,9 @@ interface Conversation {
   participant_1: string;
   participant_2: string;
   last_message_at: string;
-  otherUser?: Profile;
-  lastMessage?: string;
-  unreadCount?: number;
+  other_user?: Profile;
+  last_message?: any;
+  unread_count?: number;
 }
 
 interface Message {
@@ -56,95 +54,34 @@ interface Message {
   media_url?: string | null;
   media_type?: string | null;
   shared_post_id?: string | null;
-  shared_from_user_id?: string | null;
-  shared_from_username?: string | null;
-  shared_from_avatar_url?: string | null;
+  sender_profile?: Profile;
 }
 
 const Messages = () => {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { startCall } = useCall();
+  const { user, profile } = useAuth();
   const { refreshMessageCount } = useMessages();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [voiceCallEnabled, setVoiceCallEnabled] = useState(true);
-  const [videoCallEnabled, setVideoCallEnabled] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // Fetch call settings
-  useEffect(() => {
-    const fetchCallSettings = async () => {
-      const { data } = await supabase
-        .from('app_settings')
-        .select('key, value')
-        .in('key', ['voice_call_enabled', 'video_call_enabled']);
-      if (data) {
-        data.forEach((s: { key: string; value: string }) => {
-          if (s.key === 'voice_call_enabled') setVoiceCallEnabled(s.value === 'true');
-          if (s.key === 'video_call_enabled') setVideoCallEnabled(s.value === 'true');
-        });
-      }
-    };
-    fetchCallSettings();
-  }, []);
 
   // Fetch conversations
   useEffect(() => {
     if (!user) return;
     fetchConversations();
     
-    // Subscribe to conversation updates
-    const channel = supabase
-      .channel('conversations-updates')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations' },
-        () => fetchConversations()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Poll for updates
+    const interval = setInterval(fetchConversations, 10000);
+    return () => clearInterval(interval);
   }, [user]);
 
-  // Subscribe to presence for online status
-  useEffect(() => {
-    if (!user) return;
-
-    const presenceChannel = supabase.channel('online-users', {
-      config: { presence: { key: user.id } }
-    });
-
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState();
-        const online = new Set<string>();
-        Object.keys(state).forEach(userId => online.add(userId));
-        setOnlineUsers(online);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({ online_at: new Date().toISOString() });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(presenceChannel);
-    };
-  }, [user]);
-
-  // Clear messages immediately when conversation changes to prevent stale data
+  // Clear messages when conversation changes
   useEffect(() => {
     setMessages([]);
     setActiveConversation(null);
@@ -159,76 +96,10 @@ const Messages = () => {
     // Find active conversation
     const conv = conversations.find(c => c.id === conversationId);
     setActiveConversation(conv || null);
-
-    // Subscribe to message changes (INSERT and DELETE)
-    const channel = supabase
-      .channel(`messages-${conversationId}`)
-      .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages(prev => [...prev, newMsg]);
-          scrollToBottom();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { 
-          event: 'DELETE', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          const deletedMsg = payload.old as { id: string };
-          setMessages(prev => prev.filter(m => m.id !== deletedMsg.id));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { 
-          event: 'UPDATE', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          const updatedMsg = payload.new as Message;
-          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
-        }
-      )
-      .subscribe();
-
-    // Subscribe to typing indicators
-    const typingChannel = supabase.channel(`typing-${conversationId}`, {
-      config: { broadcast: { self: false } }
-    });
-
-    typingChannel
-      .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        if (payload.userId !== user.id) {
-          setTypingUsers(prev => new Set(prev).add(payload.userId));
-          setTimeout(() => {
-            setTypingUsers(prev => {
-              const next = new Set(prev);
-              next.delete(payload.userId);
-              return next;
-            });
-          }, 3000);
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-      supabase.removeChannel(typingChannel);
-    };
+    
+    // Poll for new messages
+    const interval = setInterval(() => fetchMessages(conversationId), 5000);
+    return () => clearInterval(interval);
   }, [conversationId, user, conversations]);
 
   // Scroll to bottom when messages change
@@ -243,87 +114,46 @@ const Messages = () => {
   const fetchConversations = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('conversations')
-      .select('*')
-      .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
-      .order('last_message_at', { ascending: false });
-
-    if (data) {
-      // Fetch profiles for other participants
-      const convWithProfiles = await Promise.all(
-        data.map(async (conv) => {
-          const otherUserId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1;
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('user_id, full_name, username, avatar_url, is_disabled, phone')
-            .eq('user_id', otherUserId)
-            .single();
-
-          // Check premium status
-          const isAdminPhone = profile?.phone === '7326937200';
-          let isPremium = isAdminPhone;
-          if (!isPremium) {
-            const { data: sub } = await supabase
-              .from('user_subscriptions')
-              .select('plan_type')
-              .eq('user_id', otherUserId)
-              .maybeSingle();
-            isPremium = sub?.plan_type === 'premium';
-          }
-
-          // Get last message
-          const { data: lastMsg } = await supabase
-            .from('messages')
-            .select('content')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          // Get unread count for this conversation
-          const { count: unreadCount } = await supabase
-            .from('messages')
-            .select('id', { count: 'exact', head: true })
-            .eq('conversation_id', conv.id)
-            .neq('sender_id', user.id)
-            .is('read_at', null);
-
-          return {
-            ...conv,
-            otherUser: profile ? { ...profile, isPremium } : undefined,
-            lastMessage: lastMsg?.content,
-            unreadCount: unreadCount || 0
-          } as Conversation;
-        })
-      );
-
-      // Filter out conversations where other user has no profile (ghost/unknown users)
-      setConversations(convWithProfiles.filter(c => c.otherUser));
+    try {
+      const data = await messagesApi.getConversations();
+      
+      // Transform avatar URLs
+      const transformed = data.map((conv: any) => ({
+        ...conv,
+        other_user: conv.other_user ? {
+          ...conv.other_user,
+          avatar_url: conv.other_user.avatar_url ? uploadApi.getFileUrl(conv.other_user.avatar_url) : null
+        } : undefined
+      }));
+      
+      setConversations(transformed);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchMessages = async (convId: string) => {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', convId)
-      .order('created_at', { ascending: true });
-
-    if (data) {
-      setMessages(data);
+    try {
+      const data = await messagesApi.getMessages(convId);
       
-      // Mark messages as read
-      await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('conversation_id', convId)
-        .neq('sender_id', user?.id)
-        .is('read_at', null);
+      // Transform media URLs
+      const transformed = data.map((msg: any) => ({
+        ...msg,
+        media_url: msg.media_url ? uploadApi.getFileUrl(msg.media_url) : null,
+        sender_profile: msg.sender_profile ? {
+          ...msg.sender_profile,
+          avatar_url: msg.sender_profile.avatar_url ? uploadApi.getFileUrl(msg.sender_profile.avatar_url) : null
+        } : undefined
+      }));
       
-      // Refresh unread message count immediately
+      setMessages(transformed);
+      
+      // Refresh unread message count
       refreshMessageCount();
+    } catch (error) {
+      console.error('Error fetching messages:', error);
     }
   };
 
@@ -331,66 +161,28 @@ const Messages = () => {
     if (!user || !conversationId || !newMessage.trim()) return;
 
     setSending(true);
-    const { error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
+    try {
+      await messagesApi.sendMessage(conversationId, {
         content: newMessage.trim()
       });
-
-    if (!error) {
+      
       setNewMessage('');
-      // Update conversation last_message_at
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversationId);
+      await fetchMessages(conversationId);
+      await fetchConversations();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
-
-  const handleTyping = () => {
-    if (!conversationId || !user) return;
-
-    // Broadcast typing indicator
-    const typingChannel = supabase.channel(`typing-${conversationId}`);
-    typingChannel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId: user.id }
-    });
-
-    // Debounce typing indicator
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    typingTimeoutRef.current = setTimeout(() => {
-      // Typing stopped
-    }, 3000);
-  };
-
-  const isUserOnline = (userId: string) => onlineUsers.has(userId);
 
   const handleDeleteMessage = async () => {
     if (!deleteMessageId) return;
     
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .eq('id', deleteMessageId);
-      
-      if (error) throw error;
-      
-      setMessages(prev => prev.filter(m => m.id !== deleteMessageId));
-      toast.success('Message deleted');
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      toast.error('Failed to delete message');
-    } finally {
-      setDeleteMessageId(null);
-    }
+    // Note: Delete message API not implemented yet
+    toast.error('Message deletion not available');
+    setDeleteMessageId(null);
   };
 
   if (loading) {
@@ -407,11 +199,10 @@ const Messages = () => {
 
   // Chat view
   if (conversationId && activeConversation) {
-    const otherUserId = activeConversation.participant_1 === user?.id 
+    const otherUserId = activeConversation.participant_1 === profile?.user_id 
       ? activeConversation.participant_2 
       : activeConversation.participant_1;
-    const isTyping = typingUsers.has(otherUserId);
-    const isOtherUserDisabled = activeConversation.otherUser?.is_disabled || false;
+    const isOtherUserDisabled = activeConversation.other_user?.is_disabled || false;
 
     return (
       <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -426,19 +217,16 @@ const Messages = () => {
             <div className="flex items-center gap-3 flex-1">
               <Link to={`/user/${otherUserId}`} className="relative">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={activeConversation.otherUser?.avatar_url || undefined} />
+                  <AvatarImage src={activeConversation.other_user?.avatar_url || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {activeConversation.otherUser?.full_name?.charAt(0) || 'U'}
+                    {activeConversation.other_user?.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                {isUserOnline(otherUserId) && (
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-                )}
               </Link>
               <Link to={`/user/${otherUserId}`} className="flex-1">
                 <p className="font-semibold text-sm flex items-center gap-1">
-                  {activeConversation.otherUser?.full_name || activeConversation.otherUser?.username || 'Unknown'}
-                  {activeConversation.otherUser?.isPremium && (
+                  {activeConversation.other_user?.full_name || activeConversation.other_user?.username || 'Unknown'}
+                  {activeConversation.other_user?.isPremium && (
                     <BadgeCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
                   )}
                 </p>
@@ -446,39 +234,11 @@ const Messages = () => {
                   <p className="text-xs text-destructive flex items-center gap-1">
                     <Ban className="w-3 h-3" /> Account Disabled
                   </p>
-                ) : isTyping ? (
-                  <p className="text-xs text-primary animate-pulse">typing...</p>
-                ) : isUserOnline(otherUserId) ? (
-                  <p className="text-xs text-green-500">Online</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Offline</p>
+                  <p className="text-xs text-muted-foreground">Tap to view profile</p>
                 )}
               </Link>
             </div>
-            {!isOtherUserDisabled && (voiceCallEnabled || videoCallEnabled) && (
-              <div className="flex items-center gap-1">
-                {voiceCallEnabled && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => conversationId && startCall(conversationId, otherUserId, 'voice')}
-                    className="text-primary hover:bg-primary/10"
-                  >
-                    <Phone className="w-5 h-5" />
-                  </Button>
-                )}
-                {videoCallEnabled && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => conversationId && startCall(conversationId, otherUserId, 'video')}
-                    className="text-primary hover:bg-primary/10"
-                  >
-                    <Video className="w-5 h-5" />
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Messages - Scrollable */}
@@ -489,49 +249,20 @@ const Messages = () => {
                   key={msg.id}
                   className={cn(
                     "flex",
-                    msg.sender_id === user?.id ? "justify-end" : "justify-start"
+                    msg.sender_id === profile?.user_id ? "justify-end" : "justify-start"
                   )}
                 >
                   <div
                     className={cn(
                       "max-w-[75%] rounded-2xl overflow-hidden relative group",
-                      msg.sender_id === user?.id
+                      msg.sender_id === profile?.user_id
                         ? "bg-primary text-primary-foreground rounded-br-md"
                         : "bg-muted rounded-bl-md"
                     )}
                   >
-                    {/* Delete button for sender - always visible */}
-                    {msg.sender_id === user?.id && (
-                      <button
-                        onClick={() => setDeleteMessageId(msg.id)}
-                        className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded-full p-1.5 z-10"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                    
-                    {/* Shared post author info */}
-                    {msg.shared_from_user_id && (
-                      <Link
-                        to={`/user/${msg.shared_from_user_id}`}
-                        className="flex items-center gap-2 px-3 py-2 border-b border-border/20 hover:opacity-80 transition-opacity"
-                      >
-                        <Avatar className="w-6 h-6">
-                          <AvatarImage src={msg.shared_from_avatar_url || undefined} />
-                          <AvatarFallback className="bg-background/20 text-xs">
-                            {msg.shared_from_username?.charAt(0) || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs font-medium">
-                          {msg.shared_from_username || 'Unknown'}
-                        </span>
-                      </Link>
-                    )}
-                    
                     {msg.media_url && (
                       <Link 
                         to={msg.shared_post_id ? `/post/${msg.shared_post_id}` : '#'}
-                        state={msg.shared_from_user_id ? { userId: msg.shared_from_user_id } : undefined}
                         className="block w-full max-w-[280px]"
                       >
                         {msg.media_type === 'video' ? (
@@ -551,22 +282,22 @@ const Messages = () => {
                       </Link>
                     )}
                     {msg.content && (
-                      <p className={cn("text-sm px-4 py-2", msg.sender_id === user?.id && "pr-10")}>{msg.content}</p>
+                      <p className={cn("text-sm px-4 py-2", msg.sender_id === profile?.user_id && "pr-10")}>{msg.content}</p>
                     )}
                     {!msg.content && msg.media_url && (
                       <div className="px-1 py-1" />
                     )}
                     <div className={cn(
                       "flex items-center gap-1 px-4 pb-2",
-                      msg.sender_id === user?.id ? "justify-end" : ""
+                      msg.sender_id === profile?.user_id ? "justify-end" : ""
                     )}>
                       <p className={cn(
                         "text-xs",
-                        msg.sender_id === user?.id ? "text-primary-foreground/70" : "text-muted-foreground"
+                        msg.sender_id === profile?.user_id ? "text-primary-foreground/70" : "text-muted-foreground"
                       )}>
                         {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                       </p>
-                      {msg.sender_id === user?.id && (
+                      {msg.sender_id === profile?.user_id && (
                         msg.read_at ? (
                           <CheckCheck className="w-3.5 h-3.5 text-green-400" />
                         ) : (
@@ -593,10 +324,7 @@ const Messages = () => {
                 <Input
                   placeholder="Type a message..."
                   value={newMessage}
-                  onChange={(e) => {
-                    setNewMessage(e.target.value);
-                    handleTyping();
-                  }}
+                  onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                   className="flex-1"
                 />
@@ -660,7 +388,7 @@ const Messages = () => {
           ) : (
             <div className="divide-y divide-border">
               {conversations.map((conv) => {
-                const otherUserId = conv.participant_1 === user?.id ? conv.participant_2 : conv.participant_1;
+                const otherUserId = conv.participant_1 === profile?.user_id ? conv.participant_2 : conv.participant_1;
                 return (
                   <button
                     key={conv.id}
@@ -673,29 +401,26 @@ const Messages = () => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={conv.otherUser?.avatar_url || undefined} />
+                        <AvatarImage src={conv.other_user?.avatar_url || undefined} />
                         <AvatarFallback className="bg-primary text-primary-foreground">
-                          {conv.otherUser?.full_name?.charAt(0) || 'U'}
+                          {conv.other_user?.full_name?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      {isUserOnline(otherUserId) && (
-                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
-                      )}
                     </Link>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate flex items-center gap-1">
-                        {conv.otherUser?.full_name || conv.otherUser?.username || 'Unknown'}
-                        {conv.otherUser?.isPremium && (
+                        {conv.other_user?.full_name || conv.other_user?.username || 'Unknown'}
+                        {conv.other_user?.isPremium && (
                           <BadgeCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
                         )}
                       </p>
-                      {conv.otherUser?.is_disabled ? (
+                      {conv.other_user?.is_disabled ? (
                         <p className="text-xs text-destructive flex items-center gap-1">
                           <Ban className="w-3 h-3" /> Account Disabled
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground truncate">
-                          {conv.lastMessage || 'Start chatting...'}
+                          {conv.last_message?.content || 'Start chatting...'}
                         </p>
                       )}
                     </div>
@@ -703,9 +428,9 @@ const Messages = () => {
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })}
                       </span>
-                      {(conv.unreadCount ?? 0) > 0 && (
+                      {(conv.unread_count ?? 0) > 0 && (
                         <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
-                          {conv.unreadCount! > 99 ? '99+' : conv.unreadCount}
+                          {conv.unread_count! > 99 ? '99+' : conv.unread_count}
                         </span>
                       )}
                     </div>

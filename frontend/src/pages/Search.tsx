@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { profileApi, postsApi, uploadApi } from '@/lib/api';
 import Header from '@/components/Header';
 import CategorySlidePopup from '@/components/CategorySlidePopup';
 import MobileNav from '@/components/MobileNav';
@@ -43,6 +43,8 @@ interface Post {
   media_type: string;
 }
 
+const ADMIN_PHONE = '7326937200';
+
 const Search = () => {
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,59 +67,60 @@ const Search = () => {
     }
   }, [searchTerm]);
 
-  const ADMIN_PHONE = '7326937200';
-
-  const enrichWithPremium = async (profiles: User[]): Promise<User[]> => {
-    const activeUserIds = profiles.filter(p => !p.is_disabled).map(p => p.user_id);
-    if (activeUserIds.length === 0) return profiles;
-
-    const { data: subscriptions } = await supabase
-      .from('user_subscriptions')
-      .select('user_id, plan_type')
-      .in('user_id', activeUserIds);
-
-    const premiumUserIds = new Set(
-      (subscriptions || []).filter(s => s.plan_type === 'premium').map(s => s.user_id)
-    );
-
-    return profiles.map(p => ({
-      ...p,
-      isPremium: p.is_disabled ? false : (p.phone === ADMIN_PHONE || premiumUserIds.has(p.user_id)),
-    }));
-  };
-
   const fetchAllUsers = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, user_id, full_name, username, avatar_url, is_disabled, phone')
-      .order('full_name', { ascending: true });
-    
-    const enriched = await enrichWithPremium(data || []);
-    setAllUsers(enriched);
+    try {
+      // Get all users by searching with empty string and high limit
+      const data = await profileApi.searchProfiles('', 100);
+      
+      const enriched: User[] = data.map((u: any) => ({
+        ...u,
+        avatar_url: u.avatar_url ? uploadApi.getFileUrl(u.avatar_url) : null,
+        is_disabled: u.is_disabled || false,
+        isPremium: u.phone === ADMIN_PHONE,
+      }));
+      
+      setAllUsers(enriched);
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+    }
   };
 
   const fetchExplorePosts = async () => {
-    const { data } = await supabase
-      .from('posts')
-      .select('id, user_id, image_url, thumbnail_url, media_type')
-      .order('created_at', { ascending: false })
-      .limit(30);
-    
-    setExplorePosts(data || []);
+    try {
+      const data = await postsApi.getPosts({ limit: 30 });
+      
+      const transformed: Post[] = data.map((p: any) => ({
+        id: p.id,
+        user_id: p.user_id,
+        image_url: uploadApi.getFileUrl(p.image_url),
+        thumbnail_url: p.thumbnail_url ? uploadApi.getFileUrl(p.thumbnail_url) : null,
+        media_type: p.media_type || 'image',
+      }));
+      
+      setExplorePosts(transformed);
+    } catch (error) {
+      console.error('Error fetching explore posts:', error);
+    }
   };
 
   const searchUsers = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, user_id, full_name, username, avatar_url, is_disabled, phone')
-      .or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
-      .order('full_name', { ascending: true })
-      .limit(20);
-    
-    const enriched = await enrichWithPremium(data || []);
-    setUsers(enriched);
-    setLoading(false);
+    try {
+      const data = await profileApi.searchProfiles(searchTerm, 20);
+      
+      const enriched: User[] = data.map((u: any) => ({
+        ...u,
+        avatar_url: u.avatar_url ? uploadApi.getFileUrl(u.avatar_url) : null,
+        is_disabled: u.is_disabled || false,
+        isPremium: u.phone === ADMIN_PHONE,
+      }));
+      
+      setUsers(enriched);
+    } catch (error) {
+      console.error('Error searching users:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const displayUsers = searchTerm.length >= 1 ? users : allUsers;

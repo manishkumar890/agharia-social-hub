@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { profileApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -87,72 +87,25 @@ const Settings = () => {
 
       // Upload new avatar if selected
       if (newAvatarFile) {
-        const fileExt = newAvatarFile.name.split('.').pop();
-        const fileName = `${profile.user_id}/avatar.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, newAvatarFile, { upsert: true });
-
-        if (uploadError) {
+        try {
+          const result = await uploadApi.uploadFile('avatars', newAvatarFile);
+          finalAvatarUrl = result.url;
+        } catch (uploadError) {
           console.error('Avatar upload error:', uploadError);
           toast.error('Failed to upload avatar');
           setIsLoading(false);
           return;
         }
-
-        const { data: publicUrlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-        finalAvatarUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
       }
 
-      // Sync email and username to auth account
-      const newEmail = email.trim().toLowerCase();
-      const oldEmail = profile.email?.toLowerCase();
-      const newUsername = username.trim().toLowerCase();
-      const oldUsername = profile.username?.toLowerCase();
-
-      const authUpdate: { email?: string; data?: Record<string, string> } = {};
-      if (newEmail && newEmail !== oldEmail) {
-        authUpdate.email = newEmail;
-      }
-      if (newUsername && newUsername !== oldUsername) {
-        authUpdate.data = { ...authUpdate.data, username: newUsername };
-      }
-      if (fullName.trim() !== (profile.full_name || '')) {
-        authUpdate.data = { ...authUpdate.data, full_name: fullName.trim() };
-      }
-
-      if (authUpdate.email || authUpdate.data) {
-        const { error: authError } = await supabase.auth.updateUser(authUpdate);
-        if (authError) {
-          console.error('Auth update error:', authError);
-          toast.error('Failed to sync profile with authentication. ' + authError.message);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName.trim(),
-          username: username.trim() || null,
-          email: newEmail || null,
-          bio: bio.trim() || null,
-          avatar_url: finalAvatarUrl || null,
-          dob: dob || null,
-        })
-        .eq('id', profile.id);
-
-      if (error) {
-        if (error.code === '23505') {
-          toast.error('Username or email already taken');
-          return;
-        }
-        throw error;
-      }
+      // Update profile
+      await profileApi.updateProfile({
+        full_name: fullName.trim(),
+        bio: bio.trim() || undefined,
+        email: email.trim().toLowerCase() || undefined,
+        dob: dob || undefined,
+        avatar_url: finalAvatarUrl || undefined,
+      });
 
       setNewAvatarFile(null);
       setAvatarPreview(null);
@@ -160,13 +113,17 @@ const Settings = () => {
       toast.success('Profile updated successfully!');
     } catch (error: any) {
       console.error('Update error:', error);
-      toast.error(error.message || 'Failed to update profile');
+      if (error.message?.includes('already')) {
+        toast.error('Username or email already taken');
+      } else {
+        toast.error(error.message || 'Failed to update profile');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const displayAvatar = avatarPreview || avatarUrl;
+  const displayAvatar = avatarPreview || (avatarUrl ? uploadApi.getFileUrl(avatarUrl) : '');
 
   return (
     <div className="min-h-screen bg-background">

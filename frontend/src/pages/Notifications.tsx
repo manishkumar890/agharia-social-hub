@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { notificationsApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import Header from '@/components/Header';
@@ -41,189 +41,38 @@ const Notifications = () => {
   useEffect(() => {
     if (user) {
       fetchActivities();
+      
+      // Poll for updates every 30 seconds
+      const interval = setInterval(fetchActivities, 30000);
+      return () => clearInterval(interval);
     }
-  }, [user]);
-
-  // Real-time subscriptions for live updates
-  useEffect(() => {
-    if (!user) return;
-
-    const likesChannel = supabase
-      .channel('activity-likes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'likes' },
-        () => fetchActivities()
-      )
-      .subscribe();
-
-    const commentsChannel = supabase
-      .channel('activity-comments')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'comments' },
-        () => fetchActivities()
-      )
-      .subscribe();
-
-    const followersChannel = supabase
-      .channel('activity-followers')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'followers', filter: `following_id=eq.${user.id}` },
-        () => fetchActivities()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(likesChannel);
-      supabase.removeChannel(commentsChannel);
-      supabase.removeChannel(followersChannel);
-    };
   }, [user]);
 
   const fetchActivities = async () => {
     if (!user) return;
 
     try {
-      // Fetch likes on user's posts
-      const { data: likesData } = await supabase
-        .from('likes')
-        .select(`
-          id,
-          created_at,
-          user_id,
-          posts!inner (id, image_url, thumbnail_url, media_type, user_id)
-        `)
-        .eq('posts.user_id', user.id)
-        .neq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      // Get unique user IDs from likes
-      const likeUserIds = likesData?.map((l: any) => l.user_id) || [];
+      const data = await notificationsApi.getNotifications(50);
       
-      // Fetch comments on user's posts
-      const { data: commentsData } = await supabase
-        .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          posts!inner (id, image_url, thumbnail_url, media_type, user_id)
-        `)
-        .eq('posts.user_id', user.id)
-        .neq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      // Transform to Activity format
+      const formattedActivities: Activity[] = data.map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        user: {
+          id: item.user_id,
+          full_name: item.full_name,
+          username: item.username,
+          avatar_url: item.avatar_url ? uploadApi.getFileUrl(item.avatar_url) : null,
+        },
+        post: item.post_id ? {
+          id: item.post_id,
+          image_url: '', // Post images would need to be fetched separately if needed
+        } : undefined,
+        content: item.type === 'comment' ? item.message?.replace('commented: ', '') : undefined,
+        created_at: item.created_at,
+      }));
 
-      // Get unique user IDs from comments
-      const commentUserIds = commentsData?.map((c: any) => c.user_id) || [];
-
-      // Fetch followers
-      const { data: followersData } = await supabase
-        .from('followers')
-        .select(`
-          id,
-          created_at,
-          follower_id
-        `)
-        .eq('following_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      // Get unique follower IDs
-      const followerUserIds = followersData?.map((f: any) => f.follower_id) || [];
-
-      // Get all unique user IDs and fetch their profiles
-      const allUserIds = [...new Set([...likeUserIds, ...commentUserIds, ...followerUserIds])];
-      
-      let profilesMap: Record<string, any> = {};
-      if (allUserIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, username, avatar_url')
-          .in('user_id', allUserIds);
-        
-        profilesData?.forEach((p: any) => {
-          profilesMap[p.user_id] = p;
-        });
-      }
-
-      // Combine and format activities
-      const allActivities: Activity[] = [];
-
-      likesData?.forEach((like: any) => {
-        const profile = profilesMap[like.user_id];
-        if (profile) {
-          allActivities.push({
-            id: like.id,
-            type: 'like',
-            user: {
-              id: profile.user_id,
-              full_name: profile.full_name,
-              username: profile.username,
-              avatar_url: profile.avatar_url,
-            },
-            post: {
-              id: like.posts.id,
-              image_url: like.posts.image_url,
-              thumbnail_url: like.posts.thumbnail_url,
-              media_type: like.posts.media_type,
-            },
-            created_at: like.created_at,
-          });
-        }
-      });
-
-      commentsData?.forEach((comment: any) => {
-        const profile = profilesMap[comment.user_id];
-        if (profile) {
-          allActivities.push({
-            id: comment.id,
-            type: 'comment',
-            user: {
-              id: profile.user_id,
-              full_name: profile.full_name,
-              username: profile.username,
-              avatar_url: profile.avatar_url,
-            },
-            post: {
-              id: comment.posts.id,
-              image_url: comment.posts.image_url,
-              thumbnail_url: comment.posts.thumbnail_url,
-              media_type: comment.posts.media_type,
-            },
-            content: comment.content,
-            created_at: comment.created_at,
-          });
-        }
-      });
-
-      followersData?.forEach((follower: any) => {
-        const profile = profilesMap[follower.follower_id];
-        if (profile) {
-          allActivities.push({
-            id: follower.id,
-            type: 'follow',
-            user: {
-              id: profile.user_id,
-              full_name: profile.full_name,
-              username: profile.username,
-              avatar_url: profile.avatar_url,
-            },
-            created_at: follower.created_at,
-          });
-        }
-      });
-
-      // Sort by date
-      allActivities.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
-      setActivities(allActivities);
+      setActivities(formattedActivities);
     } catch (error) {
       console.error('Error fetching activities:', error);
     } finally {

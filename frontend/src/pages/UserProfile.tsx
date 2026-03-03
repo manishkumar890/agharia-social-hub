@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { profileApi, postsApi, storiesApi, followApi, messagesApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus, Users, Sparkles, Shield, BadgeCheck } from 'lucide-react';
+import { Grid3X3, Image, Video, Loader2, MessageCircle, Crown, UserPlus, Shield, BadgeCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -28,6 +28,10 @@ interface Profile {
   bio: string | null;
   dob?: string | null;
   register_no?: string | null;
+  posts_count?: number;
+  followers_count?: number;
+  following_count?: number;
+  is_following?: boolean;
 }
 
 interface Post {
@@ -51,7 +55,7 @@ interface Story {
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile: myProfile } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
@@ -66,7 +70,7 @@ const UserProfile = () => {
   const [showFollowPopup, setShowFollowPopup] = useState(false);
   const [vipCardOpen, setVipCardOpen] = useState(false);
 
-  const isOwnProfile = user?.id === userId;
+  const isOwnProfile = myProfile?.user_id === userId;
 
   useEffect(() => {
     if (userId) {
@@ -78,14 +82,15 @@ const UserProfile = () => {
   const fetchUserStories = async () => {
     if (!userId) return;
     try {
-      const { data: stories } = await supabase
-        .from('stories')
-        .select('*')
-        .eq('user_id', userId)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
-      
-      setUserStories(stories || []);
+      const stories = await storiesApi.getStories();
+      // Filter only this user's stories
+      const filtered = stories
+        .filter((s: any) => s.user_id === userId)
+        .map((s: any) => ({
+          ...s,
+          media_url: uploadApi.getFileUrl(s.media_url)
+        }));
+      setUserStories(filtered);
     } catch (error) {
       console.error('Error fetching user stories:', error);
     }
@@ -93,59 +98,38 @@ const UserProfile = () => {
 
   const fetchUserData = async () => {
     try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
+      // Fetch profile with stats
+      const profileData = await profileApi.getProfile(userId!);
+      
       if (profileData) {
-        setProfile(profileData);
+        setProfile({
+          ...profileData,
+          avatar_url: profileData.avatar_url ? uploadApi.getFileUrl(profileData.avatar_url) : null
+        });
+        
+        setStats({
+          posts: profileData.posts_count || 0,
+          followers: profileData.followers_count || 0,
+          following: profileData.following_count || 0,
+        });
+        
+        setIsFollowing(profileData.is_following || false);
+        
+        // Check if premium (admin phone or premium subscription)
+        const isAdminPhone = profileData.phone === '7326937200';
+        setIsPremiumUser(isAdminPhone);
       }
 
-      const { data: postsData, count: postsCount } = await supabase
-        .from('posts')
-        .select('id, image_url, media_type, thumbnail_url', { count: 'exact' })
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      setPosts(postsData || []);
-
-      const { count: followersCount } = await supabase
-        .from('followers')
-        .select('*', { count: 'exact', head: true })
-        .eq('following_id', userId);
-
-      const { count: followingCount } = await supabase
-        .from('followers')
-        .select('*', { count: 'exact', head: true })
-        .eq('follower_id', userId);
-
-      setStats({
-        posts: postsCount || 0,
-        followers: followersCount || 0,
-        following: followingCount || 0,
-      });
-
-      if (user && userId !== user.id) {
-        const { data: followData } = await supabase
-          .from('followers')
-          .select('id')
-          .eq('follower_id', user.id)
-          .eq('following_id', userId)
-          .single();
-
-        setIsFollowing(!!followData);
-      }
-
-      const { data: subscriptionData } = await supabase
-        .from('user_subscriptions')
-        .select('plan_type')
-        .eq('user_id', userId)
-        .single();
-
-      const isAdminPhone = profileData?.phone === '7326937200';
-      setIsPremiumUser(isAdminPhone || subscriptionData?.plan_type === 'premium');
+      // Fetch user posts
+      const postsData = await postsApi.getPosts({ userId: userId! });
+      
+      const transformedPosts = postsData.map((p: any) => ({
+        ...p,
+        image_url: uploadApi.getFileUrl(p.image_url),
+        thumbnail_url: p.thumbnail_url ? uploadApi.getFileUrl(p.thumbnail_url) : null
+      }));
+      
+      setPosts(transformedPosts);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -159,30 +143,13 @@ const UserProfile = () => {
     setFollowLoading(true);
 
     try {
-      if (isFollowing) {
-        await supabase
-          .from('followers')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', userId);
-
-        setIsFollowing(false);
-        setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
-        toast.success('Unfollowed');
-      } else {
-        await supabase
-          .from('followers')
-          .insert({
-            follower_id: user.id,
-            following_id: userId,
-          });
-
-        setIsFollowing(true);
-        setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
-        toast.success('Following!');
-      }
+      const result = await followApi.toggleFollow(userId);
+      setIsFollowing(result.following);
+      setStats(prev => ({ ...prev, followers: result.followers_count }));
+      toast.success(result.following ? 'Following!' : 'Unfollowed');
     } catch (error) {
       console.error('Follow error:', error);
+      toast.error('Failed to follow user');
     } finally {
       setFollowLoading(false);
     }
@@ -191,34 +158,12 @@ const UserProfile = () => {
   const handleMessage = async () => {
     if (!user || !userId) return;
 
-    // Check if conversation already exists
-    const { data: existingConv } = await supabase
-      .from('conversations')
-      .select('id')
-      .or(`and(participant_1.eq.${user.id},participant_2.eq.${userId}),and(participant_1.eq.${userId},participant_2.eq.${user.id})`)
-      .single();
-
-    if (existingConv) {
-      navigate(`/messages/${existingConv.id}`);
-      return;
-    }
-
-    // Create new conversation
-    const { data: newConv, error } = await supabase
-      .from('conversations')
-      .insert({
-        participant_1: user.id,
-        participant_2: userId
-      })
-      .select('id')
-      .single();
-
-    if (error) {
+    try {
+      const conv = await messagesApi.getOrCreateConversation(userId);
+      navigate(`/messages/${conv.id}`);
+    } catch (error) {
       toast.error('Failed to start conversation');
-      return;
     }
-
-    navigate(`/messages/${newConv.id}`);
   };
 
   const imagePosts = posts.filter(p => p.media_type === 'image' || !p.media_type);
@@ -324,16 +269,6 @@ const UserProfile = () => {
             <div className="absolute inset-0 rounded-2xl" style={{
               backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9InAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMS41IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIxLjUiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjxjaXJjbGUgY3g9IjMwIiBjeT0iMTAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDIyMCwxMDAsMC4xNSkiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjMwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyMjAsMTAwLDAuMTUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI3ApIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')",
             }} />
-            {/* Animated light rays */}
-            <div className="absolute inset-0 opacity-20 animate-community-glow rounded-2xl" style={{
-              background: 'radial-gradient(ellipse at 30% 0%, hsl(43 74% 49% / 0.4) 0%, transparent 60%), radial-gradient(ellipse at 70% 100%, hsl(345 70% 50% / 0.3) 0%, transparent 60%)',
-            }} />
-            {/* Floating shimmer */}
-            <div className="absolute inset-0 overflow-hidden rounded-2xl">
-              <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-community-shimmer" style={{
-                background: 'conic-gradient(from 0deg, transparent, hsl(43 74% 49% / 0.08), transparent, hsl(43 74% 49% / 0.05), transparent)',
-              }} />
-            </div>
             
             <div className="relative z-10 flex flex-col items-center py-10 px-4">
               {/* Community Avatar */}
