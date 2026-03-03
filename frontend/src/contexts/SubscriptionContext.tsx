@@ -1,15 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { subscriptionApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Subscription {
   id: string;
   user_id: string;
   plan_type: string;
-  payment_id: string | null;
-  amount: number | null;
-  purchased_at: string | null;
-  expires_at: string | null;
+  payment_id?: string | null;
+  amount?: number | null;
+  purchased_at?: string | null;
+  expires_at?: string | null;
 }
 
 interface SubscriptionContextType {
@@ -36,19 +36,11 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching subscription:', error);
-      }
-
+      const data = await subscriptionApi.getSubscription();
       setSubscription(data || null);
     } catch (error) {
       console.error('Error fetching subscription:', error);
+      setSubscription(null);
     } finally {
       setLoading(false);
     }

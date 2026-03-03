@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { followApi, messagesApi, profileApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Send, Loader2, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -53,7 +52,7 @@ const SendPostDialog = ({
   postAuthorUsername,
   postAuthorAvatar
 }: SendPostDialogProps) => {
-  const { user } = useAuth();
+  const { user, profile: myProfile } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,59 +66,43 @@ const SendPostDialog = ({
     }
   }, [open]);
 
-  const enrichWithPremium = async (profiles: Profile[]): Promise<Profile[]> => {
-    if (profiles.length === 0) return profiles;
-    const userIds = profiles.map(p => p.user_id);
-    const { data: subs } = await supabase
-      .from('user_subscriptions')
-      .select('user_id')
-      .in('user_id', userIds)
-      .eq('plan_type', 'premium');
-    const premiumIds = new Set((subs || []).map(s => s.user_id));
-    return profiles.map(p => ({ ...p, isPremium: premiumIds.has(p.user_id) }));
-  };
-
   const fetchFollowingUsers = async () => {
-    if (!user) return;
+    if (!user || !myProfile) return;
     setLoading(true);
 
     try {
       let allUsers: Profile[] = [];
       const COMMUNITY_USER_ID = 'b77ca098-1846-4cd2-961c-7776230485d1';
-      const excludeIds = new Set<string>([user.id, COMMUNITY_USER_ID]);
+      const excludeIds = new Set<string>([myProfile.user_id, COMMUNITY_USER_ID]);
 
       // Get users the current user is following
-      const { data: followingData } = await supabase
-        .from('followers')
-        .select('following_id')
-        .eq('follower_id', user.id);
+      const followingData = await followApi.getFollowing(myProfile.user_id);
 
       if (followingData && followingData.length > 0) {
-        const followingIds = followingData.map(f => f.following_id).filter(id => id !== COMMUNITY_USER_ID);
+        const enriched = followingData
+          .filter((f: any) => f.user_id !== COMMUNITY_USER_ID)
+          .map((f: any) => ({
+            ...f,
+            avatar_url: f.avatar_url ? uploadApi.getFileUrl(f.avatar_url) : null
+          }));
         
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, username, avatar_url')
-          .in('user_id', followingIds);
-
-        const enriched = await enrichWithPremium(profilesData || []);
         allUsers = enriched;
-        enriched.forEach(u => excludeIds.add(u.user_id));
+        enriched.forEach((u: any) => excludeIds.add(u.user_id));
       }
 
-      // If less than 20 users, fetch suggested users to fill the list
+      // If less than 20 users, fetch suggested users
       if (allUsers.length < 20) {
-        const remaining = 20 - allUsers.length;
-        const { data: suggestedData } = await supabase
-          .from('profiles')
-          .select('user_id, full_name, username, avatar_url')
-          .not('user_id', 'in', `(${Array.from(excludeIds).join(',')})`)
-          .eq('is_disabled', false)
-          .limit(remaining);
-
+        const suggestedData = await profileApi.searchProfiles('', 20 - allUsers.length);
+        
         if (suggestedData && suggestedData.length > 0) {
-          const enrichedSuggested = await enrichWithPremium(suggestedData);
-          allUsers = [...allUsers, ...enrichedSuggested];
+          const filtered = suggestedData
+            .filter((u: any) => !excludeIds.has(u.user_id))
+            .map((u: any) => ({
+              ...u,
+              avatar_url: u.avatar_url ? uploadApi.getFileUrl(u.avatar_url) : null
+            }));
+          
+          allUsers = [...allUsers, ...filtered];
         }
       }
 
@@ -140,62 +123,24 @@ const SendPostDialog = ({
   });
 
   const handleSend = async (targetUserId: string) => {
-    if (!user) return;
+    if (!user || !myProfile) return;
     setSending(targetUserId);
 
     try {
-      // Check if conversation exists
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('id')
-        .or(`and(participant_1.eq.${user.id},participant_2.eq.${targetUserId}),and(participant_1.eq.${targetUserId},participant_2.eq.${user.id})`)
-        .single();
+      // Get or create conversation
+      const conv = await messagesApi.getOrCreateConversation(targetUserId);
 
-      let conversationId: string;
-
-      if (existingConv) {
-        conversationId = existingConv.id;
-      } else {
-        // Create new conversation
-        const { data: newConv, error: convError } = await supabase
-          .from('conversations')
-          .insert({
-            participant_1: user.id,
-            participant_2: targetUserId
-          })
-          .select('id')
-          .single();
-
-        if (convError) throw convError;
-        conversationId = newConv.id;
-      }
-
-      // Send message with actual media content and original poster info
-      const { error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content: '',
-          media_url: mediaUrl,
-          media_type: mediaType,
-          shared_post_id: postId,
-          shared_from_user_id: postAuthorId,
-          shared_from_username: postAuthorUsername,
-          shared_from_avatar_url: postAuthorAvatar
-        });
-
-      if (msgError) throw msgError;
-
-      // Update conversation last_message_at
-      await supabase
-        .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', conversationId);
+      // Send message with shared post
+      await messagesApi.sendMessage(conv.id, {
+        content: `Shared a post`,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        shared_post_id: postId,
+      });
 
       toast.success('Post sent!');
       onOpenChange(false);
-      navigate(`/messages/${conversationId}`);
+      navigate(`/messages/${conv.id}`);
     } catch (error) {
       console.error('Error sending post:', error);
       toast.error('Failed to send post');

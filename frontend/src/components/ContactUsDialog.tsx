@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { contactApi } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -37,17 +37,7 @@ const ContactUsDialog = ({ open, onOpenChange }: ContactUsDialogProps) => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('contact_queries').insert({
-        user_id: user.id,
-        full_name: profile?.full_name || null,
-        username: profile?.username || null,
-        email: profile?.email || null,
-        phone: profile?.phone || null,
-        query: query.trim(),
-      });
-
-      if (error) throw error;
-
+      await contactApi.createQuery(query.trim());
       toast.success('Query submitted successfully! We will get back to you soon.');
       setQuery('');
       onOpenChange(false);

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { messagesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 
@@ -23,32 +23,20 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const { data: conversations } = await supabase
-        .from('conversations')
-        .select('id')
-        .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`);
+      const conversations = await messagesApi.getConversations();
+      
+      // Sum up unread counts from all conversations
+      const totalUnread = conversations.reduce((sum: number, conv: any) => {
+        return sum + (conv.unread_count || 0);
+      }, 0);
 
-      if (!conversations || conversations.length === 0) {
-        setUnreadMessageCount(0);
-        return;
-      }
-
-      const convIds = conversations.map(c => c.id);
-
-      const { count } = await supabase
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .in('conversation_id', convIds)
-        .neq('sender_id', user.id)
-        .is('read_at', null);
-
-      setUnreadMessageCount(count || 0);
+      setUnreadMessageCount(totalUnread);
     } catch (error) {
       console.error('Error fetching unread message count:', error);
     }
   }, [user]);
 
-  // Debounced fetch to avoid rapid re-fetches from multiple realtime events
+  // Debounced fetch to avoid rapid re-fetches
   const debouncedFetch = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -68,7 +56,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   // Refetch when route changes
   useEffect(() => {
     if (user) {
-      // Small delay to allow DB to commit read_at updates
       const timer = setTimeout(() => {
         fetchUnreadCount();
       }, 300);
@@ -76,39 +63,19 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [location.pathname, user, fetchUnreadCount]);
 
-  // Real-time subscriptions
+  // Poll for updates every 30 seconds
   useEffect(() => {
     if (!user) return;
-
-    const channel = supabase
-      .channel('unread-messages')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          if (payload.new.sender_id !== user.id) {
-            debouncedFetch();
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages' },
-        () => {
-          debouncedFetch();
-        }
-      )
-      .subscribe();
-
+    
+    const interval = setInterval(debouncedFetch, 30000);
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
   }, [user, debouncedFetch]);
 
-  // refreshMessageCount with delay to ensure DB has committed
   const refreshMessageCount = useCallback(() => {
     setTimeout(() => {
       fetchUnreadCount();

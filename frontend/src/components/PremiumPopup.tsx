@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { supabase } from '@/integrations/supabase/client';
 import PremiumUpgradeDialog from '@/components/PremiumUpgradeDialog';
 
 const PremiumPopup = () => {
@@ -31,25 +30,14 @@ const PremiumPopup = () => {
 
   useEffect(() => {
     if (!loading && user && !isPremium && !hasShownRef.current) {
-      const checkAndShow = async () => {
-        const { data } = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'premium_popup_enabled')
-          .single();
+      // Show premium popup after 10 seconds for non-premium users
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+        hasShownRef.current = true;
+        playNotificationSound();
+      }, 10000);
 
-        if (data?.value !== 'true') return;
-
-        const timer = setTimeout(() => {
-          setIsOpen(true);
-          hasShownRef.current = true;
-          playNotificationSound();
-        }, 10000);
-
-        return () => clearTimeout(timer);
-      };
-
-      checkAndShow();
+      return () => clearTimeout(timer);
     }
   }, [loading, user, isPremium]);
 

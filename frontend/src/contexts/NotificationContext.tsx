@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { notificationsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationContextType {
@@ -28,34 +28,16 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const lastSeen = getLastSeen();
-    const lastSeenISO = lastSeen.toISOString();
 
     try {
-      // Count new likes on user's posts
-      const { count: likesCount } = await supabase
-        .from('likes')
-        .select('id, posts!inner(user_id)', { count: 'exact', head: true })
-        .eq('posts.user_id', user.id)
-        .neq('user_id', user.id)
-        .gt('created_at', lastSeenISO);
+      const notifications = await notificationsApi.getNotifications(50);
+      
+      // Count notifications newer than last seen
+      const newCount = notifications.filter((n: any) => {
+        return new Date(n.created_at) > lastSeen;
+      }).length;
 
-      // Count new comments on user's posts
-      const { count: commentsCount } = await supabase
-        .from('comments')
-        .select('id, posts!inner(user_id)', { count: 'exact', head: true })
-        .eq('posts.user_id', user.id)
-        .neq('user_id', user.id)
-        .gt('created_at', lastSeenISO);
-
-      // Count new followers
-      const { count: followersCount } = await supabase
-        .from('followers')
-        .select('id', { count: 'exact', head: true })
-        .eq('following_id', user.id)
-        .gt('created_at', lastSeenISO);
-
-      const total = (likesCount || 0) + (commentsCount || 0) + (followersCount || 0);
-      setUnreadCount(total);
+      setUnreadCount(newCount);
     } catch (error) {
       console.error('Error fetching notification count:', error);
     }
@@ -77,83 +59,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, fetchUnreadCount]);
 
-  // Real-time subscriptions
+  // Poll for updates every 30 seconds
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to new likes
-    const likesChannel = supabase
-      .channel('notification-likes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'likes',
-        },
-        async (payload) => {
-          // Check if the like is on user's post
-          const { data: post } = await supabase
-            .from('posts')
-            .select('user_id')
-            .eq('id', payload.new.post_id)
-            .single();
-
-          if (post?.user_id === user.id && payload.new.user_id !== user.id) {
-            setUnreadCount((prev) => prev + 1);
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to new comments
-    const commentsChannel = supabase
-      .channel('notification-comments')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'comments',
-        },
-        async (payload) => {
-          // Check if the comment is on user's post
-          const { data: post } = await supabase
-            .from('posts')
-            .select('user_id')
-            .eq('id', payload.new.post_id)
-            .single();
-
-          if (post?.user_id === user.id && payload.new.user_id !== user.id) {
-            setUnreadCount((prev) => prev + 1);
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to new followers
-    const followersChannel = supabase
-      .channel('notification-followers')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'followers',
-          filter: `following_id=eq.${user.id}`,
-        },
-        () => {
-          setUnreadCount((prev) => prev + 1);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(likesChannel);
-      supabase.removeChannel(commentsChannel);
-      supabase.removeChannel(followersChannel);
-    };
-  }, [user]);
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [user, fetchUnreadCount]);
 
   return (
     <NotificationContext.Provider value={{ unreadCount, markAsRead, refreshCount }}>

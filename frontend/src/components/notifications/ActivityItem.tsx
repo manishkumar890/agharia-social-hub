@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, UserPlus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { followApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Activity {
@@ -31,53 +31,38 @@ interface ActivityItemProps {
 }
 
 const ActivityItem = ({ activity }: ActivityItemProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
-    if (activity.type === 'follow' && user) {
+    if (activity.type === 'follow' && user && profile) {
       checkFollowStatus();
     }
-  }, [activity, user]);
+  }, [activity, user, profile]);
 
   const checkFollowStatus = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     
-    const { data } = await supabase
-      .from('followers')
-      .select('id')
-      .eq('follower_id', user.id)
-      .eq('following_id', activity.user.id)
-      .single();
-    
-    setIsFollowing(!!data);
+    try {
+      const following = await followApi.getFollowing(profile.user_id);
+      const isFollowingUser = following.some((f: any) => f.user_id === activity.user.id);
+      setIsFollowing(isFollowingUser);
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
   };
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!user || followLoading) return;
+    if (!user || !profile || followLoading) return;
     
     setFollowLoading(true);
     try {
-      if (isFollowing) {
-        await supabase
-          .from('followers')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', activity.user.id);
-        setIsFollowing(false);
-      } else {
-        await supabase
-          .from('followers')
-          .insert({
-            follower_id: user.id,
-            following_id: activity.user.id,
-          });
-        setIsFollowing(true);
-      }
+      const result = await followApi.toggleFollow(activity.user.id);
+      setIsFollowing(result.following);
     } catch (error) {
       console.error('Error toggling follow:', error);
     } finally {
@@ -123,9 +108,8 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
   };
 
   const getLinkState = () => {
-    if (activity.type !== 'follow' && activity.post && user) {
-      // The post belongs to the current user (activity is on their post)
-      return { userId: user.id };
+    if (activity.type !== 'follow' && activity.post && profile) {
+      return { userId: profile.user_id };
     }
     return undefined;
   };
@@ -138,7 +122,6 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
       state={getLinkState()}
       className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
     >
-      {/* Avatar with activity icon overlay */}
       <div className="relative">
         <Avatar className="w-11 h-11 border-2 border-background">
           <AvatarImage src={activity.user.avatar_url || undefined} />
@@ -151,7 +134,6 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-tight">
           <span className="font-semibold">{userName}</span>{' '}
@@ -162,7 +144,6 @@ const ActivityItem = ({ activity }: ActivityItemProps) => {
         </p>
       </div>
 
-      {/* Right side: Follow button or Post thumbnail */}
       {activity.type === 'follow' ? (
         <Button
           size="sm"

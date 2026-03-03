@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { followApi, profileApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,42 +11,39 @@ const COMMUNITY_USER_ID = 'b77ca098-1846-4cd2-961c-7776230485d1';
 const COMMUNITY_USERNAME = 'aghariasamaj';
 
 const FollowCommunityPopup = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [followLoading, setFollowLoading] = useState(false);
   const [communityProfile, setCommunityProfile] = useState<{ avatar_url: string | null; full_name: string | null } | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !profile) return;
     // Don't show for the community account itself
-    if (user.id === COMMUNITY_USER_ID) {
+    if (profile.user_id === COMMUNITY_USER_ID) {
       setLoading(false);
       return;
     }
     checkFollowStatus();
-  }, [user]);
+  }, [user, profile]);
 
   const checkFollowStatus = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     try {
-      const [{ data: followData }, { data: profileData }] = await Promise.all([
-        supabase
-          .from('followers')
-          .select('id')
-          .eq('follower_id', user.id)
-          .eq('following_id', COMMUNITY_USER_ID)
-          .maybeSingle(),
-        supabase
-          .from('profiles')
-          .select('avatar_url, full_name')
-          .eq('user_id', COMMUNITY_USER_ID)
-          .single()
-      ]);
+      // Get community profile
+      const communityData = await profileApi.getProfile(COMMUNITY_USER_ID);
+      if (communityData) {
+        setCommunityProfile({
+          avatar_url: communityData.avatar_url ? uploadApi.getFileUrl(communityData.avatar_url) : null,
+          full_name: communityData.full_name
+        });
+      }
 
-      setCommunityProfile(profileData);
+      // Check if user follows community
+      const following = await followApi.getFollowing(profile.user_id);
+      const isFollowing = following.some((f: any) => f.user_id === COMMUNITY_USER_ID);
 
-      if (!followData) {
+      if (!isFollowing) {
         setOpen(true);
       }
     } catch (error) {
@@ -57,14 +54,10 @@ const FollowCommunityPopup = () => {
   };
 
   const handleFollow = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
     setFollowLoading(true);
     try {
-      const { error } = await supabase
-        .from('followers')
-        .insert({ follower_id: user.id, following_id: COMMUNITY_USER_ID });
-
-      if (error) throw error;
+      await followApi.toggleFollow(COMMUNITY_USER_ID);
       toast.success('Welcome to Agharia Samaj Community! 🎉');
       setOpen(false);
     } catch (error) {

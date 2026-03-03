@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { savedApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -9,11 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface SavedPost {
   id: string;
-  post_id: string;
-  posts: {
-    id: string;
-    image_url: string;
-  };
+  image_url: string;
 }
 
 const Saved = () => {
@@ -31,21 +27,15 @@ const Saved = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('saved_posts')
-        .select(`
-          id,
-          post_id,
-          posts (
-            id,
-            image_url
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSavedPosts(data || []);
+      const data = await savedApi.getSavedPosts();
+      
+      // Transform URLs
+      const transformed = data.map((post: any) => ({
+        id: post.id,
+        image_url: uploadApi.getFileUrl(post.image_url),
+      }));
+      
+      setSavedPosts(transformed);
     } catch (error) {
       console.error('Error fetching saved posts:', error);
     } finally {
@@ -92,14 +82,14 @@ const Saved = () => {
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-              {savedPosts.map((saved) => (
+              {savedPosts.map((post) => (
                 <Link
-                  key={saved.id}
-                  to={`/post/${saved.posts.id}`}
+                  key={post.id}
+                  to={`/post/${post.id}`}
                   className="aspect-square bg-muted overflow-hidden"
                 >
                   <img
-                    src={saved.posts.image_url}
+                    src={post.image_url}
                     alt=""
                     className="w-full h-full object-cover hover:opacity-80 transition-opacity"
                   />

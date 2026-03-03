@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { postsApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -61,45 +61,47 @@ const PostDetail = () => {
   const fetchPosts = async () => {
     setLoading(true);
     
-    if (fromUserId) {
-      // Fetch all posts from this user
-      const { data: postsData } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', fromUserId)
-        .order('created_at', { ascending: false });
-
-      if (postsData && postsData.length > 0) {
-        // Fetch profile for this user
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, username, avatar_url')
-          .eq('user_id', fromUserId)
-          .single();
-
-        const enriched = postsData.map(p => ({ ...p, profiles: profile })) as Post[];
+    try {
+      if (fromUserId) {
+        // Fetch all posts from this user
+        const postsData = await postsApi.getPosts({ userId: fromUserId });
+        
+        // Transform URLs
+        const enriched = postsData.map((p: any) => ({
+          ...p,
+          image_url: uploadApi.getFileUrl(p.image_url),
+          image_urls: p.image_urls?.map((url: string) => uploadApi.getFileUrl(url)),
+          thumbnail_url: p.thumbnail_url ? uploadApi.getFileUrl(p.thumbnail_url) : null,
+          profiles: p.profiles ? {
+            ...p.profiles,
+            avatar_url: p.profiles.avatar_url ? uploadApi.getFileUrl(p.profiles.avatar_url) : null
+          } : undefined
+        }));
+        
         setPosts(enriched);
+      } else {
+        // Single post view (direct link)
+        const post = await postsApi.getPost(id!);
+        
+        if (post) {
+          const transformed = {
+            ...post,
+            image_url: uploadApi.getFileUrl(post.image_url),
+            image_urls: post.image_urls?.map((url: string) => uploadApi.getFileUrl(url)),
+            thumbnail_url: post.thumbnail_url ? uploadApi.getFileUrl(post.thumbnail_url) : null,
+            profiles: post.profiles ? {
+              ...post.profiles,
+              avatar_url: post.profiles.avatar_url ? uploadApi.getFileUrl(post.profiles.avatar_url) : null
+            } : undefined
+          };
+          setPosts([transformed]);
+        }
       }
-    } else {
-      // Single post view (direct link)
-      const { data } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (data) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, username, avatar_url')
-          .eq('user_id', data.user_id)
-          .single();
-
-        setPosts([{ ...data, profiles: profile } as Post]);
-      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleDelete = () => {
