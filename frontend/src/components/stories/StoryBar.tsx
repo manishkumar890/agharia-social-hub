@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { storiesApi, followApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -48,168 +48,85 @@ const StoryBar = () => {
 
   // Fetch users the current user is following
   const fetchFollowing = async () => {
-    if (!user) {
+    if (!user || !profile) {
       setFollowingIds(new Set());
       return;
     }
 
-    const { data } = await supabase
-      .from('followers')
-      .select('following_id')
-      .eq('follower_id', user.id);
-
-    if (data) {
-      setFollowingIds(new Set(data.map(f => f.following_id)));
+    try {
+      const data = await followApi.getFollowing(profile.user_id);
+      setFollowingIds(new Set(data.map((f: any) => f.user_id)));
+    } catch (error) {
+      console.error('Error fetching following:', error);
     }
   };
 
   // Fetch following first, then stories
   useEffect(() => {
-    const init = async () => {
-      await fetchFollowing();
-    };
-    init();
-
-    // Subscribe to follow changes to update following list
-    const followersChannel = supabase
-      .channel('followers-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'followers', filter: `follower_id=eq.${user?.id}` },
-        () => {
-          fetchFollowing();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(followersChannel);
-    };
-  }, [user]);
+    fetchFollowing();
+  }, [user, profile]);
 
   // Fetch stories when followingIds changes
   useEffect(() => {
     fetchStories();
-
-    // Subscribe to real-time story changes
-    const storiesChannel = supabase
-      .channel('stories-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'stories' },
-        () => {
-          fetchStories();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(storiesChannel);
-    };
-  }, [user, followingIds]);
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchStories, 30000);
+    return () => clearInterval(interval);
+  }, [user, profile, followingIds]);
 
   const fetchStories = async () => {
     try {
-      // Fetch all active stories - chronological order (first uploaded = first)
-      const { data: stories, error } = await supabase
-        .from('stories')
-        .select('*')
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true }); // Changed to ascending for chronological order
-
-      if (error) throw error;
+      const stories = await storiesApi.getStories();
 
       if (!stories || stories.length === 0) {
         setStoryUsers([]);
         setMyStories([]);
-        // If viewing and stories are gone, close viewer
-        setViewingUser(prev => {
-          if (prev) {
-            const userStillHasStories = stories?.some(s => s.user_id === prev.user_id);
-            if (!userStillHasStories) return null;
-          }
-          return prev;
-        });
         return;
       }
 
-      // Get unique user IDs
-      const userIds = [...new Set(stories.map(s => s.user_id))];
+      // Transform URLs
+      const transformedStories = stories.map((s: any) => ({
+        ...s,
+        media_url: uploadApi.getFileUrl(s.media_url)
+      }));
 
-      // Fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, avatar_url, username, full_name')
-        .in('user_id', userIds);
-
-      const profilesMap = new Map(
-        (profiles || []).map(p => [p.user_id, p])
-      );
-
-      // Fetch user's story views to determine seen status
-      let viewedStoryIds: Set<string> = new Set();
-      if (user) {
-        const { data: views } = await supabase
-          .from('story_views')
-          .select('story_id')
-          .eq('viewer_id', user.id);
+      // Group stories by user
+      const userStoriesMap = new Map<string, any>();
+      transformedStories.forEach((story: any) => {
+        const userId = story.user_id;
+        const existing = userStoriesMap.get(userId);
         
-        if (views) {
-          viewedStoryIds = new Set(views.map(v => v.story_id));
+        if (existing) {
+          existing.stories.push(story);
+        } else {
+          userStoriesMap.set(userId, {
+            user_id: userId,
+            avatar_url: story.profiles?.avatar_url ? uploadApi.getFileUrl(story.profiles.avatar_url) : null,
+            username: story.profiles?.username || null,
+            full_name: story.profiles?.full_name || null,
+            stories: [story],
+            hasSeen: story.is_viewed || false
+          });
         }
-      }
-
-      // Group stories by user (maintaining chronological order)
-      const userStoriesMap = new Map<string, Story[]>();
-      stories.forEach(story => {
-        const existing = userStoriesMap.get(story.user_id) || [];
-        userStoriesMap.set(story.user_id, [...existing, story]);
-      });
-
-      // Build story users array with seen status
-      const users: StoryUser[] = [];
-      userStoriesMap.forEach((userStories, userId) => {
-        const profile = profilesMap.get(userId);
-        // User has seen all stories if all their stories are in viewedStoryIds
-        const hasSeen = userStories.every(story => viewedStoryIds.has(story.id));
-        users.push({
-          user_id: userId,
-          avatar_url: profile?.avatar_url || null,
-          username: profile?.username || null,
-          full_name: profile?.full_name || null,
-          stories: userStories,
-          hasSeen
-        });
       });
 
       // Set my stories separately
-      if (user) {
-        const mine = stories.filter(s => s.user_id === user.id);
+      if (profile) {
+        const mine = transformedStories.filter((s: Story) => s.user_id === profile.user_id);
         setMyStories(mine);
       }
 
-      // Update viewing user if currently viewing (to reflect deleted stories)
-      setViewingUser(prev => {
-        if (!prev) return null;
-        const updatedUser = users.find(u => u.user_id === prev.user_id);
-        if (!updatedUser || updatedUser.stories.length === 0) {
-          // User has no more stories, close viewer
-          return null;
-        }
-        // Update with fresh stories
-        return updatedUser;
-      });
-
-      // Filter out current user from the list (will show separately)
+      // Filter out current user from the list
       // Only show stories from users that the current user follows
-      // Sort: unseen stories first, then seen stories
-      const otherUsers = users
-        .filter(u => u.user_id !== user?.id)
-        .filter(u => followingIds.has(u.user_id)) // Only show followed users' stories
-        .sort((a, b) => {
+      const otherUsers = Array.from(userStoriesMap.values())
+        .filter((u: StoryUser) => u.user_id !== profile?.user_id)
+        .filter((u: StoryUser) => followingIds.has(u.user_id))
+        .sort((a: StoryUser, b: StoryUser) => {
           if (a.hasSeen === b.hasSeen) return 0;
           return a.hasSeen ? 1 : -1;
         });
+
       setStoryUsers(otherUsers);
     } catch (error) {
       console.error('Error fetching stories:', error);
@@ -218,7 +135,7 @@ const StoryBar = () => {
 
   const handleStoryClick = (storyUser: StoryUser) => {
     // Own story - always viewable
-    if (storyUser.user_id === user?.id) {
+    if (storyUser.user_id === profile?.user_id) {
       setViewingUser(storyUser);
       return;
     }
@@ -234,18 +151,11 @@ const StoryBar = () => {
   };
 
   const handleFollow = async () => {
-    if (!user || !pendingStoryUser) return;
+    if (!profile || !pendingStoryUser) return;
 
     setIsFollowing(true);
     try {
-      const { error } = await supabase
-        .from('followers')
-        .insert({
-          follower_id: user.id,
-          following_id: pendingStoryUser.user_id
-        });
-
-      if (error) throw error;
+      await followApi.toggleFollow(pendingStoryUser.user_id);
 
       // Update local state
       setFollowingIds(prev => new Set([...prev, pendingStoryUser.user_id]));
@@ -264,16 +174,18 @@ const StoryBar = () => {
   };
 
   const handleViewMyStory = () => {
-    if (myStories.length > 0 && user && profile) {
+    if (myStories.length > 0 && profile) {
       setViewingUser({
-        user_id: user.id,
-        avatar_url: profile.avatar_url,
+        user_id: profile.user_id,
+        avatar_url: profile.avatar_url ? uploadApi.getFileUrl(profile.avatar_url) : null,
         username: profile.username,
         full_name: profile.full_name,
         stories: myStories
       });
     }
   };
+
+  const avatarUrl = profile?.avatar_url ? uploadApi.getFileUrl(profile.avatar_url) : undefined;
 
   return (
     <>
@@ -292,7 +204,7 @@ const StoryBar = () => {
                   }`}
                 >
                   <Avatar className="w-full h-full border-2 border-card">
-                    <AvatarImage src={profile?.avatar_url || undefined} />
+                    <AvatarImage src={avatarUrl} />
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {profile?.full_name?.charAt(0) || 'U'}
                     </AvatarFallback>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { followApi, uploadApi } from '@/lib/api';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import PremiumBadge from '@/components/PremiumBadge';
@@ -50,60 +50,22 @@ const FollowersDialog = ({ userId, type, open, onOpenChange }: FollowersDialogPr
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      let userIds: string[] = [];
+      let data: any[] = [];
 
       if (type === 'followers') {
-        // Get users who follow this user
-        const { data } = await supabase
-          .from('followers')
-          .select('follower_id')
-          .eq('following_id', userId);
-        
-        userIds = (data || []).map(f => f.follower_id);
+        data = await followApi.getFollowers(userId);
       } else {
-        // Get users this user follows
-        const { data } = await supabase
-          .from('followers')
-          .select('following_id')
-          .eq('follower_id', userId);
-        
-        userIds = (data || []).map(f => f.following_id);
+        data = await followApi.getFollowing(userId);
       }
 
-      if (userIds.length === 0) {
-        setUsers([]);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch profiles for these users (including is_disabled status and phone)
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, username, avatar_url, is_disabled, phone')
-        .in('user_id', userIds);
-
-      // Get active user IDs for subscription lookup
-      const activeUserIds = (profiles || []).filter(p => !p.is_disabled).map(p => p.user_id);
-
-      // Fetch subscription status for active users only
-      const { data: subscriptions } = await supabase
-        .from('user_subscriptions')
-        .select('user_id, plan_type')
-        .in('user_id', activeUserIds);
-
-      const premiumUserIds = new Set(
-        (subscriptions || [])
-          .filter(s => s.plan_type === 'premium')
-          .map(s => s.user_id)
-      );
-
-      const ADMIN_PHONE = '7326937200';
-      const usersWithPremium = (profiles || []).map(profile => ({
-        ...profile,
-        isPremium: profile.is_disabled ? false : (profile.phone === ADMIN_PHONE || premiumUserIds.has(profile.user_id)),
+      // Transform URLs and add isPremium flag
+      const usersWithUrls = data.map(user => ({
+        ...user,
+        avatar_url: user.avatar_url ? uploadApi.getFileUrl(user.avatar_url) : null,
+        isPremium: false, // Premium status would come from subscription API if needed
       }));
 
-      setUsers(usersWithPremium);
+      setUsers(usersWithUrls);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {

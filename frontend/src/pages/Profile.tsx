@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { profileApi, postsApi, storiesApi, followApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import Header from '@/components/Header';
@@ -59,45 +59,40 @@ const Profile = () => {
   const fetchMyStories = async () => {
     if (!user) return;
     try {
-      const { data: stories } = await supabase
-        .from('stories')
-        .select('*')
-        .eq('user_id', user.id)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
-      
-      setMyStories(stories || []);
+      const stories = await storiesApi.getStories();
+      // Filter only my stories
+      const myStoriesFiltered = stories.filter((s: Story) => s.user_id === profile?.user_id);
+      setMyStories(myStoriesFiltered.map((s: Story) => ({
+        ...s,
+        media_url: uploadApi.getFileUrl(s.media_url)
+      })));
     } catch (error) {
       console.error('Error fetching stories:', error);
     }
   };
 
   const fetchUserData = async () => {
-    if (!user) return;
+    if (!user || !profile) return;
 
     try {
-      const { data: postsData, count: postsCount } = await supabase
-        .from('posts')
-        .select('id, image_url, created_at, media_type, thumbnail_url', { count: 'exact' })
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const postsData = await postsApi.getPosts({ userId: profile.user_id });
+      
+      // Transform URLs
+      const transformedPosts = postsData.map((p: any) => ({
+        ...p,
+        image_url: uploadApi.getFileUrl(p.image_url),
+        thumbnail_url: p.thumbnail_url ? uploadApi.getFileUrl(p.thumbnail_url) : null
+      }));
+      
+      setPosts(transformedPosts);
 
-      setPosts(postsData || []);
-
-      const { count: followersCount } = await supabase
-        .from('followers')
-        .select('*', { count: 'exact', head: true })
-        .eq('following_id', user.id);
-
-      const { count: followingCount } = await supabase
-        .from('followers')
-        .select('*', { count: 'exact', head: true })
-        .eq('follower_id', user.id);
-
+      // Fetch profile with stats
+      const profileData = await profileApi.getProfile(profile.user_id);
+      
       setStats({
-        posts: postsCount || 0,
-        followers: followersCount || 0,
-        following: followingCount || 0,
+        posts: profileData.posts_count || postsData.length,
+        followers: profileData.followers_count || 0,
+        following: profileData.following_count || 0,
       });
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -153,7 +148,7 @@ const Profile = () => {
           <Link
             key={post.id}
             to={`/post/${post.id}`}
-            state={{ userId: user?.id }}
+            state={{ userId: profile?.user_id }}
             className="aspect-square bg-muted overflow-hidden relative"
           >
             {post.media_type === 'video' ? (
@@ -188,6 +183,8 @@ const Profile = () => {
     );
   };
 
+  const avatarUrl = profile.avatar_url ? uploadApi.getFileUrl(profile.avatar_url) : undefined;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -207,7 +204,7 @@ const Profile = () => {
                 }`}
               >
                 <Avatar className="w-full h-full border-2 border-card">
-                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarImage src={avatarUrl} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
                     {profile.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
@@ -243,7 +240,7 @@ const Profile = () => {
                         <VIPCard
                           fullName={profile.full_name || ''}
                           username={profile.username || ''}
-                          avatarUrl={profile.avatar_url}
+                          avatarUrl={avatarUrl}
                           registerNo={(profile as any).register_no}
                           dob={(profile as any).dob}
                           isOwner={true}
@@ -326,16 +323,16 @@ const Profile = () => {
       <MobileNav />
 
       {/* Followers/Following Dialogs */}
-      {user && (
+      {profile && (
         <>
           <FollowersDialog
-            userId={user.id}
+            userId={profile.user_id}
             type="followers"
             open={followersOpen}
             onOpenChange={setFollowersOpen}
           />
           <FollowersDialog
-            userId={user.id}
+            userId={profile.user_id}
             type="following"
             open={followingOpen}
             onOpenChange={setFollowingOpen}
@@ -344,11 +341,11 @@ const Profile = () => {
       )}
 
       {/* Story Viewer */}
-      {showStoryViewer && user && profile && (
+      {showStoryViewer && profile && (
         <StoryViewer
           storyUser={{
-            user_id: user.id,
-            avatar_url: profile.avatar_url,
+            user_id: profile.user_id,
+            avatar_url: avatarUrl || null,
             username: profile.username,
             full_name: profile.full_name,
             stories: myStories

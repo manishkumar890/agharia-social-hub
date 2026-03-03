@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { postsApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import Header from '@/components/Header';
@@ -163,23 +163,13 @@ const CreatePost = () => {
   const handleMusicUpload = async (file: File): Promise<string | null> => {
     if (!user) return null;
     
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/audio_${Date.now()}.${fileExt}`;
-    
-    const { error } = await supabase.storage
-      .from('posts')
-      .upload(fileName, file);
-    
-    if (error) {
+    try {
+      const result = await uploadApi.uploadFile('posts', file);
+      return result.url;
+    } catch (error) {
       toast.error('Failed to upload audio');
       return null;
     }
-    
-    const { data: urlData } = supabase.storage
-      .from('posts')
-      .getPublicUrl(fileName);
-    
-    return urlData.publicUrl;
   };
 
   const clearMedia = () => {
@@ -211,84 +201,27 @@ const CreatePost = () => {
     try {
       // Handle multi-image carousel post (premium only)
       if (isPremium && multiImages.length > 0) {
-        const uploadedUrls: string[] = [];
-        
         // Compress all images before upload for faster loading
         const compressedImages = await compressImages(multiImages, 1920, 0.85);
         
-        for (const imageFile of compressedImages) {
-          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('posts')
-            .upload(fileName, imageFile);
-
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = supabase.storage
-            .from('posts')
-            .getPublicUrl(fileName);
-
-          uploadedUrls.push(urlData.publicUrl);
-        }
-
-        const { error } = await supabase.from('posts').insert({
-          user_id: user.id,
-          image_url: uploadedUrls[0], // First image as main
-          image_urls: uploadedUrls,
-          caption: caption.trim() || null,
-          location: location.trim() || null,
+        await postsApi.createPost({
+          caption: caption.trim() || undefined,
+          location: location.trim() || undefined,
           media_type: 'image',
-          background_audio_url: selectedMusic?.url || null,
           comments_enabled: commentsEnabled,
+          files: compressedImages,
         });
-
-        if (error) throw error;
       } else {
         // Handle single image/video post
-        const fileExt = mediaFile!.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const filesToUpload = mediaFile ? [mediaFile] : [];
         
-        const { error: uploadError } = await supabase.storage
-          .from('posts')
-          .upload(fileName, mediaFile!);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('posts')
-          .getPublicUrl(fileName);
-
-        const mediaUrl = urlData.publicUrl;
-
-        // Upload thumbnail for videos
-        let thumbnailUrl = null;
-        if (mediaType === 'video' && thumbnailBlob) {
-          const thumbFileName = `${user.id}/${Date.now()}_thumb.jpg`;
-          const { error: thumbError } = await supabase.storage
-            .from('posts')
-            .upload(thumbFileName, thumbnailBlob);
-
-          if (!thumbError) {
-            const { data: thumbUrlData } = supabase.storage
-              .from('posts')
-              .getPublicUrl(thumbFileName);
-            thumbnailUrl = thumbUrlData.publicUrl;
-          }
-        }
-
-        const { error } = await supabase.from('posts').insert({
-          user_id: user.id,
-          image_url: mediaUrl,
-          caption: caption.trim() || null,
-          location: location.trim() || null,
+        await postsApi.createPost({
+          caption: caption.trim() || undefined,
+          location: location.trim() || undefined,
           media_type: mediaType,
-          thumbnail_url: thumbnailUrl,
-          background_audio_url: mediaType === 'image' ? (selectedMusic?.url || null) : null,
           comments_enabled: commentsEnabled,
+          files: filesToUpload,
         });
-
-        if (error) throw error;
       }
 
       toast.success('Post created successfully!');

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, Upload, Loader2, Crown, Image, Video } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { storiesApi, uploadApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ interface StoryUploadProps {
 }
 
 const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { isPremium } = useSubscription();
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -120,23 +120,13 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
   const handleAudioUpload = async (file: File): Promise<string | null> => {
     if (!user) return null;
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/audio_${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('stories')
-      .upload(fileName, file);
-
-    if (uploadError) {
-      console.error('Error uploading audio:', uploadError);
+    try {
+      const result = await uploadApi.uploadFile('stories', file);
+      return result.url;
+    } catch (error) {
+      console.error('Error uploading audio:', error);
       return null;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('stories')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
   };
 
   const clearMedia = () => {
@@ -151,62 +141,16 @@ const StoryUpload = ({ onClose, onSuccess }: StoryUploadProps) => {
     setIsUploading(true);
 
     try {
-      // Upload media to storage
-      const fileExt = mediaFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('stories')
-        .upload(fileName, mediaFile);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('stories')
-        .getPublicUrl(fileName);
-
-      // Calculate expiry time based on selection
-      const expiryHours = selectedExpiry;
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + expiryHours);
-
-      // Create story record with background audio if selected
-      // For images: 5s without music, or music duration (capped) with music
-      // For videos: use video duration
+      // Calculate story duration
       let storyDuration = defaultImageDuration;
       if (mediaType === 'video') {
         storyDuration = maxVideoDuration;
       } else if (selectedMusic?.duration) {
-        // Cap music duration based on subscription
         storyDuration = Math.min(selectedMusic.duration, maxMusicDuration);
       }
-      
-      const storyData: {
-        user_id: string;
-        media_url: string;
-        media_type: string;
-        duration: number;
-        expires_at: string;
-        background_audio_url?: string;
-      } = {
-        user_id: user.id,
-        media_url: publicUrl,
-        media_type: mediaType,
-        duration: storyDuration,
-        expires_at: expiresAt.toISOString()
-      };
 
-      // Add background audio URL for image stories
-      if (mediaType === 'image' && selectedMusic) {
-        storyData.background_audio_url = selectedMusic.url;
-      }
-
-      const { error: insertError } = await supabase
-        .from('stories')
-        .insert(storyData);
-
-      if (insertError) throw insertError;
+      // Upload story using the API
+      await storiesApi.createStory(mediaFile, mediaType, storyDuration);
 
       toast.success('Story uploaded!');
       onSuccess();
