@@ -14,7 +14,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Backend configuration
-BASE_URL = "https://agharia-hub.preview.emergentagent.com"
+BASE_URL = "https://agharia-migration.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 class Colors:
